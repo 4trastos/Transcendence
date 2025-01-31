@@ -114,3 +114,141 @@ Cuando tus computadoras en los clústeres se ejecutan en Linux, utilizarás Dock
 
 Dependiendo del proyecto, tu situación y el contexto, existen varios métodos alternativos: Docker en una máquina virtual, reconstruir tu contenedor después de tus cambios, crear tu propia imagen de Docker con root como único UID.
 
+---
+
+#### III.3 Juego
+
+El propósito principal de este sitio web es jugar Pong contra otros jugadores.
+
+- Por lo tanto, los usuarios deben tener la capacidad de participar en un juego de Pong en vivo contra otro jugador directamente en el sitio web. Ambos jugadores usarán el mismo teclado. El módulo Jugadores Remotos puede mejorar esta funcionalidad con jugadores remotos.
+- Un jugador debe poder jugar contra otro jugador, pero también debe ser posible proponer un torneo. Este torneo consistirá en múltiples jugadores que pueden turnarse para jugar entre sí. Tienes flexibilidad en cómo implementas el torneo, pero debe mostrar claramente quién juega contra quién y el orden de los jugadores.
+- Se requiere un sistema de registro: al comienzo de un torneo, cada jugador debe ingresar su nombre de alias. Los alias se restablecerán cuando comience un nuevo torneo. Sin embargo, este requisito puede modificarse utilizando el módulo de Gestión de Usuarios Estándar.
+- Debe haber un sistema de emparejamiento: el sistema de torneos organiza el emparejamiento de los participantes y anuncia la próxima pelea.
+- Todos los jugadores deben adherirse a las mismas reglas, lo que incluye tener la misma velocidad de paleta. Este requisito también se aplica cuando se usa IA; la IA debe exhibir la misma velocidad que un jugador regular.
+- El juego en sí debe desarrollarse de acuerdo con las restricciones predeterminadas del frontend (como se describe arriba), o puedes optar por utilizar el módulo FrontEnd, o tienes la opción de anularlo con el módulo Gráficos. Si bien la estética visual puede variar, aún debe capturar la esencia del Pong original (1972).
+
+- El uso de bibliotecas o herramientas que proporcionen una solución completa inmediata para una característica global o un módulo está prohibido.
+- Cualquier instrucción directa sobre el uso (puede, debe, no puede) de una biblioteca o herramienta de terceros debe seguirse.
+- El uso de una pequeña biblioteca o herramienta que resuelva una tarea simple y única, representando un subcomponente de una característica global o módulo, está permitido.
+- Durante la evaluación, el equipo justificará cualquier uso de biblioteca o herramienta que no esté explícitamente aprobado por el tema.
+- Durante la evaluación, el evaluador tomará su responsabilidad y definirá si el uso de una biblioteca o herramienta específica es legítimo (y permitido) o casi resuelve una característica o módulo completo (y prohibido).
+
+---
+
+#### III.4 Preocupaciones de Seguridad
+
+Para crear un sitio web básico funcional, aquí hay algunas preocupaciones de seguridad que debes abordar:
+
+- Cualquier contraseña almacenada en tu base de datos, si es aplicable, debe estar hasheada.
+- Tu sitio web debe estar protegido contra inyecciones SQL/XSS.
+- Si tienes un backend o cualquier otra característica, es obligatorio habilitar una conexión HTTPS para todos los aspectos (Utiliza `wss` en lugar de `ws`...).
+- Debes implementar alguna forma de validación para formularios y cualquier entrada de usuario, ya sea dentro de la página base si no se usa un backend o en el lado del servidor si se emplea un backend.
+- Independientemente de si decides implementar el módulo de Seguridad JWT con 2FA, es crucial priorizar la seguridad de tu sitio web. Por ejemplo, si optas por crear una API, asegúrate de que tus rutas estén protegidas. Recuerda, incluso si decides no usar tokens JWT, asegurar el sitio sigue siendo esencial.
+
+Asegúrate de usar un algoritmo fuerte de hashing de contraseñas.
+
+Por razones obvias de seguridad, cualquier credencial, clave de API, variables de entorno, etc., deben guardarse localmente en un archivo `.env` e ignorarse por git. Las credenciales almacenadas públicamente te llevarán directamente a un fracaso del proyecto.
+
+---
+
+## Capítulo IV
+
+### Módulos
+
+¡Ahora que has completado el 25% del proyecto, felicidades!
+
+Con un sitio web básico funcional en su lugar, el siguiente paso es elegir módulos para mejoras adicionales.
+
+Para alcanzar el 100% de finalización del proyecto, se requiere un mínimo de **7 módulos principales**. Es crucial revisar cuidadosamente cada módulo, ya que puede requerir modificaciones en tu sitio web base. Por lo tanto, recomendamos encarecidamente leer todo este tema a fondo.
+
+- El uso de bibliotecas o herramientas que proporcionen una solución completa inmediata para una característica global o un módulo está prohibido.
+- Cualquier instrucción directa sobre el uso (puede, debe, no puede) de una biblioteca o herramienta de terceros debe seguirse.
+- El uso de una pequeña biblioteca o herramienta que resuelva una tarea simple y única, representando un subcomponente de una característica global o módulo, está permitido.
+- Durante la evaluación, el equipo justificará cualquier uso de biblioteca o herramienta que no esté explícitamente aprobado por el tema.
+- Durante la evaluación, el evaluador tomará su responsabilidad y definirá si el uso de una biblioteca o herramienta específica es legítimo (y permitido) o casi resuelve una característica o módulo completo (y prohibido).
+
+---
+
+Dos Módulos Menores equivalen a un Módulo Principal.
+
+---
+
+#### IV.1 Visión General
+
+- **Web**
+  - **Módulo Principal**: Usar un Framework como backend.
+  - **Módulo Menor**: Usar un framework o kit de herramientas de front-end.
+  - **Módulo Menor**: Usar una base de datos para el backend.
+  - **Módulo Principal**: Almacenar la puntuación de un torneo en la Blockchain.
+
+- **Gestión de Usuarios**
+  - **Módulo Principal**: Gestión de usuarios estándar, autenticación, usuarios a través de torneos.
+  - **Módulo Principal**: Implementar una autenticación remota.
+
+- **Jugabilidad y Experiencia de Usuario**
+  - **Módulo Principal**: Jugadores remotos.
+  - **Módulo Principal**: Multijugador (más de 2 en el mismo juego).
+  - **Módulo Principal**: Agregar otro juego con historial de usuario y emparejamiento.
+  - **Módulo Menor**: Opciones de personalización del juego.
+  - **Módulo Principal**: Chat en vivo.
+
+- **AI-Algoritmo**
+  - **Módulo Principal**: Introducir un oponente de IA.
+  - **Módulo Menor**: Paneles de estadísticas de usuario y juego.
+
+- **Ciberseguridad**
+  - **Módulo Principal**: Implementar WAF/ModSecurity con Configuración Reforzada y HashiCorp Vault para la Gestión de Secretos.
+  - **Módulo Menor**: Opciones de Cumplimiento de GDPR con Anonimización de Usuarios, Gestión de Datos Locales y Eliminación de Cuentas.
+  - **Módulo Principal**: Implementar Autenticación de Dos Factores (2FA) y JWT.
+
+- **Devops**
+  - **Módulo Principal**: Configuración de Infraestructura para la Gestión de Registros.
+  - **Módulo Menor**: Sistema de monitoreo.
+  - **Módulo Principal**: Diseñar el Backend como Microservicios.
+
+- **Gráficos**
+  - **Módulo Principal**: Uso de técnicas avanzadas de 3D.
+
+- **Accesibilidad**
+  - **Módulo Menor**: Soporte en todos los dispositivos.
+  - **Módulo Menor**: Ampliar la compatibilidad del navegador.
+  - **Módulo Menor**: Soporte de múltiples idiomas.
+  - **Módulo Menor**: Agregar accesibilidad para usuarios con discapacidad visual.
+  - **Módulo Menor**: Integración de Renderizado del Lado del Servidor (SSR).
+
+- **Pong del Lado del Servidor**
+  - **Módulo Principal**: Reemplazar el Pong básico con Pong del lado del servidor e implementar una API.
+  - **Módulo Principal**: Habilitar el juego de Pong a través de CLI contra usuarios web con integración de API.
+
+---
+
+## Capítulo V
+
+### Parte de Bonificación
+
+Para este proyecto, la sección de bonificación está diseñada para ser sencilla. Se requiere que incluyas más módulos.
+
+- Se otorgarán cinco puntos por cada **módulo menor**.
+- Se otorgarán diez puntos por cada **módulo principal**.
+
+---
+
+La parte de bonificación solo se evaluará si la parte obligatoria es PERFECTA. Perfecto significa que la parte obligatoria se ha realizado íntegramente y funciona sin fallos. Si no has pasado TODOS los requisitos obligatorios, tu parte de bonificación no será evaluada en absoluto.
+
+---
+
+## Capítulo VI
+
+### Entrega y Evaluación por Pares
+
+Entrega tu tarea en tu repositorio de Git como de costumbre. Solo el trabajo dentro de tu repositorio será evaluado durante la defensa. No dudes en verificar dos veces los nombres de tus archivos para asegurarte de que sean correctos.
+
+- El uso de bibliotecas o herramientas que proporcionen una solución completa inmediata para una característica global o un módulo está prohibido.
+- Cualquier instrucción directa sobre el uso (puede, debe, no puede) de una biblioteca o herramienta de terceros debe seguirse.
+- El uso de una pequeña biblioteca o herramienta que resuelva una tarea simple y única, representando un subcomponente de una característica global o módulo, está permitido.
+- Durante la evaluación, el equipo justificará cualquier uso de biblioteca o herramienta que no esté explícitamente aprobado por el tema.
+- Durante la evaluación, el evaluador tomará su responsabilidad y definirá si el uso de una biblioteca o herramienta específica es legítimo (y permitido) o casi resuelve una característica o módulo completo (y prohibido).
+
+---
+
+
