@@ -1,43 +1,36 @@
-DATABASE_YAML = ./kuber/database-deployment.yaml
-FRONTEND_YAML = ./kuber/frontend-deployment.yaml
-PHP_YAML = ./kuber/php-deployment.yaml
-BACKEND_YAML = ./kuber/backend-deployment.yaml
-BLOCKCHAIN_YAML = ./kuber/blockchain-deployment.yaml
+all: setup
+	@make setup
+	@docker compose -f ./src/docker-compose.yml up -d --build
 
-all: apply_database apply_frontend apply_php apply_backend apply_avalanche check_pods
-
-apply_database:
-	kubectl apply -f $(DATABASE_YAML)
-
-apply_frontend:
-	kubectl apply -f $(FRONTEND_YAML)
-
-apply_php:
-	kubectl apply -f $(PHP_YAML)
-
-apply_backend:
-	kubectl apply -f $(BACKEND_YAML)
-
-apply_blockchain:
-	kubectl apply -f $(BLOCKCHAIN_YAML)
-
-# Comprobar si los pods están en estado 'Running'
-check_pods:
-	@if kubectl get pods | grep -q 'Running'; then echo "Todos los pods están corriendo"; else echo "Algunos pods no están corriendo correctamente"; fi
+down:
+	@docker compose -f ./src/docker-compose.yml down -v
 
 clean:
-	kubectl delete -f $(DATABASE_YAML) || true
-	kubectl delete -f $(FRONTEND_YAML) || true
-	kubectl delete -f $(PHP_YAML) || true
-	kubectl delete -f $(BACKEND_YAML) || true
-	kubectl delete -f $(BLOCKCHAIN_YAML) || true
+	sudo rm -rf /home/davgalle/data/sqlite/*
+	sudo rm -rf /home/davgalle/data/app/*
+	sudo rm -rf /home/davgalle/data/php/*
+	sudo rm -rf /home/davgalle/data/frontend/*
+	sudo rm -rf /home/davgalle/data/blockchain/*
+	sudo rm -rf /home/davgalle/data/security/*
+	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
+	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
+	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi
+	@if docker volume ls -q | grep -q .; then docker volume rm $$(docker volume ls -q); fi
+	@if docker network ls --filter name=transcendence -q | grep -q .; then docker network rm transcendence; fi
 
-# Limpiar los Persistent Volume Claims
-clean_pv:
-	kubectl delete pvc --all
+setup:
+	@mkdir -p /home/davgalle/data
+	@mkdir -p /home/davgalle/data/sqlite
+	@mkdir -p /home/davgalle/data/app
+	@mkdir -p /home/davgalle/data/php
+	@mkdir -p /home/davgalle/data/frontend
+	@mkdir -p /home/davgalle/data/blockchain
+	@mkdir -p /home/davgalle/data/security
 
-# Acceder a la base de datos SQLite
-access_database:
-	kubectl exec -it $(shell kubectl get pod -l app=sqlite -o jsonpath="{.items[0].metadata.name}") -- sqlite3 /data/sqlite/mydb.db "SELECT * FROM users;"
+#access_data:
+#	docker exec -it sqlite3 sqlite -u root -p -e "USE wordpress; SELECT * FROM wp_users;"
 
-.PHONY: all check_pods clean clean_pv access_database
+logs:
+  docker compose -f ./src/docker-compose.yml logs -f
+
+.PHONY: all down clean setup
