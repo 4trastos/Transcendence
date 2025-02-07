@@ -17,7 +17,7 @@ services:
   backend:    # Backend (Node.js API)
     build: dockers/backend/.
     container_name: app
-    image: node:18-alpine
+    #image: node:18-alpine
     working_dir: /usr/src/app
     volumes:
       - backend_data:/usr/src/app/data  # Para los datos persistentes
@@ -55,7 +55,7 @@ services:
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
     container_name: blockchain
-    image: avaplatform/avalanchego
+    image: avaplatform/avalanchego:latest
     volumes:
       - blockchain_data:/root/.avalanchego
     ports:
@@ -67,13 +67,13 @@ services:
   security:    # Cyberseguridad (OWASP ZAP o similar)
     build: dockers/security/.
     container_name: security
-    image: iniweb/owasp-zap2docker-stable
+    image: softwaresecurityproject/zap-stable
     volumes:
       - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
     ports:
       - "8081:8081"
     networks:
-      - transcendence   # Puerto para interfaz web de ZAP
+      - transcendence
 
 volumes:
   sqlite_data:
@@ -81,7 +81,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "Users/usuario/data/sqlite"
+      device: "/Users/usuario/data/sqlite"
       o: bind
   
   backend_data:
@@ -89,7 +89,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "Users/usuario/data/app"
+      device: "/Users/usuario/data/app"
       o: bind
 
   php_data:
@@ -97,7 +97,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "Users/usuario/data/php"
+      device: "/Users/usuario/data/php"
       o: bind
   
   frontend_data:
@@ -105,7 +105,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "Users/usuario/data/frontend"
+      device: "/Users/usuario/data/frontend"
       o: bind
 
   blockchain_data:
@@ -113,7 +113,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "Users/usuario/data/blockchain"
+      device: "/Users/usuario/data/blockchain"
       o: bind
 
   # zap_data:
@@ -121,5 +121,5 @@ volumes:
   #   driver: local
   #   driver_opts:
   #     type: none
-  #     device: "Users/usuario/data/security"
+  #     device: "/Users/usuario/data/security"
   #     o: bind

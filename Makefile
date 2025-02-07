@@ -31,6 +31,6 @@ setup:
 #	docker exec -it sqlite3 sqlite -u root -p -e "USE wordpress; SELECT * FROM wp_users;"
 
 logs:
-	docker compose -f ./src/docker-compose.yml logs -f
+	@docker compose -f ./src/docker-compose.yml logs -f
 
 .PHONY: all down clean setup

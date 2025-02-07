@@ -9,7 +9,7 @@ RUN npm install --production
 COPY . .
 
 # Crear la carpeta para la base de datos SQLite dentro del contenedor
-RUN mkdir -p /usr/src/app/data
+#RUN mkdir -p /usr/src/app/data
 
 EXPOSE 3000
 
