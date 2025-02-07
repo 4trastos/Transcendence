@@ -1,9 +1,7 @@
-version: '3.8'
-
 networks:
   transcendence:
     name: transcendence
-    drivers: bridge
+    driver: bridge
 
 services:
   sqlite:   # Base de datos (SQLite)
@@ -17,17 +15,19 @@ services:
       - transcendence
 
   backend:    # Backend (Node.js API)
-    build: dockers/app/.
+    build: dockers/backend/.
     container_name: app
     image: node:18-alpine
     working_dir: /usr/src/app
     volumes:
-      - backend_data:/usr/src/app
+      - backend_data:/usr/src/app/data  # Para los datos persistentes
+    # - dockers/backend/data:/usr/src/app/data/.  # Montar la carpeta de datos
+    # - ./src:/usr/src/app
     command: npm start
     ports:
       - "3000:3000"
-    depends_on:
-      - sqlite
+    #depends_on:
+    #  - sqlite
     networks:
       - transcendence
 
@@ -64,10 +64,12 @@ services:
     networks:
       - transcendence
 
-  zap:    # Cyberseguridad (OWASP ZAP o similar)
+  security:    # Cyberseguridad (OWASP ZAP o similar)
     build: dockers/security/.
     container_name: security
-    image: owasp/zap2docker-stable
+    image: iniweb/owasp-zap2docker-stable
+    volumes:
+      - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
     ports:
       - "8081:8081"
     networks:
@@ -79,7 +81,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "home/davgalle/data/sqlite"
+      device: "Users/usuario/data/sqlite"
       o: bind
   
   backend_data:
@@ -87,7 +89,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "home/davgalle/data/app"
+      device: "Users/usuario/data/app"
       o: bind
 
   php_data:
@@ -95,7 +97,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "home/davgalle/data/php"
+      device: "Users/usuario/data/php"
       o: bind
   
   frontend_data:
@@ -103,7 +105,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "home/davgalle/data/frontend"
+      device: "Users/usuario/data/frontend"
       o: bind
 
   blockchain_data:
@@ -111,13 +113,13 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "home/davgalle/data/blockchain"
+      device: "Users/usuario/data/blockchain"
       o: bind
 
-  zap_data:
-    name: zap_data
-    driver: local
-    driver_opts:
-      type: none
-      device: "home/davgalle/data/security"
-      o: bind
+  # zap_data:
+  #   name: zap_data
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: "Users/usuario/data/security"
+  #     o: bind
