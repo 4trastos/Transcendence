@@ -61,6 +61,7 @@ services:
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
+    command: ["/avalanchego/avalanchego"]
     networks:
       - transcendence
 
