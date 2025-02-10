@@ -13,6 +13,7 @@ services:
     command: tail -f /dev/null  # Mantener el contenedor en ejecución
     networks:
       - transcendence
+    restart: always
 
   backend:    # Backend (Node.js API)
     build: dockers/backend/.
@@ -26,19 +27,26 @@ services:
     command: npm start
     ports:
       - "3000:3000"
-    #depends_on:
-    #  - sqlite
+    depends_on:
+      - sqlite
+      - avalanche
     networks:
       - transcendence
+    restart: unless-stopped
 
   php:    # Servidor PHP (para componentes que aún lo requieran)
     build: dockers/php/.
     container_name: php
-    image: php:8.1-fpm
+    image: php:8.1-apache
+    #volumes:
+    #  - php_data:/var/www/html
     volumes:
-      - php_data:/var/www/html
+    - ./src/dockers/php:/var/www/html
+    ports:
+      - "8080:80"
     networks:
       - transcendence
+    restart: always
 
   frontend:   # Frontend (TypeScript + Tailwind)
     build: dockers/frontend/.
@@ -48,9 +56,12 @@ services:
       - frontend_data:/usr/src/app
     command: npm run dev
     ports:
-      - "8080:8080" # Puerto donde se servirá el frontend
+      - "3001:3001" # Puerto donde se servirá el frontend
     networks:
       - transcendence
+    restart: unless-stopped
+    depends_on:
+      - backend
 
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
@@ -64,6 +75,7 @@ services:
     command: ["/avalanchego/avalanchego"]
     networks:
       - transcendence
+    restart: unless-stopped
 
   security:    # Cyberseguridad (OWASP ZAP o similar)
     build: dockers/security/.
@@ -75,6 +87,7 @@ services:
       - "8081:8081"
     networks:
       - transcendence
+    restart: unless-stopped
 
 volumes:
   sqlite_data:
@@ -93,13 +106,6 @@ volumes:
       device: "/Users/usuario/data/app"
       o: bind
 
-  php_data:
-    name: php_data
-    driver: local
-    driver_opts:
-      type: none
-      device: "/Users/usuario/data/php"
-      o: bind
   
   frontend_data:
     name: frontend_data
@@ -117,6 +123,15 @@ volumes:
       device: "/Users/usuario/data/blockchain"
       o: bind
 
+  #php_data:
+  #  name: php_data
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    device: "/Users/usuario/data/php"
+  #    o: bind
+
+      
   # zap_data:
   #   name: zap_data
   #   driver: local
