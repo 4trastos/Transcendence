@@ -7,45 +7,45 @@ kill_docker:
 
 restart_if_needed:
 	@if [ ! -d "/Users/usuario/data" ]; then \
-		echo "Directory /Users/usuario/data not found. Checking Docker status..."; \
+		echo "No se encuentra el directorio /Users/usuario/data. Comprobando el estado de Docker..."; \
 		if docker ps -q > /dev/null; then \
-			echo "Docker is running. Stopping Docker..."; \
+			echo "Docker se está ejecutando. Deteniendo Docker..."; \
 			$(MAKE) kill_docker; \
 		else \
-			echo "Docker is not running. No need to stop Docker."; \
+			echo "Docker no se está ejecutando. No es necesario detenerlo."; \
 		fi; \
 		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Running on macOS. Starting Docker..."; \
+			echo "Ejecutándose en macOS. Iniciando Docker..."; \
 			open /Applications/Docker.app; \
 		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Running on Linux. Starting Docker..."; \
+			echo "Ejecutando en Linux. Iniciando Docker..."; \
 			sudo systemctl start docker; \
 		fi; \
-		echo "Waiting for Docker to start..."; \
+		echo "Esperando que Docker se inicie..."; \
 		sleep 10; \
 		while ! docker ps > /dev/null 2>&1; do \
-			echo "Waiting for Docker to be ready..."; \
+			echo "Esperando que Docker esté listo..."; \
 			sleep 5; \
 		done; \
-		echo "Docker is ready."; \
+		echo "Docker está listo."; \
 	elif ! docker ps -q > /dev/null; then \
-		echo "Docker is not running. Starting Docker..."; \
+		echo "Docker no se está ejecutando. Iniciando Docker..."; \
 		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Running on macOS. Starting Docker..."; \
+			echo "Ejecutándose en macOS. Iniciando Docker..."; \
 			open /Applications/Docker.app; \
 		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Running on Linux. Starting Docker..."; \
+			echo "Ejecutando en Linux. Iniciando Docker..."; \
 			sudo systemctl start docker; \
 		fi; \
-		echo "Waiting for Docker to start..."; \
+		echo "Esperando que Docker se inicie..."; \
 		sleep 10; \
 		while ! docker ps > /dev/null 2>&1; do \
-			echo "Waiting for Docker to be ready..."; \
+			echo "Esperando que Docker esté listo..."; \
 			sleep 5; \
 		done; \
-		echo "Docker is ready."; \
+		echo "Docker está listo."; \
 	else \
-		echo "Directory /Users/usuario/data exists. No need to restart Docker."; \
+		echo "El directorio /Users/usuario/data existe. No es necesario reiniciar Docker."; \
 	fi
 
 
@@ -83,7 +83,17 @@ delete:
 		echo "No transcendence volumes to remove."; \
 	fi
 
-logs:
-	@docker compose -f ./src/docker-compose.yml logs -f
+ps:
+	@docker compose -f ./src/docker-compose.yml ps -a
 
-.PHONY: all down clean setup delete logs
+logs:
+	@docker compose -f ./src/docker-compose.yml logs
+
+logs_service:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Por favor, especifica un servicio. Uso: make logs_service SERVICE=<nombre_del_servicio>"; \
+	else \
+		docker compose -f ./src/docker-compose.yml logs $(SERVICE); \
+	fi
+
+.PHONY: all down clean setup delete logs logs_service ps
