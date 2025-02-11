@@ -7,7 +7,7 @@ services:
   sqlite:   # Base de datos (SQLite)
     build: dockers/sqlite/.
     container_name: sqlite
-    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos (opcional)
+    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
       - sqlite_data:/var/lib/sqlite
     command: tail -f /dev/null  # Mantener el contenedor en ejecución
@@ -21,7 +21,7 @@ services:
     #image: node:18-alpine
     working_dir: /usr/src/app
     volumes:
-      - backend_data:/usr/src/app/data  # Para los datos persistentes
+      - backend_data:/usr/src/app/data
     # - dockers/backend/data:/usr/src/app/data/.  # Montar la carpeta de datos
     # - ./src:/usr/src/app
     command: npm start
@@ -34,18 +34,18 @@ services:
       - transcendence
     restart: unless-stopped
 
-  php:    # Servidor PHP (para componentes que aún lo requieran)
+  php:    # Servidor PHP
     build: dockers/php/.
     container_name: php
     image: php:8.1-apache
-    #volumes:
-    #  - php_data:/var/www/html
     volumes:
-    - ./src/dockers/php:/var/www/html
+      - php_data:/var/www/html
     ports:
       - "8080:80"
     networks:
       - transcendence
+    depends_on:
+      - backend
     restart: always
 
   frontend:   # Frontend (TypeScript + Tailwind)
@@ -123,13 +123,13 @@ volumes:
       device: "/Users/usuario/data/blockchain"
       o: bind
 
-  #php_data:
-  #  name: php_data
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    device: "/Users/usuario/data/php"
-  #    o: bind
+  php_data:
+    name: php_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "/Users/usuario/data/php"
+      o: bind
 
       
   # zap_data:

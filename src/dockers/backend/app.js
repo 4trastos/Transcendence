@@ -23,6 +23,11 @@ db.exec(initSQL, (err) => {
     }
 });
 
+// Ruta de prueba
+app.get('/api/test', (req, res) => {
+    res.json({ message: '¡Conexión con el backend exitosa!' });
+});
+
 // Ruta básica para probar el servidor
 app.get('/', (req, res) => {
     res.send('¡Hola, mundo desde Node.js!');
