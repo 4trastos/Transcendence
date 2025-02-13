@@ -56,7 +56,7 @@ services:
       - frontend_data:/usr/src/app
     command: npm run dev
     ports:
-      - "3001:3001" # Puerto donde se servirá el frontend
+      - "3001:3001"
     networks:
       - transcendence
     restart: unless-stopped
