@@ -95,7 +95,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/Users/usuario/data/sqlite"
+      device: "$HOME/goinfre/data/sqlite"
       o: bind
   
   backend_data:
@@ -103,7 +103,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/Users/usuario/data/app"
+      device: "$HOME/goinfre/data/app"
       o: bind
 
   
@@ -112,7 +112,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/Users/usuario/data/frontend"
+      device: "$HOME/goinfre/data/frontend"
       o: bind
 
   blockchain_data:
@@ -120,7 +120,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/Users/usuario/data/blockchain"
+      device: "$HOME/goinfre/data/blockchain"
       o: bind
 
   php_data:
@@ -128,7 +128,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/Users/usuario/data/php"
+      device: "$HOME/goinfre/data/php"
       o: bind
 
       

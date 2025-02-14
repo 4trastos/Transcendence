@@ -6,8 +6,8 @@ kill_docker:
 	@open /Applications/Docker.app
 
 restart_if_needed:
-	@if [ ! -d "/Users/usuario/data" ]; then \
-		echo "No se encuentra el directorio /Users/usuario/data. Comprobando el estado de Docker..."; \
+	@if [ ! -d "$(HOME)/goinfre/data" ]; then \
+		echo "No se encuentra el directorio $(HOME)/goinfre/data. Comprobando el estado de Docker..."; \
 		if docker ps -q > /dev/null; then \
 			echo "Docker se está ejecutando. Deteniendo Docker..."; \
 			$(MAKE) kill_docker; \
@@ -45,7 +45,7 @@ restart_if_needed:
 		done; \
 		echo "Docker está listo."; \
 	else \
-		echo "El directorio /Users/usuario/data existe. No es necesario reiniciar Docker."; \
+		echo "El directorio $(HOME)/goinfre/data existe. No es necesario reiniciar Docker."; \
 	fi
 
 
@@ -53,13 +53,13 @@ down:
 	@docker compose -f ./src/docker-compose.yml down -v
 
 clean:
-	sudo rm -rf /Users/usuario/data/sqlite/*
-	sudo rm -rf /Users/usuario/data/app/*
-	sudo rm -rf /Users/usuario/data/php/*
-	sudo rm -rf /Users/usuario/data/frontend/*
-	sudo rm -rf /Users/usuario/data/blockchain/*
-	sudo rm -rf /Users/usuario/data/security/*
-	sudo rm -rf /Users/usuario/data
+	rm -rf $(HOME)/goinfre/data/sqlite/*
+	rm -rf $(HOME)/goinfre/data/app/*
+	rm -rf $(HOME)/goinfre/data/php/*
+	rm -rf $(HOME)/goinfre/data/frontend/*
+	rm -rf $(HOME)/goinfre/data/blockchain/*
+	rm -rf $(HOME)/goinfre/data/security/*
+	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
 	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi
@@ -67,13 +67,14 @@ clean:
 	@if docker network ls --filter name=transcendence -q | grep -q .; then docker network rm transcendence; fi
 
 setup:
-	@mkdir -p /Users/usuario/data
-	@mkdir -p /Users/usuario/data/sqlite
-	@mkdir -p /Users/usuario/data/app
-	@mkdir -p /Users/usuario/data/php
-	@mkdir -p /Users/usuario/data/frontend
-	@mkdir -p /Users/usuario/data/blockchain
-	@mkdir -p /Users/usuario/data/security
+	@mkdir -p $(HOME)/goinfre
+	@mkdir -p $(HOME)/goinfre/data
+	@mkdir -p $(HOME)/goinfre/data/sqlite
+	@mkdir -p $(HOME)/goinfre/data/app
+	@mkdir -p $(HOME)/goinfre/data/php
+	@mkdir -p $(HOME)/goinfre/data/frontend
+	@mkdir -p $(HOME)/goinfre/data/blockchain
+	@mkdir -p $(HOME)/goinfre/data/security
 
 delete:
 	@docker compose -f ./src/docker-compose.yml down -v
