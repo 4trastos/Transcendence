@@ -66,13 +66,16 @@ services:
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
     container_name: blockchain
-    image: avaplatform/avalanchego:latest
+    image: alpine:latest
     volumes:
-      - blockchain_data:/root/.avalanchego
+      - blockchain_data:/avalanchego
+      - ./dockers/blockchain/config.json:/avalanchego/config.json
+    environment:
+      - AVALANCHEGO_DATA_DIR=/avalanchego
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
-    command: ["/avalanchego/avalanchego"]
+    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"] 
     networks:
       - transcendence
     restart: unless-stopped
@@ -83,6 +86,7 @@ services:
     image: softwaresecurityproject/zap-stable
     volumes:
       - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
+      - zap_data:/zap/wrk
     ports:
       - "8081:8081"
     networks:
@@ -130,12 +134,11 @@ volumes:
       type: none
       device: "$HOME/goinfre/data/php"
       o: bind
-
-      
-  # zap_data:
-  #   name: zap_data
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: "/Users/usuario/data/security"
-  #     o: bind
+    
+  zap_data:
+     name: zap_data
+     driver: local
+     driver_opts:
+       type: none
+       device: "$HOME/goinfre/data/security"
+       o: bind

@@ -1,1 +1,1 @@
-console.log('Hola desde TypeScript!');
+console.log("Frontend is running!");

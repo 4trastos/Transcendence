@@ -3,7 +3,7 @@ FROM softwaresecurityproject/zap-stable
 RUN mkdir -p /zap/wrk/
 
 # Copiar el script de escaneo
-COPY tools/zap_rules/zap_scan.sh /zap/wrk/zap_scan.sh
+COPY tools/zap_scan.sh /zap/wrk/zap_scan.sh
 RUN ls -l /zap/wrk/
 
 # Dar permisos de ejecución al script dentro del contenedor
