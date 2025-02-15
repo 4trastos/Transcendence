@@ -2,7 +2,8 @@ all: restart_if_needed setup
 	@docker compose -f ./src/docker-compose.yml up -d --build
 
 kill_docker:
-	@./script/kill_docker.sh
+	@chmod +x ./script/kill_docker.sh 
+	@./script/kill_docker.sh 
 	@open /Applications/Docker.app
 
 restart_if_needed:
