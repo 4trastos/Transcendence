@@ -1,0 +1,18 @@
+{
+    "network-id": "local",
+    "http-host": "0.0.0.0",
+    "http-port": 9650,
+    "staking-enabled": false,
+    "bootstrap-ips": "18.158.15.12:9651,18.162.161.230:9651,122.248.200.212:9651,3.106.25.139:9651,3.21.38.33:9651",
+    "bootstrap-ids": "NodeID-kZNuQMHhydefgnwjYX1fhHMpRNAs9my1,NodeID-QKGoUvqcgormCoMj6yPw9isY7DX9H4mdd,NodeID-FGRoKnyYKFWYFMb6Xbocf4hKuyCBENgWM,NodeID-HsBEx3L71EHWSXaE6gvk2VsNntFEZsxqc,NodeID-A7GwTSd47AcDVqpTVj7YtxtjHREM33EJw",
+    "db-dir": "/root/.avalanchego/db",
+    "log-dir": "/root/.avalanchego/logs",
+    "log-level": "info",
+    "ipConfig": {
+        "ip": {
+            "ip": "172.18.0.3",
+            "port": 9651
+        },
+        "ipResolutionFrequency": 30000000000
+    }
+  }

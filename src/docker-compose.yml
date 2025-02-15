@@ -1,0 +1,144 @@
+networks:
+  transcendence:
+    name: transcendence
+    driver: bridge
+
+services:
+  sqlite:   # Base de datos (SQLite)
+    build: dockers/sqlite/.
+    container_name: sqlite
+    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
+    volumes:
+      - sqlite_data:/var/lib/sqlite
+    command: tail -f /dev/null  # Mantener el contenedor en ejecución
+    networks:
+      - transcendence
+    restart: always
+
+  backend:    # Backend (Node.js API)
+    build: dockers/backend/.
+    container_name: app
+    #image: node:18-alpine
+    working_dir: /usr/src/app
+    volumes:
+      - backend_data:/usr/src/app/data
+    # - dockers/backend/data:/usr/src/app/data/.  # Montar la carpeta de datos
+    # - ./src:/usr/src/app
+    command: npm start
+    ports:
+      - "3000:3000"
+    depends_on:
+      - sqlite
+      - avalanche
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+  php:    # Servidor PHP
+    build: dockers/php/.
+    container_name: php
+    image: php:8.1-apache
+    volumes:
+      - php_data:/var/www/html
+    ports:
+      - "8080:80"
+    networks:
+      - transcendence
+    depends_on:
+      - backend
+    restart: always
+
+  frontend:   # Frontend (TypeScript + Tailwind)
+    build: dockers/frontend/.
+    container_name: frontend
+    image: node:18-alpine
+    volumes:
+      - frontend_data:/usr/src/app
+    command: npm run dev
+    ports:
+      - "3001:3001"
+    networks:
+      - transcendence
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  avalanche:      # Blockchain (Avalanche)
+    build: dockers/blockchain/.
+    container_name: blockchain
+    image: alpine:latest
+    volumes:
+      - blockchain_data:/avalanchego
+      - ./dockers/blockchain/config.json:/avalanchego/config.json
+    environment:
+      - AVALANCHEGO_DATA_DIR=/avalanchego
+    ports:
+      - "9650:9650"   # JSON RPC endpoint
+      - "9651:9651"   # P2P port
+    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"] 
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+  security:    # Cyberseguridad (OWASP ZAP o similar)
+    build: dockers/security/.
+    container_name: security
+    image: softwaresecurityproject/zap-stable
+    volumes:
+      - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
+      - zap_data:/zap/wrk
+    ports:
+      - "8081:8081"
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
+    name: sqlite_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/sqlite"
+      o: bind
+  
+  backend_data:
+    name: backend_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/app"
+      o: bind
+
+  
+  frontend_data:
+    name: frontend_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/frontend"
+      o: bind
+
+  blockchain_data:
+    name: blockchain_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/blockchain"
+      o: bind
+
+  php_data:
+    name: php_data
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/php"
+      o: bind
+    
+  zap_data:
+     name: zap_data
+     driver: local
+     driver_opts:
+       type: none
+       device: "$HOME/goinfre/data/security"
+       o: bind
