@@ -76,6 +76,8 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
 
+re: down all
+
 delete:
 	@docker compose -f ./src/docker-compose.yml down -v
 	@if docker volume ls -qf "name=transcendence" | grep -q .; then \
@@ -97,4 +99,4 @@ logs_service:
 		docker compose -f ./src/docker-compose.yml logs $(SERVICE); \
 	fi
 
-.PHONY: all down clean setup delete logs logs_service ps
+.PHONY: all down clean setup delete logs logs_service ps re

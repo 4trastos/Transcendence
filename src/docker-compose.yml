@@ -45,7 +45,7 @@ services:
     networks:
       - transcendence
     depends_on:
-      - backend
+      - frontend
     restart: always
 
   frontend:   # Frontend (TypeScript + Tailwind)
@@ -53,8 +53,10 @@ services:
     container_name: frontend
     image: node:18-alpine
     volumes:
-      - frontend_data:/usr/src/app
-    command: npm run dev
+      - frontend_data:/usr/src/app      # Volumen para el código fuente
+      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
+    # command: npm run dev
+    command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
       - "3001:3001"
     networks:
@@ -71,7 +73,7 @@ services:
       - blockchain_data:/avalanchego
       - ./dockers/blockchain/config.json:/avalanchego/config.json
     environment:
-      - AVALANCHEGO_DATA_DIR=/avalanchego
+      - AVALANCHEGO_DATA_DIR=/avalanchego/data
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
@@ -109,7 +111,6 @@ volumes:
       type: none
       device: "$HOME/goinfre/data/app"
       o: bind
-
   
   frontend_data:
     name: frontend_data
@@ -118,7 +119,7 @@ volumes:
       type: none
       device: "$HOME/goinfre/data/frontend"
       o: bind
-
+  
   blockchain_data:
     name: blockchain_data
     driver: local

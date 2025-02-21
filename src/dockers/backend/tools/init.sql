@@ -15,3 +15,9 @@ CREATE TABLE IF NOT EXISTS games (
     FOREIGN KEY (player2_id) REFERENCES users (id),
     FOREIGN KEY (winner_id) REFERENCES users (id)
 );
+
+CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT
+);

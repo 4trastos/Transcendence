@@ -6,6 +6,8 @@ COPY package*.json ./
 
 RUN npm install --production
 
+RUN npm install cors
+
 COPY . .
 
 # Crear la carpeta para la base de datos SQLite dentro del contenedor

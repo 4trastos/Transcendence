@@ -2,12 +2,15 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');  // <-- Importa cors
+const axios = require('axios');  // Añadir axios para hacer solicitudes HTTP
 
 const app = express();
 const port = 3000;
 
 // Middleware para parsear JSON en solicitudes POST
 app.use(express.json());
+app.use(cors());  // <-- Habilita CORS para todas las rutas
 
 // Conectar a la base de datos SQLite
 const dbPath = path.join(__dirname, 'data', 'sqlite.db');
@@ -61,7 +64,7 @@ app.get('/api/games', (req, res) => {
 
 // Ruta para obtener todos los elementos (items)
 app.get('/api/items', (req, res) => {
-    db.all('SELECT * FROM users', [], (err, rows) => {
+    db.all('SELECT * FROM items', [], (err, rows) => {
         if (err) {
             console.error('Error al consultar los elementos:', err.message);
             res.status(500).send('Error al consultar los elementos');
@@ -99,6 +102,17 @@ app.get('/api/test_db', (req, res) => {
         res.send('Conexión a la base de datos exitosa');
     });
 });
+
+// Nueva ruta para obtener el estado de Avalanche
+//app.get('/api/avalanche_status', async (req, res) => {
+//    try {
+//       const response = await axios.get('http://blockchain:9650/ext/health');
+//       res.json(response.data);
+//    } catch (error) {
+//        console.error('Error al obtener el estado de Avalanche:', error.message);
+//        res.status(500).send('Error al obtener el estado de Avalanche');
+//    }
+//});
 
 // Iniciar el servidor
 app.listen(port, () => {
