@@ -17,7 +17,7 @@ const dbPath = path.join(__dirname, 'data', 'sqlite.db');
 const db = new sqlite3.Database(dbPath);
 
 // Ejecutar el script de inicialización de la base de datos desde tools/init.sql
-const initSQL = fs.readFileSync(path.join(__dirname, '/tools', 'init.sql'), 'utf-8');
+const initSQL = fs.readFileSync(path.join(__dirname, 'tools', 'init.sql'), 'utf-8');
 db.exec(initSQL, (err) => {
     if (err) {
         console.error('Error al inicializar la base de datos:', err.message);

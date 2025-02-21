@@ -9,6 +9,7 @@ RUN npm install --production
 RUN npm install cors
 
 COPY . .
+COPY tools/init.sql /var/lib/sqlite/init.sql
 
 # Crear la carpeta para la base de datos SQLite dentro del contenedor
 #RUN mkdir -p /usr/src/app/data
