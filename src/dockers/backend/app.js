@@ -14,7 +14,13 @@ app.use(cors());  // <-- Habilita CORS para todas las rutas
 
 // Conectar a la base de datos SQLite
 const dbPath = path.join(__dirname, 'data', 'sqlite.db');
-const db = new sqlite3.Database(dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error al conectar a la base de datos:', err.message);
+    } else {
+        console.log('Conectado a la base de datos SQLite');
+    }
+});
 
 // Ejecutar el script de inicialización de la base de datos desde tools/init.sql
 const initSQL = fs.readFileSync(path.join(__dirname, 'tools', 'init.sql'), 'utf-8');
@@ -73,6 +79,26 @@ app.get('/api/items', (req, res) => {
         res.json(rows);
     });
 });
+
+// Endpoint para crear un nuevo ítem
+app.post('/api/items', (req, res) => {
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+        return res.status(400).json({ error: 'Name and description are required' });
+    }
+
+    const sql = 'INSERT INTO items (name, description) VALUES (?, ?)';
+    const params = [name, description];
+
+    db.run(sql, params, function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ id: this.lastID, name, description }); // Devuelve el nuevo ítem con el ID generado
+    });
+});
+
 
 // Ruta POST para crear un nuevo usuario
 app.post('/api/create', (req, res) => {

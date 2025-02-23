@@ -10,7 +10,7 @@ services:
     image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
       - sqlite_data:/var/lib/sqlite
-    command: tail -f /dev/null  # Mantener el contenedor en ejecución
+    command: sh /var/lib/sqlite/init_db.sh
     networks:
       - transcendence
     restart: always
@@ -18,13 +18,11 @@ services:
   backend:    # Backend (Node.js API)
     build: dockers/backend/.
     container_name: app
-    #image: node:18-alpine
     working_dir: /usr/src/app
     volumes:
       - backend_data:/usr/src/app/data
       - sqlite_data:/usr/src/app/data
-    # - dockers/backend/data:/usr/src/app/data/.  # Montar la carpeta de datos
-    # - ./src:/usr/src/app
+      - sqlite_data:/var/lib/sqlite
     command: npm start
     ports:
       - "3000:3000"
