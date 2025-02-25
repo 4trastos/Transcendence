@@ -67,16 +67,16 @@ services:
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
     container_name: blockchain
-    image: alpine:latest
+  #  image: alpine:latest
     volumes:
       - blockchain_data:/avalanchego
       - ./dockers/blockchain/config.json:/avalanchego/config.json
-    environment:
-      - AVALANCHEGO_DATA_DIR=/avalanchego/data
+  #  environment:
+  #   - AVALANCHEGO_DATA_DIR=/avalanchego/data
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
-    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"] 
+    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"]
     networks:
       - transcendence
     restart: unless-stopped
@@ -85,11 +85,9 @@ services:
     build: dockers/security/.
     container_name: security
     image: softwaresecurityproject/zap-stable
-    volumes:
-      - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
-      - zap_data:/zap/wrk
     ports:
-      - "8081:8081"
+      - "8082:8081"
+    entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       - transcendence
     restart: unless-stopped

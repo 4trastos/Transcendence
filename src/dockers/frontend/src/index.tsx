@@ -5,5 +5,9 @@ import './styles.css';  // Importa el archivo CSS aquí
 
 console.log('¡Hola, mundo!');
 
-const root = createRoot(document.getElementById('root')!);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("No se encontró el elemento con ID 'root'");
+}
+const root = createRoot(rootElement);
 root.render(<App />);

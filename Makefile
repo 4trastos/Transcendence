@@ -99,4 +99,18 @@ logs_service:
 		docker compose -f ./src/docker-compose.yml logs $(SERVICE); \
 	fi
 
-.PHONY: all down clean setup delete logs logs_service ps re
+help:
+	@echo "Available commands:"
+	@echo "  make                     - Restart Docker if needed and build the containers"
+	@echo "  make kill_docker         - Kill the Docker process and restart the application"
+	@echo "  make restart_if_needed   - Restart Docker only if needed"
+	@echo "  make down                - Stop and remove containers"
+	@echo "  make clean               - Remove data, containers, images, volumes, and networking"
+	@echo "  make setup               - Setup the necessary directories"
+	@echo "  make re                  - Stop everything and restart it (down + all)"
+	@echo "  make delete              - Remove Docker volumes related to 'transcendence'"
+	@echo "  make ps                  - Show the status of containers"
+	@echo "  make logs                - Show logs for all services"
+	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
+
+.PHONY: all down clean setup delete logs logs_service ps re help
