@@ -10,7 +10,7 @@ services:
     image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
       - sqlite_data:/var/lib/sqlite
-    command: tail -f /dev/null  # Mantener el contenedor en ejecución
+    command: sh /var/lib/sqlite/init_db.sh
     networks:
       - transcendence
     restart: always
@@ -18,12 +18,11 @@ services:
   backend:    # Backend (Node.js API)
     build: dockers/backend/.
     container_name: app
-    #image: node:18-alpine
     working_dir: /usr/src/app
     volumes:
       - backend_data:/usr/src/app/data
-    # - dockers/backend/data:/usr/src/app/data/.  # Montar la carpeta de datos
-    # - ./src:/usr/src/app
+      - sqlite_data:/usr/src/app/data
+      - sqlite_data:/var/lib/sqlite
     command: npm start
     ports:
       - "3000:3000"
@@ -45,7 +44,7 @@ services:
     networks:
       - transcendence
     depends_on:
-      - backend
+      - frontend
     restart: always
 
   frontend:   # Frontend (TypeScript + Tailwind)
@@ -53,8 +52,10 @@ services:
     container_name: frontend
     image: node:18-alpine
     volumes:
-      - frontend_data:/usr/src/app
-    command: npm run dev
+      - frontend_data:/usr/src/app      # Volumen para el código fuente
+      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
+    # command: npm run dev
+    command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
       - "3001:3001"
     networks:
@@ -66,16 +67,16 @@ services:
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
     container_name: blockchain
-    image: alpine:latest
+  #  image: alpine:latest
     volumes:
       - blockchain_data:/avalanchego
       - ./dockers/blockchain/config.json:/avalanchego/config.json
-    environment:
-      - AVALANCHEGO_DATA_DIR=/avalanchego
+  #  environment:
+  #   - AVALANCHEGO_DATA_DIR=/avalanchego/data
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
-    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"] 
+    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"]
     networks:
       - transcendence
     restart: unless-stopped
@@ -84,11 +85,9 @@ services:
     build: dockers/security/.
     container_name: security
     image: softwaresecurityproject/zap-stable
-    volumes:
-      - ./tools/zap_rules:/zap/wrk/  # Montar la carpeta con las reglas de escaneo
-      - zap_data:/zap/wrk
     ports:
-      - "8081:8081"
+      - "8082:8081"
+    entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       - transcendence
     restart: unless-stopped
@@ -109,7 +108,6 @@ volumes:
       type: none
       device: "$HOME/goinfre/data/app"
       o: bind
-
   
   frontend_data:
     name: frontend_data
@@ -118,7 +116,7 @@ volumes:
       type: none
       device: "$HOME/goinfre/data/frontend"
       o: bind
-
+  
   blockchain_data:
     name: blockchain_data
     driver: local

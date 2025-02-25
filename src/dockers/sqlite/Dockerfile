@@ -5,9 +5,10 @@ RUN apk update && apk add sqlite
 # Crea el directorio de la base de datos
 RUN mkdir -p /var/lib/sqlite
 
-COPY tools/init_db.sh /var/lib/sqlite/init_db.sh
+# Copiar init.sql a la ruta correcta
+#COPY tools/init.sql /var/lib/sqlite/init.sql
+COPY script/init_db.sh /var/lib/sqlite/init_db.sh
 
-# Dale permisos de ejecución al script
 RUN chmod +x /var/lib/sqlite/init_db.sh
 
 WORKDIR /var/lib/sqlite

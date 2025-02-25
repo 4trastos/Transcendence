@@ -2,19 +2,28 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');  // <-- Importa cors
+const axios = require('axios');  // Añadir axios para hacer solicitudes HTTP
 
 const app = express();
 const port = 3000;
 
 // Middleware para parsear JSON en solicitudes POST
 app.use(express.json());
+app.use(cors());  // <-- Habilita CORS para todas las rutas
 
 // Conectar a la base de datos SQLite
 const dbPath = path.join(__dirname, 'data', 'sqlite.db');
-const db = new sqlite3.Database(dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error al conectar a la base de datos:', err.message);
+    } else {
+        console.log('Conectado a la base de datos SQLite');
+    }
+});
 
 // Ejecutar el script de inicialización de la base de datos desde tools/init.sql
-const initSQL = fs.readFileSync(path.join(__dirname, '/tools', 'init.sql'), 'utf-8');
+const initSQL = fs.readFileSync(path.join(__dirname, 'tools', 'init.sql'), 'utf-8');
 db.exec(initSQL, (err) => {
     if (err) {
         console.error('Error al inicializar la base de datos:', err.message);
@@ -61,7 +70,7 @@ app.get('/api/games', (req, res) => {
 
 // Ruta para obtener todos los elementos (items)
 app.get('/api/items', (req, res) => {
-    db.all('SELECT * FROM users', [], (err, rows) => {
+    db.all('SELECT * FROM items', [], (err, rows) => {
         if (err) {
             console.error('Error al consultar los elementos:', err.message);
             res.status(500).send('Error al consultar los elementos');
@@ -70,6 +79,26 @@ app.get('/api/items', (req, res) => {
         res.json(rows);
     });
 });
+
+// Endpoint para crear un nuevo ítem
+app.post('/api/items', (req, res) => {
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+        return res.status(400).json({ error: 'Name and description are required' });
+    }
+
+    const sql = 'INSERT INTO items (name, description) VALUES (?, ?)';
+    const params = [name, description];
+
+    db.run(sql, params, function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ id: this.lastID, name, description }); // Devuelve el nuevo ítem con el ID generado
+    });
+});
+
 
 // Ruta POST para crear un nuevo usuario
 app.post('/api/create', (req, res) => {
@@ -99,6 +128,17 @@ app.get('/api/test_db', (req, res) => {
         res.send('Conexión a la base de datos exitosa');
     });
 });
+
+// Nueva ruta para obtener el estado de Avalanche
+//app.get('/api/avalanche_status', async (req, res) => {
+//    try {
+//       const response = await axios.get('http://blockchain:9650/ext/health');
+//       res.json(response.data);
+//    } catch (error) {
+//        console.error('Error al obtener el estado de Avalanche:', error.message);
+//        res.status(500).send('Error al obtener el estado de Avalanche');
+//    }
+//});
 
 // Iniciar el servidor
 app.listen(port, () => {

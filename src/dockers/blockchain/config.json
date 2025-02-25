@@ -1,18 +1,19 @@
 {
-    "network-id": "local",
+    "network-id": 1,
     "http-host": "0.0.0.0",
     "http-port": 9650,
     "staking-enabled": false,
-    "bootstrap-ips": "18.158.15.12:9651,18.162.161.230:9651,122.248.200.212:9651,3.106.25.139:9651,3.21.38.33:9651",
-    "bootstrap-ids": "NodeID-kZNuQMHhydefgnwjYX1fhHMpRNAs9my1,NodeID-QKGoUvqcgormCoMj6yPw9isY7DX9H4mdd,NodeID-FGRoKnyYKFWYFMb6Xbocf4hKuyCBENgWM,NodeID-HsBEx3L71EHWSXaE6gvk2VsNntFEZsxqc,NodeID-A7GwTSd47AcDVqpTVj7YtxtjHREM33EJw",
+    "index-transactions": false,
+    "index-allow-incomplete": false,
+    "checksums-enabled": false,
+    "bootstrapIDs":[
+        "NodeID-7Xhw5m88j39P87nZ5fHTz5CqPVpVu2Xyh", 
+        "NodeID-8ayjK2m8nm5duG22jLpd229qEw52c91c",
+        "NodeID-9cNLx8jVtSjEqc2v9Qd7q9g99r449v9c",
+        "NodeID-B9mN6L78k9o2p7cKq5Cz9z25z4z9p84d",
+        "NodeID-C5mP9p9t1mN4p9c9p9p9p9p9p9p9p9p9"
+    ],
     "db-dir": "/root/.avalanchego/db",
     "log-dir": "/root/.avalanchego/logs",
-    "log-level": "info",
-    "ipConfig": {
-        "ip": {
-            "ip": "172.18.0.3",
-            "port": 9651
-        },
-        "ipResolutionFrequency": 30000000000
-    }
-  }
+    "log-level": "debug"
+}
