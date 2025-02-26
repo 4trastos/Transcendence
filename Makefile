@@ -59,6 +59,7 @@ clean:
 	rm -rf $(HOME)/goinfre/data/frontend/*
 	rm -rf $(HOME)/goinfre/data/blockchain/*
 	rm -rf $(HOME)/goinfre/data/security/*
+	rm -rf $(HOME)/goinfre/data/modsecurity/*
 	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
@@ -75,6 +76,7 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/frontend
 	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
+	@mkdir -p $(HOME)/goinfre/data/modsecurity
 
 re: down all
 

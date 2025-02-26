@@ -29,6 +29,8 @@ services:
     depends_on:
       - sqlite
       - avalanche
+    environment:
+      VAULT_ADDR: "http://security:8200"
     networks:
       - transcendence
     restart: unless-stopped
@@ -71,8 +73,6 @@ services:
     volumes:
       - blockchain_data:/avalanchego
       - ./dockers/blockchain/config.json:/avalanchego/config.json
-  #  environment:
-  #   - AVALANCHEGO_DATA_DIR=/avalanchego/data
     ports:
       - "9650:9650"   # JSON RPC endpoint
       - "9651:9651"   # P2P port
@@ -81,12 +81,21 @@ services:
       - transcendence
     restart: unless-stopped
 
-  security:    # Cyberseguridad (OWASP ZAP o similar)
+  security:
     build: dockers/security/.
     container_name: security
     image: softwaresecurityproject/zap-stable
     ports:
-      - "8082:8081"
+      - "8081:8081"  # zap
+      - "8200:8200"  # Vault
+    environment:
+      - ZAP_DAEMON=True
+      - ZAP_PORT=8081
+      - ZAP_ALLOWED_HOSTS=*
+      - VAULT_ADDR=http://0.0.0.0:8200
+    volumes:
+      - zap_data:/zap/wrk
+      - modsec_data:/var/log/apache2
     entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       - transcendence
@@ -139,4 +148,12 @@ volumes:
      driver_opts:
        type: none
        device: "$HOME/goinfre/data/security"
+       o: bind
+  
+  modsec_data:
+     name: modsec_data
+     driver: local
+     driver_opts:
+       type: none
+       device: "$HOME/goinfre/data/modsecurity"
        o: bind
