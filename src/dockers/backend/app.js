@@ -4,6 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');  // <-- Importa cors
 const axios = require('axios');  // Añadir axios para hacer solicitudes HTTP
+const vault = require("node-vault")({
+    apiVersion: "v1",
+    endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
+    token: process.env.VAULT_TOKEN || "root",
+  });
 
 const app = express();
 const port = 3000;
@@ -79,6 +84,19 @@ app.get('/api/items', (req, res) => {
         res.json(rows);
     });
 });
+
+// Endpoint para obtener secrets
+app.get("/api/secrets", async (req, res) => {
+    try {
+      // Leer el secreto almacenado en Vault
+      const secret = await vault.read("secret/myapp");
+      res.json(secret.data); // Devolver los datos del secreto
+    } catch (error) {
+      console.error("Error al obtener secretos de Vault:", error);
+      res.status(500).json({ error: "Error al obtener secretos" });
+    }
+  });
+
 
 // Endpoint para crear un nuevo ítem
 app.post('/api/items', (req, res) => {
