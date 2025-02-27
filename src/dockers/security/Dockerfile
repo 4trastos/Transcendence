@@ -1,12 +1,17 @@
 FROM softwaresecurityproject/zap-stable
 
+WORKDIR /zap/wrk/
+
 USER root
+
+# Definir variables de entorno al inicio
+ENV MOZ_HEADLESS=1
 
 RUN mkdir -p /zap/wrk/
 RUN mkdir -p /root/.ZAP/firefox
-RUN export MOZ_HEADLESS=1
+#RUN export MOZ_HEADLESS=1
 
-# Instalar dependencias
+# Instalar dependencias y ModSecurity
 RUN apt-get update && apt-get install -y apache2 libapache2-mod-security2 && \
     apt-get clean
 
@@ -33,7 +38,4 @@ RUN chmod +x /zap/wrk/entrypoint.sh
 
 EXPOSE 8081 8200
 
-WORKDIR /zap/wrk/
-
 ENTRYPOINT ["/zap/wrk/entrypoint.sh"]
-#CMD ["/zap/zap.sh", "-daemon", "-host", "0.0.0.0", "-port", "8081"]

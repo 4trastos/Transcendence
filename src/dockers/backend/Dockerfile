@@ -4,8 +4,9 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install --production
+RUN npm install --production 
 RUN npm install cors
+RUN npm install node-vault
 
 COPY . .
 
@@ -17,4 +18,4 @@ COPY tools/init.sql /var/lib/sqlite/init.sql
 
 EXPOSE 3000
 
-CMD ["node", "app.js"]
+CMD ["npm", "node", "app.js"]

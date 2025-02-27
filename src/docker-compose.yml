@@ -13,7 +13,7 @@ services:
     command: sh /var/lib/sqlite/init_db.sh
     networks:
       - transcendence
-    restart: always
+    restart: on-failure
 
   backend:    # Backend (Node.js API)
     build: dockers/backend/.
@@ -29,8 +29,10 @@ services:
     depends_on:
       - sqlite
       - avalanche
+      - security
     environment:
-      VAULT_ADDR: "http://security:8200"
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_TOKEN=hvs.waEtSPPk0mOklwybXEWQ6Xcc
     networks:
       - transcendence
     restart: unless-stopped
@@ -56,7 +58,6 @@ services:
     volumes:
       - frontend_data:/usr/src/app      # Volumen para el código fuente
       - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
-    # command: npm run dev
     command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
       - "3001:3001"
@@ -69,7 +70,6 @@ services:
   avalanche:      # Blockchain (Avalanche)
     build: dockers/blockchain/.
     container_name: blockchain
-  #  image: alpine:latest
     volumes:
       - blockchain_data:/avalanchego
       - ./dockers/blockchain/config.json:/avalanchego/config.json

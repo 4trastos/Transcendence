@@ -22,6 +22,12 @@ CREATE TABLE IF NOT EXISTS items (
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS passwords (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    description TEXT
+);
+
 -- Insertar datos de prueba en la tabla `items`
 INSERT INTO items (name, description) VALUES ('Item 1', 'Descripción del Item 1');
 INSERT INTO items (name, description) VALUES ('Item 2', 'Descripción del Item 2');
