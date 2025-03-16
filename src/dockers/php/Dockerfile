@@ -12,10 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
-# Crear un nuevo usuario en el contenedor con tu mismo UID y GID
-#ARG UID=1000   # Sustituye esto por tu UID real
-#ARG GID=1000   # Sustituye esto por tu GID real
-#RUN groupadd -g $GID myuser && useradd -m -u $UID -g $GID myuser
+RUN apt-get update && apt-get install -y tree && apt-get clean
 
 # Crear el archivo test.php
 RUN echo '<?php \
@@ -28,13 +25,22 @@ COPY . /var/www/html
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# Cambiar la propiedad de los archivos al nuevo usuario
-#RUN chown -R myuser:myuser /var/www/html
+# Crear el directorio zap_reports en /var/www/html
+RUN mkdir -p /var/www/html/zap_reports && chmod -R 777 /var/www/html/zap_reports
 
-# Cambiar al nuevo usuario no privilegiado
-#USER myuser
+# Asegurar que los permisos sean correctos
+RUN chown -R www-data:www-data /var/www/html/zap_reports
+
+COPY zap_reports.conf /etc/apache2/conf-available/zap_reports.conf
+RUN a2enconf zap_reports.conf
+RUN service apache2 restart
+
+# Copiar el script de entrada y hacerlo ejecutable
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 EXPOSE 80
-
-CMD ["apache2-foreground"]
+#CMD ["apache2-foreground"]
 

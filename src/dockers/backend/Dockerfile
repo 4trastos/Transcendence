@@ -7,6 +7,9 @@ COPY package*.json ./
 RUN npm install --production 
 RUN npm install cors
 RUN npm install node-vault
+RUN npm install jsonwebtoken
+RUN npm install joi
+RUN npm install express-rate-limit
 
 COPY . .
 
