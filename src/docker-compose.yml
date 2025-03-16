@@ -43,6 +43,7 @@ services:
     image: php:8.1-apache
     volumes:
       - php_data:/var/www/html
+      - zap_reports:/zap/reports
     ports:
       - "8080:80"
     networks:
@@ -96,6 +97,7 @@ services:
     volumes:
       - zap_data:/zap/wrk
       - modsec_data:/var/log/apache2
+      - zap_reports:/zap/reports
     entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       - transcendence
@@ -150,6 +152,14 @@ volumes:
        device: "$HOME/goinfre/data/security"
        o: bind
   
+  zap_reports:
+     name: zap_reports
+     driver: local
+     driver_opts:
+       type: none
+       device: "$HOME/goinfre/data/security"
+       o: bind
+
   modsec_data:
      name: modsec_data
      driver: local
@@ -157,3 +167,4 @@ volumes:
        type: none
        device: "$HOME/goinfre/data/modsecurity"
        o: bind
+  

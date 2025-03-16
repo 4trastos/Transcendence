@@ -86,14 +86,14 @@ app.get('/api/items', (req, res) => {
 });
 
 // Endpoint para obtener secrets
-app.get("/api/secrets", async (req, res) => {
+app.get("/api/secret", async (req, res) => {
     try {
-      // Leer el secreto almacenado en Vault
       const secret = await vault.read("secret/myapp");
-      res.json(secret.data); // Devolver los datos del secreto
+      console.error("Secreto leído de Vault:", secret); 
+      res.json(secret.data.data);
     } catch (error) {
       console.error("Error al obtener secretos de Vault:", error);
-      res.status(500).json({ error: "Error al obtener secretos" });
+      res.status(500).json({ error: "Error al obtener secretos  ################" });
     }
   });
 

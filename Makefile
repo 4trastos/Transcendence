@@ -101,6 +101,9 @@ logs_service:
 		docker compose -f ./src/docker-compose.yml logs $(SERVICE); \
 	fi
 
+scan:
+	@docker exec -it security /zap/wrk/zap_scan.sh
+
 help:
 	@echo "Available commands:"
 	@echo "  make                     - Restart Docker if needed and build the containers"
@@ -114,5 +117,6 @@ help:
 	@echo "  make ps                  - Show the status of containers"
 	@echo "  make logs                - Show logs for all services"
 	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
+	@echo "  make scan                - Execute ZAP security scan"
 
-.PHONY: all down clean setup delete logs logs_service ps re help
+.PHONY: all down clean setup delete logs logs_service ps re help scan

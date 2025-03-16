@@ -9,21 +9,24 @@ ENV MOZ_HEADLESS=1
 
 RUN mkdir -p /zap/wrk/
 RUN mkdir -p /root/.ZAP/firefox
-#RUN export MOZ_HEADLESS=1
+RUN export MOZ_HEADLESS=1
 
 # Instalar dependencias y ModSecurity
 RUN apt-get update && apt-get install -y apache2 libapache2-mod-security2 && \
-    apt-get clean
+apt-get clean
 
 # Instalar HashiCorp Vault
 RUN apt-get update && apt-get install -y wget \
-    unzip && wget https://releases.hashicorp.com/vault/1.13.0/vault_1.13.0_linux_amd64.zip && \
-    unzip vault_1.13.0_linux_amd64.zip && \
-    mv vault /usr/local/bin/ && rm vault_1.13.0_linux_amd64.zip && \
-    apt-get clean
+unzip && wget https://releases.hashicorp.com/vault/1.13.0/vault_1.13.0_linux_amd64.zip && \
+unzip vault_1.13.0_linux_amd64.zip && \
+mv vault /usr/local/bin/ && rm vault_1.13.0_linux_amd64.zip && \
+apt-get clean
 
 # Instalar Firefox
 RUN apt-get update && apt-get install -y firefox-esr && apt-get clean
+
+# Instalar jq (herramienta de línea de comandos para procesar JSON)
+RUN apt-get update && apt-get install -y jq
 
 # Copiar scripts y configuraciones
 COPY /zap/zap_scan.sh /zap/wrk/zap_scan.sh
