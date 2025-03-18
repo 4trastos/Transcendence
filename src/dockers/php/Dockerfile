@@ -33,14 +33,25 @@ RUN chown -R www-data:www-data /var/www/html/zap_reports
 
 COPY zap_reports.conf /etc/apache2/conf-available/zap_reports.conf
 RUN a2enconf zap_reports.conf
+
+# Habilitar mod_rewrite
+RUN a2enmod rewrite
+
+# Copiar el archivo .htaccess
+COPY ./public/.htaccess /var/www/html/.htaccess
+
+# Configurar Apache para permitir .htaccess
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
+
 RUN service apache2 restart
 
 # Copiar el script de entrada y hacerlo ejecutable
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 EXPOSE 80
-#CMD ["apache2-foreground"]
-

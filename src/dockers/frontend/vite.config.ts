@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 export default {
   server: {
@@ -10,7 +11,7 @@ export default {
     emptyOutDir: true,  // Limpia el directorio de salida antes de construir
     rollupOptions: {
       input: {
-        main: './index.html',  // Indica que `index.html` es el punto de entrada
+        main: resolve(__dirname, './index.html'),  // Indica que `index.html` es el punto de entrada
         style: './src/styles.css',  // Añade el archivo CSS generado por Tailwind
       },
       output: {

@@ -6,7 +6,7 @@ function Items() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/items') // Reemplaza con la URL correcta de tu backend
+    fetch('http://localhost:3000/api/items')
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

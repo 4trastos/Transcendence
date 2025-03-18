@@ -10,6 +10,7 @@ RUN npm install node-vault
 RUN npm install jsonwebtoken
 RUN npm install joi
 RUN npm install express-rate-limit
+#RUN npm install pyotp
 
 COPY . .
 
