@@ -5,11 +5,12 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
-const { sqlite3 } = require('../app');
+const { console } = require('inspector');
+const sqlite3 = require('sqlite3').verbose();
 
 const router = express.Router();
 
-const dbPath = path.join(__dirname, 'data', 'sqlite.db');
+const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err.message);
@@ -21,7 +22,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 /**
  * Ejecutar el script de inicialización de la base de datos desde tools/init.sql
  */
-const initSQL = fs.readFileSync(path.join(__dirname, 'tools', 'init.sql'), 'utf-8');
+const initSQL = fs.readFileSync(path.join(__dirname, '..', 'tools', 'init.sql'), 'utf-8');
 db.exec(initSQL, (err) => {
     if (err) {
         console.error('Error al inicializar la base de datos:', err.message);
@@ -33,18 +34,18 @@ db.exec(initSQL, (err) => {
 /**
  * @brief Ruta para registrar usuarios en la base de datos.
  */
-router.post('/api/regiter', async(req, res) => {
-    const { username, email, paswword } = req.body;
+router.post('/register', async(req, res) => {
+    const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
         return res.status(400).send('Faltan campos requeridos');
     }
 
     try {
-        const hashedPasword = await brcrypt.hash(password, 10); // await es esperar a que la 'promesa' del brcrypt se resuelva.
+        const hashedPassword = await bcrypt.hash(password, 10); // await es esperar a que la 'promesa' del brcrypt se resuelva.
 
-        const query = 'INSERT INTO users (username, email, pasword) VALUES (?, ?, ?)'
-        db.run(query, [username, email, hashedPasword], function (err) {
+        const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
+        db.run(query, [username, email, hashedPassword], function (err) {
             if (err) {
                 console.error('Error al registrar el usuario: ', err.message);
                 return res.status(500).json({error: 'Error al registrar el usuario'});
@@ -52,8 +53,36 @@ router.post('/api/regiter', async(req, res) => {
             res.status(201).json({ message: 'Usuario registrado exitosamente', id: this.lastID });
         });
     } catch (error) {
-        console.error('Error al registrar eñ usuario: ', error);
+        console.error('Error al registrar el usuario: ', error);
         res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+router.post('/login', async(req, res) =>{
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).send('Faltan campos requeridos');
+    }
+
+    try {
+        const query = 'SELECT password FROM users WHERE username = ?';
+        db.get(query, [username], async (err, row) =>{
+            if (err){
+                console.error(err);
+                return;
+            }
+            const isMatch = await bcrypt.compare(password, row.password);
+            if (isMatch){
+                console.log("Contraseña correcta");
+                return res.status(200).send('Inicio de sesión exitoso');
+            } else{
+                console.log("Contraseña incorrecta");
+                return res.status(400).send('Contraseña incorrecta');
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error : 'Error interno del servidor'});
     }
 });
 
@@ -61,7 +90,7 @@ router.post('/api/regiter', async(req, res) => {
  * @brief Routa para mostrar todos los usuarios de la base de datos.
  * @return Devuelve los usuario en formato json.
  */
-app.get('/api/users', (req, res) => {
+router.get('/users', (req, res) => {
     db.all('SELECT * FROM users', [], (err, rows) => {
         if (err) {
             console.error('Error al consultar la tabla users:', err.message);
@@ -71,3 +100,5 @@ app.get('/api/users', (req, res) => {
         res.json(rows);
     });
 });
+
+module.exports = router;

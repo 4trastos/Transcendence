@@ -1,6 +1,6 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-exports.sqlite3 = sqlite3;
+const userRoutes = require('./routes/userRoutes');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');  // <-- Importa cors
@@ -10,17 +10,28 @@ const vault = require("node-vault")({
     endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
     token: process.env.VAULT_TOKEN || "root",
   });
-const { generateToken, verifyToken } = require('./auth');
-const { userSchema } = require('./validation');
-const errorHandler = require('./error-handler');
 
 const app = express();
 const port = 3000;
 
+const corsOptions = {
+    origin: 'http://localhost:3001', // Cambia este valor según el puerto de tu frontend
+    methods: 'GET,POST,PUT,DELETE', // Métodos permitidos
+    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
+};
+
 // Middleware para parsear JSON en solicitudes POST
 app.use(express.json());
-app.use(cors());  // <-- Habilita CORS para todas las rutas
-app.use(errorHandler);
+app.use('/api', userRoutes);
+app.use(cors(corsOptions));  // <-- Habilita CORS para todas las rutas
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); // O especifica el origen del frontend
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+  });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Conectar a la base de datos SQLite
 const dbPath = path.join(__dirname, 'data', 'sqlite.db');
@@ -48,22 +59,10 @@ app.get('/api/test', (req, res) => {
 });
 
 // Ruta básica para probar el servidor
-app.get('/', (req, res) => {
+app.get('/prueba', (req, res) => {
     res.send('¡Hola, mundo desde Node.js!');
 });
 
-// Ruta para obtener todos los usuarios
-app.get('/api/users', (req, res) => {
-    db.all('SELECT * FROM users', [], (err, rows) => {
-        if (err) {
-            console.error('Error al consultar la tabla users:', err.message);
-            res.status(500).send('Error al consultar la tabla users');
-            return;
-        }
-        // Devuelve los usuarios en formato JSON
-        res.json(rows);
-    });
-});
 
 // Ruta para obtener todos los juegos
 app.get('/api/games', (req, res) => {
@@ -123,22 +122,6 @@ app.post('/api/items', (req, res) => {
 });
 
 
-// Ruta POST para crear un nuevo usuario
-app.post('/api/create', (req, res) => {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-        return res.status(400).send('Faltan campos requeridos');
-    }
-    const query = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
-    db.run(query, [username, email, password], function (err) {
-        if (err) {
-            console.error('Error al insertar usuario:', err.message);
-            return res.status(500).send('Error al insertar usuario');
-        }
-        res.status(201).send(`Usuario creado con ID: ${this.lastID}`);
-    });
-});
-
 // Ruta para probar la conexión a la base de datos con una consulta de prueba
 app.get('/api/test_db', (req, res) => {
     db.get('SELECT 1', [], (err, row) => {
@@ -152,90 +135,16 @@ app.get('/api/test_db', (req, res) => {
     });
 });
 
-// Función para anonimizar un usuario
-function anonymizeUser(userId, callback) {
-    const sql = 'UPDATE users SET username = "Anonymous", email = "anonymous" || id || "@example.com" WHERE id = ?';
-    db.run(sql, [userId], function(err) {
-        if (err) {
-            console.error('Error al anonimizar el usuario:', err.message);
-            callback(err);
-            return;
-        }
-        callback(null, this.changes);
-    });
-}
-
-// Ruta para anonimizar un usuario
-app.post('/api/users/:id/anonymize', (req, res) => {
-    const userId = req.params.id;
-    anonymizeUser(userId, (err, changes) => {
-        if (err) {
-            return res.status(500).json({ error: 'Error al anonimizar el usuario' });
-        }
-        if (changes === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-        res.json({ message: 'Usuario anonimizado correctamente' });
-    });
-});
-
-// Función para eliminar un usuario
-function deleteUser(userId, callback) {
-    const sql = 'DELETE FROM users WHERE id = ?';
-    db.run(sql, [userId], function(err) {
-        if (err) {
-            console.error('Error al eliminar el usuario:', err.message);
-            callback(err);
-            return;
-        }
-        callback(null, this.changes);
-    });
-}
-
-// Ruta para eliminar un usuario
-app.delete('/api/users/:id', (req, res) => {
-    const userId = req.params.id;
-    deleteUser(userId, (err, changes) => {
-        if (err) {
-            return res.status(500).json({ error: 'Error al eliminar el usuario' });
-        }
-        if (changes === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-        res.json({ message: 'Usuario eliminado correctamente' });
-    });
-});
-
-// Ruta para obtener los datos de un usuario
-app.get('/api/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const sql = 'SELECT id, username, email FROM users WHERE id = ?';
-    db.get(sql, [userId], (err, row) => {
-        if (err) {
-            return res.status(500).json({ error: 'Error al obtener el usuario' });
-        }
-        if (!row) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-        res.json(row);
-    });
-});
-
-// Ruta para actualizar los datos de un usuario
-app.put('/api/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const { username, email } = req.body;
-    const sql = 'UPDATE users SET username = ?, email = ? WHERE id = ?';
-    db.run(sql, [username, email, userId], function(err) {
-        if (err) {
-            return res.status(500).json({ error: 'Error al actualizar el usuario' });
-        }
-        if (this.changes === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-        res.json({ message: 'Usuario actualizado correctamente' });
-    });
-});
+// Nueva ruta para obtener el estado de Avalanche
+//app.get('/api/avalanche_status', async (req, res) => {
+//    try {
+//       const response = await axios.get('http://blockchain:9650/ext/health');
+//       res.json(response.data);
+//    } catch (error) {
+//        console.error('Error al obtener el estado de Avalanche:', error.message);
+//        res.status(500).send('Error al obtener el estado de Avalanche');
+//    }
+//});
 
 // Iniciar el servidor
 app.listen(port, () => {
