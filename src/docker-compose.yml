@@ -60,7 +60,6 @@ services:
       - frontend_data:/usr/src/app      # Volumen para el código fuente
       - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
     command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
-   # command: sh -c "npm run build && cp index.html dist/index.html.bkp && cp dist/index.html dist/ && npx serve dist -l 3001"
     ports:
       - "3001:3001"
     networks:
