@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Iniciar Nginx
-nginx -g 'daemon off;'
+# Iniciar Apache con ModSecurity
+service apache2 start
 
 # Iniciar HashiCorp Vault en modo desarrollo, escuchando en 0.0.0.0
 vault server -dev -dev-listen-address="0.0.0.0:8200" &
@@ -12,9 +12,6 @@ sleep 5
 # Configurar Vault
 export VAULT_ADDR='http://0.0.0.0:8200'
 vault kv put secret/myapp api_key=my_secret_key
-
-# Ejecutar el script para obtener las variables de entorno de Vault
-/zap/wrk/get_vault_secrets.sh
 
 # Iniciar OWASP ZAP con la API Key
 ZAP_API_KEY="${ZAP_API_KEY:-my_zap_api_key}"

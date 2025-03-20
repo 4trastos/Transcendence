@@ -15,21 +15,17 @@ const app = express();
 const port = 3000;
 
 const corsOptions = {
-    origin: 'http://localhost:3001', // Cambia este valor según el puerto de tu frontend
+    origin: 'http://localhost:8080', // Cambia este valor según el puerto de tu frontend
     methods: 'GET,POST,PUT,DELETE', // Métodos permitidos
     allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
 };
+app.use(cors(corsOptions));
 
-// Middleware para parsear JSON en solicitudes POST
 app.use(express.json());
+
 app.use('/api', userRoutes);
-app.use(cors(corsOptions));  // <-- Habilita CORS para todas las rutas
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*'); // O especifica el origen del frontend
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-  });
+
+app.options('*', cors(corsOptions));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
