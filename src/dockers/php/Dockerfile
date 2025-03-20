@@ -1,61 +1,50 @@
-FROM nginx:1.25.2
+FROM php:8.1-fpm
 
-# Actualizar repositorios e instalar dependencias básicas
+# Instalar dependencias necesarias para compilar extensiones PHP
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpcre3 \
-    libpcre3-dev \
-    libssl-dev \
-    libtool \
-    autoconf \
-    apache2-dev \
-    libxml2-dev \
-    libcurl4-openssl-dev \
-    automake \
-    pkg-config \
     git \
-    wget \
-    zlib1g-dev \
-    php-fpm \
-    php-mysql \
-    php-curl \
-    php-xml \
-    php-sqlite3 \
-    && apt-get clean
-
-# Añadir repositorios adicionales para dependencias específicas
-RUN apt-get update && apt-get install -y \
-    libyajl-dev \
-    liblmdb-dev \
-    libgeoip-dev \
-    libmaxminddb-dev \
-    libcurl4-openssl-dev \
+    build-essential \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libonig-dev \
     libxml2-dev \
+    nginx \
+    autoconf \
+    automake \
+    libtool \
     liblua5.3-dev \
-    ssdeep \
-    libfuzzy-dev \
-    && apt-get clean
+    libcurl4-openssl-dev \
+    libpcre2-dev \
+    wget \
+    libmodsecurity3 libmodsecurity-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql mysqli gd
+
+RUN docker-php-ext-install pdo pdo_mysql mysqli
+
+RUN apt-get update && apt-get install -y tree && apt-get clean
 
 # Descargar y compilar libmodsecurity (el núcleo de ModSecurity)
-RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity && \
-    cd ModSecurity && \
-    git submodule init && \
-    git submodule update && \
-    ./build.sh && \
-    ./configure && \
-    make && \
-    make install
+#RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity && \
+#    cd ModSecurity && \
+#    git submodule init && \
+#    git submodule update && \
+#    ./build.sh && \
+#    ./configure && \
+#    make && \
+#    make install
 
 # Descargar el módulo precompilado de ModSecurity para NGINX
 RUN git clone https://github.com/SpiderLabs/ModSecurity-nginx.git
 
 # Descargar y compilar NGINX con el módulo de ModSecurity
-RUN wget http://nginx.org/download/nginx-1.25.2.tar.gz && \
-    tar -xvzf nginx-1.25.2.tar.gz && \
-    cd nginx-1.25.2 && \
-    ./configure --add-dynamic-module=../ModSecurity-nginx --with-compat && \
-    make && \
-    make install
+#RUN wget http://nginx.org/download/nginx-1.25.2.tar.gz && \
+#    tar -xvzf nginx-1.25.2.tar.gz && \
+#    cd nginx-1.25.2 && \
+#    ./configure --add-dynamic-module=../ModSecurity-nginx --with-compat && \
+#    make && \
+#    make install
 
 # Crear directorio para ModSecurity
 RUN mkdir -p /etc/nginx/modsec
@@ -88,13 +77,11 @@ COPY conf/crs-setup.conf /etc/nginx/modsec/crs-setup.conf
 COPY conf/nginx.conf /etc/nginx/sites-available/default
 COPY rules/ /etc/nginx/modsec/rules/
 
-# Crear el directorio sites-enabled si no existe
-RUN mkdir -p /etc/nginx/sites-enabled
+RUN rm /etc/nginx/sites-enabled/default
 
 # Crear un enlace simbólico en sites-enabled
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-RUN rm /etc/nginx/sites-enabled/default
 
 # Copiar el script de entrada y hacerlo ejecutable
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
