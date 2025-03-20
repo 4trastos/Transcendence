@@ -12,8 +12,5 @@ chown -R www-data:www-data /zap/reports
 ln -sf /zap/reports /var/www/html/zap_reports
 
 # Iniciar PHP-FPM y Nginx
-php-fpm &
+php-fpm8.2 &
 nginx -g 'daemon off;'
-
-# Iniciar Apache
-#exec apache2-foreground
