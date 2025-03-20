@@ -5,12 +5,9 @@ import './styles.css';  // Importa el archivo CSS aquí
 
 console.log('¡Hola, mundo!');
 
-function index () {
-	return (
-		<div>
-			<h1>Hola</h1>
-		</div>
-	);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("No se encontró el elemento con ID 'root'");
 }
-
-export default index;
+const root = createRoot(rootElement);
+root.render(<App />);

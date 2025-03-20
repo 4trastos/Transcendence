@@ -10,7 +10,6 @@ services:
     image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
       - sqlite_data:/var/lib/sqlite
-    command: sh /var/lib/sqlite/init_db.sh
     networks:
       - transcendence
     restart: on-failure
@@ -33,6 +32,8 @@ services:
     environment:
       - VAULT_ADDR=http://0.0.0.0:8200
       - VAULT_TOKEN=hvs.waEtSPPk0mOklwybXEWQ6Xcc
+    env_file:
+      - .env
     networks:
       - transcendence
     restart: unless-stopped
@@ -40,10 +41,11 @@ services:
   php:    # Servidor PHP
     build: dockers/php/.
     container_name: php
-    image: php:8.1-apache
     volumes:
       - php_data:/var/www/html
       - zap_reports:/zap/reports
+    env_file:
+      - .env
     ports:
       - "8080:80"
     networks:
@@ -87,8 +89,10 @@ services:
     container_name: security
     image: softwaresecurityproject/zap-stable
     ports:
-      - "8081:8081"  # zap
-      - "8200:8200"  # Vault
+      - "8081:8081"  # OWASP ZAP
+      - "8200:8200"  # HashiCorp Vault
+    env_file:
+      - .env
     environment:
       - ZAP_DAEMON=True
       - ZAP_PORT=8081
