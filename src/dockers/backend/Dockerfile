@@ -22,4 +22,4 @@ COPY tools/init.sql /var/lib/sqlite/init.sql
 
 EXPOSE 3000
 
-CMD ["npm", "node", "app.js"]
+CMD ["npm", "node"]
