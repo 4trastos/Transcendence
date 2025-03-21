@@ -1,5 +1,6 @@
 import React from 'react';
 import Items from './Items'; // Importa el componente Items
+import Pong from './Pong';
 import Register from './Register';
 import Login from './Login';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
@@ -40,7 +41,7 @@ const App = () => {
         </nav>
         {/* Contenido dinamico segun la ruta */}
         <Routes>
-          <Route path="/" element={<Items />} /> 
+          <Route path="/" element={<Pong />} /> 
           <Route path="/registro" element={<Register />} />
           <Route path="/login" element={<Login />} />
         </Routes>
