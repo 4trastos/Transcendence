@@ -87,6 +87,7 @@ delete:
 	else \
 		echo "No transcendence volumes to remove."; \
 	fi
+	@docker system prune --volumes -a
 
 ps:
 	@docker compose -f ./src/docker-compose.yml ps -a
@@ -113,7 +114,7 @@ help:
 	@echo "  make clean               - Remove data, containers, images, volumes, and networking"
 	@echo "  make setup               - Setup the necessary directories"
 	@echo "  make re                  - Stop everything and restart it (down + all)"
-	@echo "  make delete              - Remove Docker volumes related to 'transcendence'"
+	@echo "  make delete              - Remove Docker volumes related to 'transcendence' and clean up unused Docker resources"
 	@echo "  make ps                  - Show the status of containers"
 	@echo "  make logs                - Show logs for all services"
 	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
