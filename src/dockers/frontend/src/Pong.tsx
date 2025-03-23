@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 
+
 const Pong = () => {
     useEffect(() => {
         const canvas = document.getElementById('pong') as HTMLCanvasElement;
@@ -104,9 +105,16 @@ const Pong = () => {
     }, []);
 
     return (
-        //<div className="w-full h-64 bg-[url('/imgs/bg.jpg')] bg-cover bg-center flex items-center justify-center">
-            <canvas id="pong" width="800" height="400"></canvas>
-        //</div>
+        <div 
+            className="flex items-center justify-center h-full"
+        >
+            <canvas 
+                id="pong" 
+                width="800" 
+                height="400"
+            >
+            </canvas>
+        </div>
     );
 };
 
