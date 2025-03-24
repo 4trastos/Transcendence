@@ -31,7 +31,7 @@ services:
       - security
     environment:
       - VAULT_ADDR=http://0.0.0.0:8200
-      - VAULT_TOKEN=hvs.waEtSPPk0mOklwybXEWQ6Xcc
+    #  - VAULT_TOKEN="${ROOT_TOKEN}"
     env_file:
       - .env
     networks:
@@ -44,14 +44,19 @@ services:
     volumes:
       - php_data:/var/www/html
       - zap_reports:/zap/reports
+      - ./tls:/etc/nginx/certs  # Certificados TLS generados por Vault
+    #  - ./tls:/etc/vault/tls
     env_file:
       - .env
     ports:
+      - "443:443"  # HTTPS
       - "8080:80"
+      - "9001:9001"
     networks:
       - transcendence
     depends_on:
       - frontend
+      - security
     restart: always
 
   frontend:   # Frontend (TypeScript + Tailwind)
@@ -97,11 +102,14 @@ services:
       - ZAP_DAEMON=True
       - ZAP_PORT=8081
       - ZAP_ALLOWED_HOSTS=*
-      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDR=https://0.0.0.0:8200
+      - VAULT_TOKEN=<root-token>
     volumes:
       - zap_data:/zap/wrk
-      - modsec_data:/var/log/apache2
       - zap_reports:/zap/reports
+      - vault_data:/vault/data  # Volumen para Vault
+      - ./tls:/etc/vault/tls  # Certificados TLS
+      - ./ca:/ca 
     entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       - transcendence
@@ -164,11 +172,11 @@ volumes:
        device: "$HOME/goinfre/data/security"
        o: bind
 
-  modsec_data:
-     name: modsec_data
+  vault_data:
+     name: vault_data
      driver: local
      driver_opts:
        type: none
-       device: "$HOME/goinfre/data/modsecurity"
+       device: "$HOME/goinfre/data/vault"
        o: bind
   
