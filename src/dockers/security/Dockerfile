@@ -7,9 +7,23 @@ USER root
 # Definir variables de entorno al inicio
 ENV MOZ_HEADLESS=1
 
-RUN mkdir -p /zap/wrk/
-RUN mkdir -p /root/.ZAP/firefox
-RUN export MOZ_HEADLESS=1
+# Crear directorios necesarios
+RUN mkdir -p /zap/wrk/ && \
+    mkdir -p /zap/wrk/tls && \
+    mkdir -p /root/.ZAP/firefox && \
+    mkdir -p /etc/vault/tls && \
+    mkdir -p /etc/vault/data && \
+    mkdir -p /ca && \
+    chmod -R 755 /zap/wrk /etc/vault
+
+# Instalar dependencias
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    firefox-esr \
+    jq \
+    openssl \
+    && apt-get clean
 
 # Instalar HashiCorp Vault
 RUN apt-get update && apt-get install -y wget \
@@ -25,17 +39,16 @@ RUN apt-get update && apt-get install -y firefox-esr && apt-get clean
 RUN apt-get update && apt-get install -y jq
 
 # Copiar scripts y configuraciones
-COPY /zap/zap_scan.sh /zap/wrk/zap_scan.sh
-COPY /zap/get_zap_api_key.sh /zap/wrk/get_zap_api_key.sh
-COPY /zap/entrypoint.sh /zap/wrk/entrypoint.sh
-COPY /valt/get_vault_secrets.sh /zap/wrk/get_vault_secrets.sh
-COPY /mod/modsecurity.conf /etc/modsecurity/modsecurity.conf
+COPY zap/zap_scan.sh /zap/wrk/zap_scan.sh
+COPY zap/get_zap_api_key.sh /zap/wrk/get_zap_api_key.sh
+COPY zap/entrypoint.sh /zap/wrk/entrypoint.sh
+COPY vault/get_vault_secrets.sh /zap/wrk/get_vault_secrets.sh
+COPY vault/vault.hcl /etc/vault/vault.hcl
+COPY vault/openssl.cnf /zap/wrk/openssl.cnf
 
 # Dar permisos de ejecución a los scripts
-RUN chmod +x /zap/wrk/get_zap_api_key.sh
-RUN chmod +x /zap/wrk/zap_scan.sh
-RUN chmod +x /zap/wrk/entrypoint.sh
-RUN chmod +x /zap/wrk/get_vault_secrets.sh
+RUN chown -R 996:996 /etc/vault
+RUN chmod +x /zap/wrk/*.sh
 
 EXPOSE 8081 8200
 

@@ -94,8 +94,10 @@ RUN mkdir -p /var/www/html/zap_reports && chmod -R 777 /var/www/html/zap_reports
 # Asegurar que los permisos sean correctos
 RUN chown -R www-data:www-data /var/www/html/zap_reports
 
+# Crear enlace simbólico para los certificados TLS
+RUN ln -s /etc/vault/tls /etc/nginx/certs
+
 # Copiar configuración de ModSecurity
-#COPY conf/crs-setup.conf /etc/nginx/modsec/crs-setup.conf
 COPY conf/modsecurity.conf /etc/nginx/modsec/modsecurity.conf
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 COPY conf/default.conf /etc/nginx/sites-enabled/default
@@ -118,7 +120,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Exponer el puerto 80
-EXPOSE 80
+EXPOSE 80 9001
 
 # Usar entrypoint.sh para preparar el entorno y luego iniciar supervisord
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

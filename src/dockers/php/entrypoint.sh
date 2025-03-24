@@ -14,5 +14,10 @@ ln -sf /zap/reports /var/www/html/zap_reports
 # Asegurar que los logs de ModSecurity tengan permisos adecuados
 chown -R www-data:www-data /var/log/nginx
 
+# Asegurar que los logs de ModSecurity tengan permisos adecuados
+chown -R www-data:www-data /var/log/nginx
+# Añadir esta línea para cambiar los permisos de los archivos de log
+find /var/log/nginx -type f -exec chmod 644 {} \;
+
 # Ejecutar supervisord
 exec /usr/bin/supervisord

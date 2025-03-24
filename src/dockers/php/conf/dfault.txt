@@ -1,15 +1,6 @@
 
 listen 80;
 server_name localhost;
-return 301 https://$host$request_uri;
-
-listen 443 ssl;
-server_name localhost;
-
-ssl_certificate /etc/vault/tls/cert.pem;
-ssl_certificate_key /etc/vault/tls/key.pem;
-ssl_trusted_certificate /etc/vault/tls/ca.crt;
-
 root /var/www/html;
 index index.php index.html index.htm;
 
