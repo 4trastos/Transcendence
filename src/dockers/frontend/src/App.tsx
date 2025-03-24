@@ -4,16 +4,15 @@ import Pong from './Pong';
 import Register from './Register';
 import Login from './Login';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import bgImg from './assets/imgs/bg.png';
 import './styles.css';
 
 const App = () => {
   return (
     <Router>
-      <div className="bg-gray-800 min-h-screen text-white flex flex-row">
+      <div className="bg-gray-800 min-h-screen text-white"> {/*className="bg-gray-800 min-h-screen text-white flex flex-row" */}
         {/* Barra de Navegación (10% de la pantalla) */}
-        <div className="h-full w-[10vh] p-4 flex items-center justify-center">
-          <nav>
+        <div className="flex" style={{ flex: '0 0 10%'}}> {/*className="flex" style={{ flex: '0 0 10%' }}*/}
+          <nav className='p-4 flex items-center justify-center'> {/*className='p-4 flex items-center justify-center'*/}
             <ul className="flex space-x-4">
               <li>
                 <Link to="/" className="text-gray-300 hover:text-white transition duration-300">
@@ -35,16 +34,7 @@ const App = () => {
         </div>
 
         {/* Contenido dinámico (90% de la pantalla) */}
-        <div
-          className="h-full w-[90vh] overflow-auto"
-          style={{
-            backgroundImage: `url(${bgImg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
-          }}
-        >
+        <div className="flex-1 overflow-auto"> {/*className="flex-1 overflow-auto"*/}
           <Routes>
             <Route path="/" element={<Pong />} />
             <Route path="/registro" element={<Register />} />
