@@ -94,8 +94,46 @@ RUN mkdir -p /var/www/html/zap_reports && chmod -R 777 /var/www/html/zap_reports
 # Asegurar que los permisos sean correctos
 RUN chown -R www-data:www-data /var/www/html/zap_reports
 
-# Crear enlace simbólico para los certificados TLS
-RUN ln -s /etc/vault/tls /etc/nginx/certs
+#=======================================================#
+#           certificados autogenerados                  #
+#=======================================================#
+# Instalar dependencias esenciales
+RUN apt-get update && apt-get install -y \
+    openssl \
+    procps \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar estructura de directorios con permisos adecuados
+RUN mkdir -p \
+    /var/run/supervisor \
+    /var/log/supervisor \
+    /var/run/php \
+    /etc/nginx/ssl \
+    /zap/reports \
+    && chown -R www-data:www-data \
+        /var/run \
+        /var/log \
+        /etc/nginx \
+        /zap/reports \
+    && chmod 775 /var/run/supervisor \
+    && chmod 770 /var/run/php \
+    && chmod 750 /etc/nginx/ssl
+
+# Configurar directorio SSL limpio
+RUN mkdir -p /etc/nginx/ssl \
+    && chown www-data:www-data /etc/nginx/ssl \
+    && chmod 750 /etc/nginx/ssl \
+    && touch /etc/nginx/ssl/.keep \
+    && chown www-data:www-data /etc/nginx/ssl/.keep
+
+# Configurar PHP-FPM para usar el socket correcto
+RUN sed -i 's/;listen.owner = www-data/listen.owner = www-data/g' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's/;listen.group = www-data/listen.group = www-data/g' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's/;listen.mode = 0660/listen.mode = 0660/g' /usr/local/etc/php-fpm.d/www.conf
+#=======================================================#
+#           certificados autogenerados                  #
+#=======================================================#
 
 # Copiar configuración de ModSecurity
 COPY conf/modsecurity.conf /etc/nginx/modsec/modsecurity.conf
@@ -119,8 +157,50 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Copiar configuración de supervisord
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Exponer el puerto 80
 EXPOSE 80 9001
+
+# Crear directorios esenciales con permisos correctos
+RUN mkdir -p \
+    /var/log/nginx \
+    /var/log/supervisor \
+    /var/run/php \
+    && chown -R www-data:www-data \
+        /var/log \
+        /var/run \
+    && chmod -R 775 \
+        /var/log/nginx \
+        /var/log/supervisor \
+        /var/run/php
+
+# Crear directorios de logs con permisos correctos
+RUN mkdir -p \
+    /var/log/nginx \
+    /var/log/supervisor \
+    /var/log/modsec \
+    /var/cache/modsecurity \
+    /tmp/modsecurity \
+    && touch \
+    /var/log/nginx/error.log \
+    /var/log/nginx/access.log \
+    /var/log/nginx/modsec_debug.log \
+    /var/log/supervisor/supervisord.log \
+    /var/log/modsec/modsec_audit.log \
+    && chown -R www-data:www-data \
+        /var/log \
+        /var/cache/modsecurity \
+        /tmp/modsecurity \
+    && chmod -R 775 \
+        /var/log \
+        /var/cache \
+        /tmp
+
+RUN mkdir -p /var/log/nginx /var/log/supervisor /var/log/modsec \
+&& touch /var/log/nginx/error.log /var/log/nginx/access.log /var/log/nginx/modsec_debug.log \
+/var/log/supervisor/supervisord.log /var/log/modsec/modsec_audit.log \
+&& chown -R www-data:www-data /var/log/nginx /var/log/supervisor /var/log/modsec \
+&& chmod -R 775 /var/log/nginx /var/log/supervisor /var/log/modsec
+
+RUN apt-get update && apt-get install -y net-tools && rm -rf /var/lib/apt/lists/*
 
 # Usar entrypoint.sh para preparar el entorno y luego iniciar supervisord
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

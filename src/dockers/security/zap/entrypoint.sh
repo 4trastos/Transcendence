@@ -1,90 +1,118 @@
 #!/bin/bash
 
-# Generar certificados TLS si no existen
-if [ ! -f /zap/wrk/tls/key.pem ] || [ ! -f /zap/wrk/tls/cert.pem ]; then
-    echo "Generando certificados TLS..."
-    openssl req -x509 -newkey rsa:4096 -keyout /zap/wrk/tls/key.pem -out /zap/wrk/tls/cert.pem -days 365 -nodes -config /zap/wrk/openssl.cnf
-    echo "Certificados TLS generados correctamente."
-else
-    echo "Certificados TLS ya existen."
+# =============================================
+# CONFIGURACIÓN DE DIRECTORIOS Y CERTIFICADOS
+# =============================================
+
+# 1. Crear estructura de directorios
+mkdir -p \
+  /etc/vault/tls \
+  /zap/wrk/tls \
+  /etc/nginx/certs
+
+# 2. Generar CA raíz si no existe
+if [ ! -f "/etc/vault/tls/ca.crt" ]; then
+  echo "Generando nueva CA raíz..."
+  openssl genrsa -out /etc/vault/tls/ca.key 4096
+  openssl req -x509 -new -nodes -key /etc/vault/tls/ca.key \
+    -sha256 -days 3650 -out /etc/vault/tls/ca.crt \
+    -subj "/CN=Transcendence Internal CA"
 fi
 
-# Generar CA privada y firmar certificado de Vault
-openssl genrsa -out /zap/wrk/tls/ca.key 4096
-openssl req -x509 -new -nodes -key /zap/wrk/tls/ca.key -sha256 -days 3650 -out /zap/wrk/tls/ca.crt -subj "/CN=MiCAprivada"
-openssl x509 -req -in /zap/wrk/tls/cert.pem -CA /zap/wrk/tls/ca.crt -CAkey /zap/wrk/tls/ca.key -CAcreateserial -out /zap/wrk/tls/cert.pem -days 365 -sha256
+# 3. Generar certificado del servidor
+echo "Generando certificado TLS..."
+openssl req -newkey rsa:4096 -nodes \
+  -keyout /etc/vault/tls/key.pem \
+  -out /etc/vault/tls/cert.csr \
+  -subj "/CN=transcendence" \
+  -config /zap/wrk/openssl.cnf
 
-chmod 600 /zap/wrk/tls/key.pem
-chmod 644 /zap/wrk/tls/cert.pem
-chmod 644 /zap/wrk/tls/ca.crt
+# 4. Firmar certificado con SANs
+openssl x509 -req -in /etc/vault/tls/cert.csr \
+  -CA /etc/vault/tls/ca.crt \
+  -CAkey /etc/vault/tls/ca.key \
+  -CAcreateserial \
+  -out /etc/vault/tls/cert.pem \
+  -days 365 -sha256 \
+  -extfile /zap/wrk/openssl.cnf \
+  -extensions v3_ca
 
-# Agregar el certificado CA a las autoridades confiables
-echo "Agregando certificado CA a las autoridades confiables..."
-cp /zap/wrk/tls/ca.crt /usr/local/share/ca-certificates/mi_ca.crt
-update-ca-certificates
-echo "Certificado CA agregado correctamente."
+# Configurar nombre de host para resolución interna
+echo "127.0.0.1 security security.transcendence" >> /etc/hosts
 
-# Iniciar HashiCorp Vault en modo producción
+# Configurar variables de entorno para curl
+echo "export CURL_CA_BUNDLE=/etc/vault/tls/ca.crt" >> /root/.bashrc
+echo "export REQUESTS_CA_BUNDLE=/etc/vault/tls/ca.crt" >> /root/.bashrc
+
+# Configurar CA como confiable
+echo "Configurando CA como confiable..."
+cp /etc/vault/tls/ca.crt /usr/local/share/ca-certificates/
+update-ca-certificates --fresh
+chmod 644 /etc/ssl/certs/*.pem
+
+# Exportar variables críticas para Vault
+export VAULT_ADDR='https://0.0.0.0:8200'
+export VAULT_CACERT='/etc/vault/tls/ca.crt'
+
+# 5. Preparar certificados para otros servicios
+echo "Preparando certificados compartidos..."
+
+# Para ZAP (enlace simbólico)
+ln -sf /etc/vault/tls /zap/wrk/tls
+
+# Para Nginx (bundle completo)
+cat /etc/vault/tls/cert.pem /etc/vault/tls/ca.crt > /etc/nginx/certs/bundle.pem
+cp /etc/vault/tls/key.pem /etc/nginx/certs/key.pem
+cp /etc/vault/tls/ca.crt /etc/nginx/certs/ca.crt
+
+# 6. Configurar permisos
+chmod 644 /etc/vault/tls/*.crt /etc/vault/tls/*.pem
+chmod 600 /etc/vault/tls/*.key
+chmod 755 /etc/vault/tls /zap/wrk/tls /etc/nginx/certs
+
+# =============================================
+# CONFIGURACIÓN DE VAULT
+# =============================================
+
+echo "Iniciando Vault..."
 vault server -config=/etc/vault/vault.hcl &
 
-# Esperar a que Vault esté listo
-sleep 10
+# Esperar inicialización
+sleep 5
 
-# Inicializar Vault (solo la primera vez)
-if [ ! -f /etc/vault/data/initialized ]; then
-    echo "Inicializando Vault..."
-    vault operator init -key-shares=1 -key-threshold=1 > /tmp/keys.txt
-    cat /tmp/keys.txt | grep "Unseal Key" | awk '{print $4}' > /etc/vault/data/unseal_keys.txt
-    cat /tmp/keys.txt | grep "Root Token" | awk '{print $4}' > /etc/vault/data/root_token.txt
-    touch /etc/vault/data/initialized
-    echo "Vault inicializado correctamente."
-else
-    echo "Vault ya está inicializado."
+# Inicializar Vault si es la primera vez
+if [ ! -f "/vault/data/initialized" ]; then
+    vault operator init -key-shares=1 -key-threshold=1 > /tmp/vault-init.txt
+    UNSEAL_KEY=$(grep "Unseal Key" /tmp/vault-init.txt | awk '{print $4}')
+    ROOT_TOKEN=$(grep "Root Token" /tmp/vault-init.txt | awk '{print $4}')
+    
+    echo "$UNSEAL_KEY" > /vault/data/unseal_key.txt
+    echo "$ROOT_TOKEN" > /vault/data/root_token.txt
+    touch /vault/data/initialized
+    
+    # Desbloquear con la CA configurada
+    vault operator unseal --ca-cert=/etc/vault/tls/ca.crt $UNSEAL_KEY
+    export VAULT_TOKEN="$ROOT_TOKEN"
 fi
 
-# Extraer las claves de desbloqueo
-UNSEAL_KEY=$(cat /etc/vault/data/unseal_keys.txt)
+# =============================================
+# CONFIGURACIÓN DE ZAP
+# =============================================
 
-# Desbloquear Vault
-echo "Desbloqueando Vault con la clave de desbloqueo..."
-vault operator unseal --ca-cert=/zap/wrk/tls/ca.crt $UNSEAL_KEY
+echo "Iniciando ZAP..."
+/zap/zap.sh -daemon -host 0.0.0.0 -port 8081 \
+  -config api.key=${ZAP_API_KEY:-my_zap_api_key} \
+  -config api.addrs.addr.name=.* \
+  -config api.addrs.addr.regex=true &
 
-# Configurar Vault
-echo "Leyendo token desde /etc/vault/data/root_token.txt..."
-TOKEN_CONTENT=$(cat /etc/vault/data/root_token.txt)
-echo "Contenido leído (antes de asignación): [$TOKEN_CONTENT]" # Logs de depuración
-export VAULT_TOKEN="$TOKEN_CONTENT"
-echo "Contenido de VAULT_TOKEN (después de asignación): [$VAULT_TOKEN]" # Logs de depuración
-#export VAULT_CACERT="/zap/wrk/tls/ca.crt"
-export VAULT_CACERT=/usr/local/share/ca-certificates/mi_ca.crt
-echo "Configurando VAULT_CACERT: $VAULT_CACERT"
-
-# Crear un secreto de ejemplo
-vault kv put secret/myapp api_key=my_secret_key --ca-cert=/zap/wrk/tls/ca.crt
-vault kv get --ca-cert=/zap/wrk/tls/ca.crt -field=api_key secret/myapp
-
-# Copiar certificados a /etc/vault/tls
-cp /zap/wrk/tls/cert.pem /etc/vault/tls/cert.pem
-cp /zap/wrk/tls/key.pem /etc/vault/tls/key.pem
-cp /zap/wrk/tls/ca.crt /etc/vault/tls/ca.crt
-
-# Ejecutar el script para obtener las variables de entorno de Vault
-/zap/wrk/get_vault_secrets.sh
-
-# Iniciar OWASP ZAP con la API Key
-ZAP_API_KEY="${ZAP_API_KEY:-my_zap_api_key}"
-/zap/zap.sh -daemon -host 0.0.0.0 -port 8081 -config api.key=$ZAP_API_KEY -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
-
-# Esperar a que ZAP esté listo
-echo "Esperando a que ZAP inicie..."
-while ! curl --cacert /zap/wrk/tls/cert.pem -fs "http://localhost:8081/JSON/core/view/version/" > /dev/null 2>&1; do
-    echo "Esperando..."
-    sleep 10
+# Esperar que ZAP esté listo
+while ! curl -sSf http://localhost:8081/JSON/core/view/version >/dev/null 2>&1; do
+  sleep 2
 done
 
-# Ejecutar el script de escaneo de ZAP
-export ZAP_API_KEY="$ZAP_API_KEY"
-/zap/wrk/zap_scan.sh
+# =============================================
+# MANTENER CONTENEDOR EN EJECUCIÓN
+# =============================================
 
-# Mantener el contenedor en ejecución
+echo "Todos los servicios están listos"
 tail -f /dev/null
