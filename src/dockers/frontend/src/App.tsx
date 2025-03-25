@@ -1,12 +1,41 @@
-import React from 'react';
-import Items from './Items'; // Importa el componente Items
-import Pong from './Pong';
-import Register from './Register';
-import Login from './Login';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import './styles.css';
+import { useEffect, useState } from "react";
+import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import axios from "axios";
+import Pong from "./Pong";
+import Register from "./Register";
+import Login from "./Login";
 
 const App = () => {
+
+  const [user, setUser] = useState(null);
+
+  const checkSession = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/session");
+      if (response.data.loggedIn) {
+        setUser(response.data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error al comprobar la sesión:", error);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:3000/api/logout");
+      setUser(null);
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
+
   return (
     <Router>
       <div className="bg-gray-800 min-h-screen text-white"> {/*className="bg-gray-800 min-h-screen text-white flex flex-row" */}
@@ -19,17 +48,34 @@ const App = () => {
                   Inicio
                 </Link>
               </li>
-              <li>
-                <Link to="/login" className="text-gray-300 hover:text-white transition duration-300">
-                  Log in
-                </Link>
-              </li>
-              <li>
-                <Link to="/registro" className="text-gray-300 hover:text-white transition duration-300">
-                  Registro
-                </Link>
-              </li>
-            </ul>
+              { user ? (
+                <>
+                  <li>
+                    <Link to="/perfil" className="text-gray-300 hover:text-white transition duration-300">
+                      Perfil ({user.username})
+                    </Link>
+                  </li>
+                  <li>
+                    <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition duration-300">
+                      Cerrar sesión
+                    </button>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link to="/login" className="text-gray-300 hover:text-white transition duration-300">
+                      Log in
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/registro" className="text-gray-300 hover:text-white transition duration-300">
+                      Registro
+                    </Link>
+                  </li>
+                </>
+              )}
+              </ul>
           </nav>
         </div>
 

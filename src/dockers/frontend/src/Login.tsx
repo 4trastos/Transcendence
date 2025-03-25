@@ -1,79 +1,143 @@
 import { useState } from "react";
 import axios from "axios";
-import Register from './Register';
-import React from "react";
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 
 const Login = () => {
-    const [formData, setFormData] = useState({
+    const [player1Data, setPlayer1Data] = useState({
         username: "",
         password: "",
+        guestMode: false
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value});
-    };
+    const [player2Data, setPlayer2Data] = useState({
+        username: "",
+        password: "",
+        guestMode: false
+    });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const response = await axios.post("http://localhost:3000/api/login", formData);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>, player: number) => {
+        const { name, value, type, checked } = e.target;
 
-            alert("Inciio de sesion exitoso: " + response.data.message);
-            setFormData({ username: "", password: ""});
-        } catch (error: any){
-            console.error("Error detallado:", error);
-            alert("Error al iniciar sesion: " + (error.response?.data?.error || error.message));
+        if (player === 1) {
+            setPlayer1Data({
+                ...player1Data,
+                [name]: type === "checkbox" ? checked : value
+            });
+        } else {
+            setPlayer2Data({
+                ...player2Data,
+                [name]: type === "checkbox" ? checked : value
+            });
         }
     };
-    console.log("hola");
+
+    const handleSubmit = async (e: React.FormEvent, playerData: typeof player1Data) => {
+        e.preventDefault();
+        try {
+            const response = await axios.post("http://localhost:3000/api/login", playerData);
+            alert("Inicio de sesión exitoso: " + response.data.message);
+        } catch (error: any) {
+            console.error("Error detallado:", error);
+            alert("Error al iniciar sesión: " + (error.response?.data?.error || error.message));
+        }
+    };
+    
+
     return (
-        <div
-        	className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600"
-        >
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 space-x-10">
+            {/* Formulario Jugador 1 */}
             <form
-                onSubmit={handleSubmit}
+                onSubmit={(e) => handleSubmit(e, player1Data)}
                 className="bg-gray-900 p-8 shadow-xl rounded-lg w-96 space-y-4"
             >
-                <h2 className="text-3xl font-bold mb-4 text-center text-white">Log In to PONG!</h2>
+                <h2 className="text-3xl font-bold mb-4 text-center text-white">Get Ready Player1!</h2>
 
                 <input
                     type="text"
                     name="username"
                     placeholder="Username"
-                    value={formData.username}
-                    onChange={handleChange}
+                    value={player1Data.username}
+                    onChange={(e) => handleChange(e, 1)}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
                     type="password"
                     name="password"
                     placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={player1Data.password}
+                    onChange={(e) => handleChange(e, 1)}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
+                <label className="text-white flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        name="guestMode"
+                        checked={player1Data.guestMode}
+                        onChange={(e) => handleChange(e, 1)}
+                    />
+                    Jugar como invitado?
+                </label>
                 <button
                     type="submit"
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"
                 >
-                    Log In!
+                    Ready!
                 </button>
-                <div className="mt-4 text-center">
-                    <p className="text-white">
-                        No tienes una cuenta?{" "}
-                        <Link to="/registro" className="text-blue-400 hover:underline">
-                            Regístrate aquí
-                        </Link>
-                        <Routes>
-                            <Route path="/registro" element={<Register />}/>
-                        </Routes>
-                    </p>
-                </div>
+                <p className="text-center text-white">
+                    No tienes una cuenta?{" "}
+                    <Link to="/registro" className="text-blue-400 hover:underline">
+                        Regístrate aquí
+                    </Link>
+                </p>
+            </form>
+
+            {/* Formulario Jugador 2 */}
+            <form
+                onSubmit={(e) => handleSubmit(e, player2Data)}
+                className="bg-gray-900 p-8 shadow-xl rounded-lg w-96 space-y-4"
+            >
+                <h2 className="text-3xl font-bold mb-4 text-center text-white">Get Ready Player2!</h2>
+
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    value={player2Data.username}
+                    onChange={(e) => handleChange(e, 2)}
+                    className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={player2Data.password}
+                    onChange={(e) => handleChange(e, 2)}
+                    className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <label className="text-white flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        name="guestMode"
+                        checked={player2Data.guestMode}
+                        onChange={(e) => handleChange(e, 2)}
+                    />
+                    Jugar como invitado?
+                </label>
+                <button
+                    type="submit"
+                    className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"
+                >
+                    Ready!
+                </button>
+                <p className="text-center text-white">
+                    No tienes una cuenta?{" "}
+                    <Link to="/registro" className="text-blue-400 hover:underline">
+                        Regístrate aquí
+                    </Link>
+                </p>
             </form>
         </div>
     );
-}
+};
 
 export default Login;

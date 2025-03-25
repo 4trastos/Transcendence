@@ -59,8 +59,55 @@ router.post('/register', async(req, res) => {
     }
 });
 
+/**
+ * @brief Comprueba si hay una session iniciada.
+ */
+router.get('/session', (req, res) => {
+    if (req.session.users && req.session.users.length > 0) {
+        res.status(200).json({
+            loggedIn: true,
+            user: req.session.users[req.session.users.length - 1]
+        });
+    } else {
+        res.status(200).json({ loggedIn: false });
+    }
+});
+
+
+/**
+ * @brief desloguea el usuario
+ */
+router.post('/logout', (req, res) => {
+    if (req.session) {
+        req.session.destroy(err => {
+            if (err) {
+                return res.status(500).json({ error: "Error al cerrar la sesión" });
+            }
+            return res.status(200).json({ message: "Sesión cerrada correctamente" });
+        });
+    } else {
+        return res.status(400).json({ error: "No hay sesión activa" });
+    }
+});
+
+
+/**
+ * @brief Loguea al usuario
+ */
 router.post('/login', async(req, res) =>{
-    const { username, password } = req.body;
+    const { username, password, guestMode } = req.body;
+
+    if (guestMode) {
+        console.log("Accediendo como invitado");
+        if (!req.session.users) {
+            req.session.users = [];
+        }
+        req.session.users.push({
+            userId: "guest",
+            username: "Invitado"
+        });
+        return res.status(200).send({ message: "Inicio de sesión como invitado exitoso" });
+    }
 
     if (typeof username !== "string" || typeof password !== "string" || username.trim() === "" || password.trim() === "") {
         return res.status(400).send('Faltan campos requeridos');
