@@ -71,7 +71,7 @@ chmod 600 /etc/vault/tls/*.key
 chmod 755 /etc/vault/tls /zap/wrk/tls /etc/nginx/certs
 
 # =============================================
-# CONFIGURACIÓN DE VAULT
+# CONFIGURACIÓN COMPLETA DE VAULT
 # =============================================
 
 echo "Iniciando Vault..."
@@ -80,8 +80,9 @@ vault server -config=/etc/vault/vault.hcl &
 # Esperar inicialización
 sleep 5
 
-# Inicializar Vault si es la primera vez
-if [ ! -f "/vault/data/initialized" ]; then
+# Función para inicializar Vault
+init_vault() {
+    echo "Inicializando Vault por primera vez..."
     vault operator init -key-shares=1 -key-threshold=1 > /tmp/vault-init.txt
     UNSEAL_KEY=$(grep "Unseal Key" /tmp/vault-init.txt | awk '{print $4}')
     ROOT_TOKEN=$(grep "Root Token" /tmp/vault-init.txt | awk '{print $4}')
@@ -90,9 +91,66 @@ if [ ! -f "/vault/data/initialized" ]; then
     echo "$ROOT_TOKEN" > /vault/data/root_token.txt
     touch /vault/data/initialized
     
-    # Desbloquear con la CA configurada
-    vault operator unseal --ca-cert=/etc/vault/tls/ca.crt $UNSEAL_KEY
+    # Configurar entorno
     export VAULT_TOKEN="$ROOT_TOKEN"
+    
+    # Desbloquear Vault
+    vault operator unseal $UNSEAL_KEY
+    
+    # Habilitar audit logging
+    vault audit enable file file_path=/vault/data/audit.log
+    
+    # Configuración básica
+    configure_vault
+}
+
+# Función para configuración automática
+configure_vault() {
+    echo "Configurando políticas y secretos..."
+    
+    # 1. Habilitar motor KV v2
+    vault secrets enable -path=secret kv-v2
+    
+    # 2. Crear políticas
+    vault policy write transcendence /etc/vault/policy.hcl
+    
+    # 3. Crear secretos iniciales
+    vault kv put secret/transcendence/database \
+        username="db_admin" \
+        password="$(openssl rand -base64 16)"
+    
+    vault kv put secret/transcendence/api_keys \
+        zap_api_key="${ZAP_API_KEY:-my_zap_api_key}" \
+        jwt_secret="$(openssl rand -base64 32)"
+    
+    # 4. Configurar autenticación AppRole
+    vault auth enable approle
+    vault write auth/approle/role/transcendence-app \
+        secret_id_ttl=0 \
+        token_ttl=1h \
+        token_max_ttl=2h \
+        policies="transcendence"
+    
+    # 5. Generar token para UI
+    UI_TOKEN=$(vault token create -policy="transcendence" -ttl=24h -field=token)
+    echo "$UI_TOKEN" > /vault/data/ui_token.txt
+    
+    # 6. Configurar autenticación userpass
+    vault auth enable userpass
+    vault write auth/userpass/users/transcendence-admin \
+        password="$(openssl rand -base64 12)" \
+        policies="transcendence"
+    
+    echo "Configuración completada!"
+}
+
+# Inicialización condicional
+if [ ! -f "/vault/data/initialized" ]; then
+    init_vault
+else
+    echo "Vault ya está inicializado, procediendo a desbloquear..."
+    vault operator unseal $(cat /vault/data/unseal_key.txt)
+    export VAULT_TOKEN=$(cat /vault/data/root_token.txt)
 fi
 
 # =============================================
@@ -115,4 +173,11 @@ done
 # =============================================
 
 echo "Todos los servicios están listos"
+echo "================================="
+echo "URL Vault UI: https://localhost:8200"
+echo "Token UI: $(cat /vault/data/ui_token.txt)"
+echo "Usuario admin: transcendence-admin"
+echo "Contraseña admin: $(vault read -field=password auth/userpass/users/transcendence-admin)"
+echo "================================="
+
 tail -f /dev/null

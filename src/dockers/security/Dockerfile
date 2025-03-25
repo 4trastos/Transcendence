@@ -32,6 +32,28 @@ unzip vault_1.13.0_linux_amd64.zip && \
 mv vault /usr/local/bin/ && rm vault_1.13.0_linux_amd64.zip && \
 apt-get clean
 
+# =============================================
+# AUTOMATIZACION DE VAULT
+# =============================================
+
+# Crear directorio para políticas
+RUN mkdir -p /etc/vault/policies
+
+# Copiar archivos de configuración
+COPY vault/policy.hcl /etc/vault/policy.hcl
+COPY vault/configure_vault.sh /etc/vault/configure_vault.sh
+
+# Permisos adicionales
+RUN chmod 644 /etc/vault/policy.hcl && \
+    chmod 750 /etc/vault/configure_vault.sh
+
+# =============================================
+# Verificación Automática (Healthcheck)
+# =============================================
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -k -s -o /dev/null -w "%{http_code}" https://localhost:8200/v1/sys/health | grep -q 200 || exit 1
+
 # Instalar Firefox
 RUN apt-get update && apt-get install -y firefox-esr && apt-get clean
 
@@ -45,6 +67,7 @@ COPY zap/entrypoint.sh /zap/wrk/entrypoint.sh
 COPY vault/get_vault_secrets.sh /zap/wrk/get_vault_secrets.sh
 COPY vault/vault.hcl /etc/vault/vault.hcl
 COPY vault/openssl.cnf /zap/wrk/openssl.cnf
+COPY vault/policy.hcl /etc/vault/policy.hcl
 
 # Dar permisos de ejecución a los scripts
 RUN chown -R 996:996 /etc/vault
