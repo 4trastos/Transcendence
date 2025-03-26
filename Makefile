@@ -105,6 +105,16 @@ logs_service:
 scan:
 	@docker exec -it security /zap/wrk/zap_scan.sh
 
+
+security:
+	@echo "Ejecutando pruebas de seguridad..."
+	@docker exec security mkdir -p /zap/reports
+	@docker cp script/security_test.sh security:/tmp/security_test.sh
+	@docker exec security chmod +x /tmp/security_test.sh
+	@docker exec security /tmp/security_test.sh
+	@echo "Reportes disponibles en:"
+	@echo "- Resumen de seguridad: https://localhost/zap_reports/security_report.html"
+	@echo "- Reporte detallado de ZAP: https://localhost/zap_reports/zap_report.html"
 help:
 	@echo "Available commands:"
 	@echo "  make                     - Restart Docker if needed and build the containers"
@@ -119,5 +129,6 @@ help:
 	@echo "  make logs                - Show logs for all services"
 	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
 	@echo "  make scan                - Execute ZAP security scan"
+	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan
+.PHONY: all down clean setup delete logs logs_service ps re help scan security

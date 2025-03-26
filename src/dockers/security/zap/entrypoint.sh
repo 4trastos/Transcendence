@@ -180,4 +180,15 @@ echo "Usuario admin: transcendence-admin"
 echo "Contraseña admin: $(vault read -field=password auth/userpass/users/transcendence-admin)"
 echo "================================="
 
+# =============================================
+# CONFIGURACIÓN DE ENLACES PARA REPORTES
+# =============================================
+
+echo "Configurando acceso a reportes..."
+mkdir -p /var/www/html/zap_reports
+ln -sf /zap/reports/zap_report.html /var/www/html/zap_reports/zap_report.html
+ln -sf /zap/reports/security_report.html /var/www/html/zap_reports/security_report.html
+chown -R www-data:www-data /var/www/html/zap_reports
+chmod -R 755 /var/www/html/zap_reports
+
 tail -f /dev/null
