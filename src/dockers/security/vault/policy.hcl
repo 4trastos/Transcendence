@@ -26,3 +26,11 @@ path "sys/policies/acl/transcendence" {
 path "sys/metrics" {
   capabilities = ["read"]
 }
+
+path "secret/data/transcendence/api_keys" {
+  capabilities = ["read"]
+}
+
+path "sys/policies/acl/*" {
+  capabilities = ["read"]
+}

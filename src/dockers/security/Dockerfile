@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     firefox-esr \
     jq \
     openssl \
+    nmap \
     && apt-get clean
 
 # Instalar HashiCorp Vault
