@@ -2,16 +2,22 @@
 
 # Configuración
 REPORT_DIR="/zap/reports"
-REPORT_FILE="$REPORT_DIR/security_report.html"
+REPORT_FILE="${REPORT_DIR}/security_report.html"
+ERROR_FILE="${REPORT_DIR}/security_errors.txt"  # Archivo para errores
 ZAP_URL="http://localhost:8081"
 ZAP_API_KEY="my_zap_api_key"
 TARGET_URL="https://frontend"
 VAULT_URL="https://localhost:8200"
-VAULT_TOKEN="your_vault_token"  # Asegúrate de manejar esto de forma segura en producción
+VAULT_TOKEN="your_vault_token"
 CURRENT_DATE=$(date +"%d/%m/%Y a las %H:%M:%S")
 
 # Crear directorio de reportes
-mkdir -p $REPORT_DIR
+mkdir -p "$REPORT_DIR"
+
+# Inicializar archivo de errores
+echo "Resumen de Errores de Seguridad - $CURRENT_DATE" > "$ERROR_FILE"
+echo "==============================================" >> "$ERROR_FILE"
+echo "" >> "$ERROR_FILE"
 
 # Función para ejecutar y capturar resultado
 run_test() {
@@ -20,14 +26,21 @@ run_test() {
   local success_pattern="$3"
 
   echo "Ejecutando prueba: $name"
-  output=$(eval $command 2>&1)
+  output=$(eval "$command" 2>&1)
 
-  if [[ $output =~ $success_pattern ]]; then
+  if [[ "$output" =~ $success_pattern ]]; then
     echo "   [✓] Éxito"
     return 0
   else
     echo "   [✗] Fallo"
     echo "   Salida: $output"
+    # Añadir error al archivo de errores
+    {
+      echo "=== $name ==="
+      echo "Comando ejecutado: $command"
+      echo "Error: $output"
+      echo ""
+    } >> "$ERROR_FILE"
     return 1
   fi
 }
@@ -560,3 +573,24 @@ EOF
 
 echo "Reporte de seguridad generado: $REPORT_FILE"
 echo "Accesible en: https://localhost/zap_reports/security_report.html"
+
+# Mostrar resumen de errores al final
+if [ -f "$ERROR_FILE" ]; then
+  ERROR_COUNT=$(grep -c "===" "$ERROR_FILE")
+  
+  echo ""
+  echo "----------------------------------------"
+  echo " RESUMEN DE ERRORES ($ERROR_COUNT encontrados)"
+  echo "----------------------------------------"
+  
+  if [ "$ERROR_COUNT" -gt 0 ]; then
+    cat "$ERROR_FILE"
+    echo ""
+    echo "----------------------------------------"
+    echo "¡Se encontraron $ERROR_COUNT errores que necesitan atención!"
+    echo "Revisa el archivo completo en: $ERROR_FILE"
+  else
+    echo "¡No se encontraron errores! Todas las pruebas pasaron correctamente."
+    rm "$ERROR_FILE"  # Eliminamos el archivo si no hay errores
+  fi
+fi
