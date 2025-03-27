@@ -108,6 +108,9 @@ services:
       - VAULT_CACERT=/etc/vault/tls/ca.crt
       - VAULT_ROLE_ID_FILE=/vault/data/role_id.txt
       - VAULT_SECRET_ID_FILE=/vault/data/secret_id.txt
+    #user: "1001:1001"
+    #cap_add:
+    #  - IPC_LOCK
     volumes:
       - zap_data:/zap/wrk          # Contiene todo el workspace de ZAP
       - zap_reports:/zap/reports    # Reportes de ZAP
@@ -119,6 +122,101 @@ services:
         aliases:
           - security
     restart: unless-stopped
+
+  elasticsearch:
+    build: ./dockers/management/elasticsearch
+    image: elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # Desactivar seguridad para desarrollo local
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g    # Ajustar memoria según sistema
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+  logstash:
+    build: ./dockers/management/logstash
+    image: logstash:8.12.0
+    container_name: logstash
+    volumes:
+      - ls_data:/usr/share/logstash/pipeline  # Configuración de pipelines
+      - ls_data:/usr/share/logstash/config      # Configuración adicional
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+    depends_on:
+      - elasticsearch
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+  kibana:
+    build: ./dockers/management/kibana
+    image: kibana:8.12.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - transcendence
+    restart: unless-stopped
+
+#  prometheus:
+#    build: ./dockers/monitoring/prometheus
+#    image: prom/prometheus
+#    container_name: prometheus
+#    volumes:
+#      - grafana_data:/etc/prometheus/prometheus.yml
+#    ports:
+#      - "9090:9090"
+#    networks:
+#      - transcendence
+#    restart: unless-stopped
+
+#  grafana:
+#    build: ./dockers/monitoring/grafana
+#    image: grafana/grafana
+#    container_name: grafana
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    ports:
+#      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
+#    depends_on:
+#      - prometheus
+#    networks:
+#      - transcendence
+#    restart: unless-stopped
+
+  # --- SECCIÓN DEVOPS ---------------------
+  # Microservicios (Backend Reestructurado)
+
+ # auth-service:
+ #   build: ./microservices/auth
+ #   ports:
+ #     - "3002:3000"
+ #   networks:
+ #     - transcendence
+ #   depends_on:
+ #     - sqlite
+
+ # user-service:
+ #   build: ./microservices/users
+ #   ports:
+ #     - "3003:3000"
+ #   networks:
+ #     - transcendence
+
+ # blockchain-service:
+ #   build: ./microservices/blockchain
+ #   ports:
+ #     - "3004:3000"
+ #   networks:
+ #     - transcendence
 
 volumes:
   sqlite_data:
@@ -199,4 +297,25 @@ volumes:
       type: none
       o: bind
       device: "$HOME/goinfre/data/vault"
+
+  es_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/elasticsearch"
+  
+  ls_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/logstash"
+      o: bind
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/grafana"
   

@@ -60,6 +60,9 @@ clean:
 	rm -rf $(HOME)/goinfre/data/blockchain/*
 	rm -rf $(HOME)/goinfre/data/security/*
 	rm -rf $(HOME)/goinfre/data/vault/*
+	rm -rf $(HOME)/goinfre/data/elasticsearch/*
+	rm -rf $(HOME)/goinfre/data/logstash/*
+	rm -rf $(HOME)/goinfre/data/grafana/*
 	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
@@ -77,6 +80,9 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
 	@mkdir -p $(HOME)/goinfre/data/vault
+	@mkdir -p $(HOME)/goinfre/data/elasticsearch
+	@mkdir -p $(HOME)/goinfre/data/logstash
+	@mkdir -p $(HOME)/goinfre/data/grafana
 
 re: down all
 
