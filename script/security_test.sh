@@ -576,7 +576,7 @@ echo "Accesible en: https://localhost/zap_reports/security_report.html"
 
 # Mostrar resumen de errores al final
 if [ -f "$ERROR_FILE" ]; then
-  ERROR_COUNT=$(grep -c "===" "$ERROR_FILE")
+  ERROR_COUNT=$(grep -c "=== .* ===" "$ERROR_FILE")
   
   echo ""
   echo "----------------------------------------"

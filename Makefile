@@ -134,5 +134,6 @@ help:
 	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
 	@echo "  make scan                - Execute ZAP security scan"
 	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
+	@echo "  make token               - Displays Vault credentials"
 
 .PHONY: all down clean setup delete logs logs_service ps re help scan security token
