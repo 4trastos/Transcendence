@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Verificar si es entorno de producción
+if [ "$ENVIRONMENT" = "production" ]; then
+    export VAULT_TOKEN_TTL="1h"
+    export VAULT_SECRET_ID_TTL="24h"
+else
+    export VAULT_TOKEN_TTL="24h"
+    export VAULT_SECRET_ID_TTL="720h"
+fi
+
 # =============================================
 # CONFIGURACIÓN DE DIRECTORIOS Y CERTIFICADOS
 # =============================================
@@ -104,6 +113,16 @@ init_vault() {
     configure_vault
 }
 
+# Después de init_vault()
+    backup_vault_credentials() {
+    echo "Backup de credenciales críticas..."
+    tar czf /vault/backup/vault_credentials_$(date +%Y%m%d).tar.gz \
+        /vault/data/unseal_key.txt \
+        /vault/data/root_token.txt \
+        /vault/data/role_id.txt
+    chmod 600 /vault/backup/*.tar.gz
+}
+
 # Función para configuración automática
 configure_vault() {
     echo "Configurando políticas y secretos..."
@@ -123,19 +142,32 @@ configure_vault() {
         zap_api_key="${ZAP_API_KEY:-my_zap_api_key}" \
         jwt_secret="$(openssl rand -base64 32)"
     
-    # 4. Configurar autenticación AppRole
+   # 4. Configurar autenticación AppRole (versión mejorada)
     vault auth enable approle
     vault write auth/approle/role/transcendence-app \
         secret_id_ttl=0 \
         token_ttl=1h \
         token_max_ttl=2h \
-        policies="transcendence"
+        policies="transcendence" \
+        bind_secret_id=true \
+        token_type="service"
+
+    # 5. Generar credenciales iniciales
+    echo "Generando credenciales AppRole..."
+    ROLE_ID=$(vault read -field=role_id auth/approle/role/transcendence-app/role-id)
+    SECRET_ID=$(vault write -f -field=secret_id auth/approle/role/transcendence-app/secret-id)
+
+    # Guardar credenciales con permisos seguros
+    echo "$ROLE_ID" > /vault/data/role_id.txt
+    echo "$SECRET_ID" > /vault/data/secret_id.txt
+    chmod 600 /vault/data/secret_id.txt
     
-    # 5. Generar token para UI
+    # 6. Generar token para UI (existente)
     UI_TOKEN=$(vault token create -policy="transcendence" -ttl=24h -field=token)
     echo "$UI_TOKEN" > /vault/data/ui_token.txt
-    
-    # 6. Configurar autenticación userpass
+    chmod 644 /vault/data/ui_token.txt
+
+    # 7. Configurar autenticación userpass (existente)
     vault auth enable userpass
     vault write auth/userpass/users/transcendence-admin \
         password="$(openssl rand -base64 12)" \

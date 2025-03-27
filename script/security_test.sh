@@ -3,13 +3,12 @@
 # Configuración
 REPORT_DIR="/zap/reports"
 REPORT_FILE="${REPORT_DIR}/security_report.html"
-ERROR_FILE="${REPORT_DIR}/security_errors.txt"  # Archivo para errores
+ERROR_FILE="${REPORT_DIR}/security_errors.txt" 
 ZAP_URL="http://localhost:8081"
 ZAP_API_KEY="my_zap_api_key"
-#TARGET_URL="http://frontend:3001"
 TARGET_URL="https://php"
 VAULT_URL="https://localhost:8200"
-VAULT_TOKEN="your_vault_token"
+VAULT_TOKEN=$(cat /vault/data/ui_token.txt)
 CURRENT_DATE=$(date +"%d/%m/%Y a las %H:%M:%S")
 
 # Crear directorio de reportes

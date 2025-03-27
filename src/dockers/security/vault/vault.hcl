@@ -17,3 +17,8 @@ ui = true
 
 disable_mlock = true
 log_level = "info"
+
+telemetry {
+  prometheus_retention_time = "30s"
+  disable_hostname = true
+}

@@ -105,7 +105,9 @@ services:
       - ZAP_ALLOWED_HOSTS=*
       - VAULT_ADDR=https://0.0.0.0:8200
       - VAULT_SKIP_VERIFY=false
-      - VAULT_TOKEN=<root-token>
+      - VAULT_CACERT=/etc/vault/tls/ca.crt
+      - VAULT_ROLE_ID_FILE=/vault/data/role_id.txt
+      - VAULT_SECRET_ID_FILE=/vault/data/secret_id.txt
     volumes:
       - zap_data:/zap/wrk          # Contiene todo el workspace de ZAP
       - zap_reports:/zap/reports    # Reportes de ZAP

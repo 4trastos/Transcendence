@@ -115,6 +115,10 @@ security:
 	@echo "Reportes disponibles en:"
 	@echo "- Resumen de seguridad: https://localhost/zap_reports/security_report.html"
 	@echo "- Reporte detallado de ZAP: https://localhost/zap_reports/zap_report.html"
+
+token:
+	@docker exec -it security cat /vault/data/ui_token.txt
+
 help:
 	@echo "Available commands:"
 	@echo "  make                     - Restart Docker if needed and build the containers"
@@ -131,4 +135,4 @@ help:
 	@echo "  make scan                - Execute ZAP security scan"
 	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token

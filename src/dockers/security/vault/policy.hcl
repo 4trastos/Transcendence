@@ -28,9 +28,29 @@ path "sys/metrics" {
 }
 
 path "secret/data/transcendence/api_keys" {
-  capabilities = ["read"]
+  capabilities = ["read", "create", "update", "delete"]
+  allowed_parameters = {
+    "version" = []
+  }
+}
+
+path "sys/policies/acl" {
+  capabilities = ["read", "list"]
 }
 
 path "sys/policies/acl/*" {
+  capabilities = ["read", "list"]
+}
+
+# Permisos para AppRole
+path "auth/approle/role/transcendence-app/role-id" {
   capabilities = ["read"]
+}
+
+path "auth/approle/role/transcendence-app/secret-id" {
+  capabilities = ["create", "update"]
+}
+
+path "auth/approle/login" {
+  capabilities = ["create", "update"]
 }
