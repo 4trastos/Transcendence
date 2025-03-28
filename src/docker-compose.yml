@@ -166,31 +166,36 @@ services:
       - transcendence
     restart: unless-stopped
 
-#  prometheus:
-#    build: ./dockers/monitoring/prometheus
-#    image: prom/prometheus
-#    container_name: prometheus
-#    volumes:
-#      - grafana_data:/etc/prometheus/prometheus.yml
-#    ports:
-#      - "9090:9090"
-#    networks:
-#      - transcendence
-#    restart: unless-stopped
+  prometheus:
+    build: ./dockers/monitoring/prometheus
+    image: prom/prometheus
+    container_name: prometheus
+    user: "nobody"  # Asegurar que corre como usuario no privilegiado
+    volumes:
+      - prometheus_data:/prometheus
+      - ./dockers/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - transcendence
+    restart: unless-stopped
 
-#  grafana:
-#    build: ./dockers/monitoring/grafana
-#    image: grafana/grafana
-#    container_name: grafana
-#    volumes:
-#      - grafana_data:/var/lib/grafana
-#    ports:
-#      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
-#    depends_on:
-#      - prometheus
-#    networks:
-#      - transcendence
-#    restart: unless-stopped
+  grafana:
+    build: ./dockers/monitoring/grafana
+    image: grafana/grafana
+    container_name: grafana
+    user: "472"  # Usuario grafana por defecto (UID 472)
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    ports:
+      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
+    depends_on:
+      - prometheus
+    networks:
+      - transcendence
+    restart: unless-stopped
 
   # --- SECCIÓN DEVOPS ---------------------
   # Microservicios (Backend Reestructurado)
@@ -291,7 +296,7 @@ volumes:
        device: "$HOME/goinfre/data/vault"
        o: bind
   
-  tls_volume:  # Volumen dedicado para certificados
+  tls_volume:
     driver: local
     driver_opts:
       type: none
@@ -318,4 +323,11 @@ volumes:
       type: none
       o: bind
       device: "$HOME/goinfre/data/grafana"
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/prometheus"
   
