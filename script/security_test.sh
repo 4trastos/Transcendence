@@ -29,10 +29,10 @@ run_test() {
   output=$(eval "$command" 2>&1)
 
   if [[ "$output" =~ $success_pattern ]]; then
-    echo "   [✓] Éxito"
+    echo "   [✅] Éxito"
     return 0
   else
-    echo "   [✗] Fallo"
+    echo "   [❌] Fallo"
     echo "   Salida: $output"
     # Añadir error al archivo de errores
     {
@@ -48,6 +48,50 @@ run_test() {
 # Contadores de pruebas
 TOTAL_TESTS=0
 PASSED_TESTS=0
+
+# Función para analizar el reporte ZAP
+analyze_zap_report() {
+  local report_file="/zap/reports/zap_report.html"
+  local error_count=0
+  local warning_count=0
+  local info_count=0
+  local zap_status="passed"
+
+  if [ -f "$report_file" ]; then
+    error_count=$(grep -ic "risk-3" "$report_file")
+    warning_count=$(grep -ic "risk-2" "$report_file")
+    info_count=$(grep -ic "risk-1" "$report_file")
+
+    if [ "$error_count" -gt 0 ] || [ "$warning_count" -gt 0 ]; then
+      zap_status="failed" # Cambiamos el estado si hay errores
+    fi
+
+    # Añadimos la casilla de resultado de ZAP al reporte
+    if [ "$zap_status" == "passed" ]; then
+      add_test_result "Vulnerabilidades encontradas en ZAP" "passed" "✓ No se encontraron vulnerabilidades" "ZAP no encontró ninguna vulnerabilidad de gravedad alta o media."
+    else
+      add_test_result "Vulnerabilidades encontradas en ZAP" "failed" "✗ Vulnerabilidades encontradas" "ZAP detectó vulnerabilidades de gravedad alta o media. <a href='/zap_reports/zap_report.html' target='_blank'>Ver reporte detallado</a>"
+    fi
+
+    echo ""
+    echo "----------------------------------------"
+    echo " RESUMEN ERRORES REPORTE ZAP ($((error_count + warning_count + info_count)) encontrados)"
+    echo "----------------------------------------"
+    echo "[❌] Errores de alta severidad: $error_count"
+    echo "[⚠️ ] Advertencias de media severidad: $warning_count"
+    echo "[ℹ️ ] Alertas informativas: $info_count"
+    echo ""
+
+    if [ "$error_count" -gt 0 ] || [ "$warning_count" -gt 0 ]; then
+      echo "¡Se encontraron vulnerabilidades que necesitan atención!"
+      echo "Revisa el reporte completo en: $report_file"
+    else
+      echo "No se encontraron vulnerabilidades de alta o media severidad."
+    fi
+  else
+    echo "No se encontró el reporte ZAP: $report_file"
+  fi
+}
 
 # Función para añadir resultados al reporte con explicaciones detalladas
 add_test_result() {
@@ -544,7 +588,8 @@ echo "<div class='test-grid'>" >> $REPORT_FILE
 
 # Verificar reporte ZAP
 if [ -f "/zap/reports/zap_report.html" ]; then
-  add_test_result "ZAP Scan" "passed" "✓ Escaneo completado" "El escaneo de seguridad se completó exitosamente. <a href='/zap_reports/zap_report.html' target='_blank'>Ver reporte detallado</a>"
+  add_test_result "ZAP Scan" "passed" "✓ Escaneo completado" "El escaneo de seguridad se completó exitosamente."
+  analyze_zap_report
 else
   add_test_result "ZAP Scan" "failed" "✗ Error generando reporte" "No se pudo generar el reporte de ZAP. Verifique los logs para más información."
 fi

@@ -200,28 +200,28 @@ services:
   # --- SECCIÓN DEVOPS ---------------------
   # Microservicios (Backend Reestructurado)
 
- # auth-service:
- #   build: ./microservices/auth
- #   ports:
- #     - "3002:3000"
- #   networks:
- #     - transcendence
- #   depends_on:
- #     - sqlite
+  auth-service:
+    build: ./dockers/microservices/auth
+    ports:
+      - "3004:3000"
+    networks:
+      - transcendence
+    depends_on:
+      - sqlite
 
- # user-service:
- #   build: ./microservices/users
- #   ports:
- #     - "3003:3000"
- #   networks:
- #     - transcendence
+  user-service:
+    build: ./dockers/microservices/users
+    ports:
+      - "3005:3000"
+    networks:
+      - transcendence
 
- # blockchain-service:
- #   build: ./microservices/blockchain
- #   ports:
- #     - "3004:3000"
- #   networks:
- #     - transcendence
+  blockchain-service:
+    build: ./dockers/microservices/blockchain
+    ports:
+      - "3006:3000"
+    networks:
+      - transcendence
 
 volumes:
   sqlite_data:

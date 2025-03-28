@@ -14,6 +14,10 @@ RUN chmod +x /tmp/entrypoint.sh && \
 
 # Volver al usuario logstash (normalmente uid 1000)
 USER 1000
+#USER logstash
+
+VOLUME /usr/share/logstash/data
 
 EXPOSE 5044 9600
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
