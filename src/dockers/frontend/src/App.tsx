@@ -8,32 +8,17 @@ import Login from "./Login";
 const App = () => {
 
   interface User {
+    userid: string;
     username: string;
-    password: string;
   }
 
   const [user, setUser] = useState<User | null>(null);
 
   const checkSession = async () => {
-    try {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
-      } else {
-        const response = await axios.get("http://localhost:3000/api/session", {
-          withCredentials: true,
-        });
-        if (response.data.loggedIn) {
-          setUser(response.data.user);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
-        } else {
-          setUser(null);
-        }
       }
-    } catch (error) {
-        console.error("Error al comprobar la sesión:", error);
-        setUser(null);
-    }
 };
 
   useEffect(() => {
@@ -41,14 +26,8 @@ const App = () => {
   }, []);
 
   const handleLogout = async () => {
-    try {
-        await axios.post("http://localhost:3000/api/logout", {}, {
-            withCredentials: true // Asegura que la cookie de sesión se borre
-        });
-        setUser(null);
-    } catch (error) {
-        console.error("Error al cerrar sesión:", error);
-    }
+    localStorage.clear();
+    setUser(null);
   };
 
   return (

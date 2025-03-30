@@ -47,7 +47,12 @@ const Login = () => {
         try {
             const response = await axios.post("http://localhost:3000/api/login", playerData);
             alert("Inicio de sesión exitoso: " + response.data.message);
+            if (playerData.guestMode == false)
+                localStorage.setItem("user", JSON.stringify(response.data.id+" "+playerData.username));
+            else
+                localStorage.setItem("user", JSON.stringify("guest,Invitado"));
             navigate("/");
+            window.location.reload();
         } catch (error: any) {
             console.error("Error detallado:", error);
             alert("Error al iniciar sesión: " + (error.response?.data?.error || error.message));
