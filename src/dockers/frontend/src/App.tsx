@@ -7,21 +7,34 @@ import Login from "./Login";
 
 const App = () => {
 
-  const [user, setUser] = useState(null);
+  interface User {
+    username: string;
+    password: string;
+  }
+
+  const [user, setUser] = useState<User | null>(null);
 
   const checkSession = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/session");
-      if (response.data.loggedIn) {
-        setUser(response.data.user);
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       } else {
-        setUser(null);
+        const response = await axios.get("http://localhost:3000/api/session", {
+          withCredentials: true,
+        });
+        if (response.data.loggedIn) {
+          setUser(response.data.user);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+        } else {
+          setUser(null);
+        }
       }
     } catch (error) {
-      console.error("Error al comprobar la sesión:", error);
-      setUser(null);
+        console.error("Error al comprobar la sesión:", error);
+        setUser(null);
     }
-  };
+};
 
   useEffect(() => {
     checkSession();
@@ -29,26 +42,27 @@ const App = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/api/logout");
-      setUser(null);
+        await axios.post("http://localhost:3000/api/logout", {}, {
+            withCredentials: true // Asegura que la cookie de sesión se borre
+        });
+        setUser(null);
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+        console.error("Error al cerrar sesión:", error);
     }
   };
 
   return (
     <Router>
-      <div className="bg-gray-800 min-h-screen text-white"> {/*className="bg-gray-800 min-h-screen text-white flex flex-row" */}
-        {/* Barra de Navegación (10% de la pantalla) */}
-        <div className="flex" style={{ flex: '0 0 10%'}}> {/*className="flex" style={{ flex: '0 0 10%' }}*/}
-          <nav className='p-4 flex items-center justify-center'> {/*className='p-4 flex items-center justify-center'*/}
+      <div className="bg-gray-800 min-h-screen text-white">
+        <div className="flex" style={{ flex: '0 0 10%' }}>
+          <nav className='p-4 flex items-center justify-center'>
             <ul className="flex space-x-4">
               <li>
                 <Link to="/" className="text-gray-300 hover:text-white transition duration-300">
                   Inicio
                 </Link>
               </li>
-              { user ? (
+              {user ? (
                 <>
                   <li>
                     <Link to="/perfil" className="text-gray-300 hover:text-white transition duration-300">
@@ -75,12 +89,11 @@ const App = () => {
                   </li>
                 </>
               )}
-              </ul>
+            </ul>
           </nav>
         </div>
 
-        {/* Contenido dinámico (90% de la pantalla) */}
-        <div className="flex-1 overflow-auto"> {/*className="flex-1 overflow-auto"*/}
+        <div className="flex-1 overflow-auto">
           <Routes>
             <Route path="/" element={<Pong />} />
             <Route path="/registro" element={<Register />} />

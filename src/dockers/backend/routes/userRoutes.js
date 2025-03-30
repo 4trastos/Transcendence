@@ -65,11 +65,12 @@ router.post('/register', async(req, res) => {
 router.get('/session', (req, res) => {
     if (req.session.users && req.session.users.length > 0) {
         res.status(200).json({
+            message: "Putas en tanga",
             loggedIn: true,
             user: req.session.users[req.session.users.length - 1]
         });
     } else {
-        res.status(200).json({ loggedIn: false });
+        res.status(200).json({ message: "Putero Picha Suelta", loggedIn: false });
     }
 });
 
@@ -106,7 +107,12 @@ router.post('/login', async(req, res) =>{
             userId: "guest",
             username: "Invitado"
         });
-        return res.status(200).send({ message: "Inicio de sesión como invitado exitoso" });
+
+        req.session.save(() => {
+            res.status(200).json({ message: "Inicio de sesión como invitado exitoso" });
+        });
+
+        return;
     }
 
     if (typeof username !== "string" || typeof password !== "string" || username.trim() === "" || password.trim() === "") {
@@ -133,7 +139,12 @@ router.post('/login', async(req, res) =>{
                     username: username
                 });
                 console.log("Contraseña correcta");
-                return res.status(200).send('Inicio de sesión exitoso');
+                
+                req.session.save(() => {
+                    res.status(200).json({ message: 'Inicio de sesión exitoso' });
+                });
+
+                return;
             } else{
                 console.log("Contraseña incorrecta");
                 return res.status(400).send('Contraseña incorrecta');

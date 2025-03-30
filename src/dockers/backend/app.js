@@ -19,7 +19,8 @@ const port = 3000;
 const corsOptions = {
     origin: 'http://localhost:8080', // Cambia este valor según el puerto de tu frontend
     methods: 'GET,POST,PUT,DELETE', // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
+    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas
+    credentials: true
 };
 app.use(cors(corsOptions));
 
@@ -29,8 +30,18 @@ app.use(session({
     secret: "super_safe_secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false}
+    cookie: { 
+        secure: true,
+        httpOnly: true,
+        sameSite: 'none'
+    }
 }));
+
+
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+});
 
 app.use('/api', userRoutes);
 

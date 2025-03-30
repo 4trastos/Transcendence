@@ -53,3 +53,5 @@ router.post('/gameResult', async(req, res) => {
         }
     }
 });
+
+module.exports = router;

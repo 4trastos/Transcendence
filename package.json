@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "express-session": "^1.18.1",
+    "react-router-dom": "^7.4.0"
+  }
+}
