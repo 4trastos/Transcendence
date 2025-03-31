@@ -1,6 +1,8 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const userRoutes = require('./routes/userRoutes');
+const session = require("express-session");
+const gameRoutes = require('./routes/gameRoutes');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');  // <-- Importa cors
@@ -23,7 +25,26 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
+app.use(session({
+    secret: "super_safe_secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: true,
+        httpOnly: true,
+        sameSite: 'none'
+    }
+}));
+
+
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+});
+
 app.use('/api', userRoutes);
+
+app.use('/api', gameRoutes);
 
 app.options('*', cors(corsOptions));
 

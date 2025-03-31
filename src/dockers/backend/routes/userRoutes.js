@@ -2,6 +2,7 @@
  * Archivo con todas las rutas para el usuario.
  */
 const express = require('express');
+const session = require("express-session");
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
@@ -58,10 +59,21 @@ router.post('/register', async(req, res) => {
     }
 });
 
-router.post('/login', async(req, res) =>{
-    const { username, password } = req.body;
 
-    if (!username || !password) {
+/**
+ * @brief Loguea al usuario
+ */
+router.post('/login', async(req, res) =>{
+    const { username, password, guestMode } = req.body;
+
+    if (guestMode) {
+        console.log("Accediendo como invitado");
+            res.status(200).json({ message: "Inicio de sesión como invitado exitoso" });
+
+        return;
+    }
+
+    if (typeof username !== "string" || typeof password !== "string" || username.trim() === "" || password.trim() === "") {
         return res.status(400).send('Faltan campos requeridos');
     }
 
@@ -69,13 +81,17 @@ router.post('/login', async(req, res) =>{
         const query = 'SELECT password FROM users WHERE username = ?';
         db.get(query, [username], async (err, row) =>{
             if (err){
-                console.error(err);
-                return;
+                console.error("Error en la base de datos:", err);
+                return res.status(500).json({ error: "Error al buscar el usuario" });
+            }
+            if (!row) {
+                return res.status(404).send('Usuario no encontrado');
             }
             const isMatch = await bcrypt.compare(password, row.password);
-            if (isMatch){
-                console.log("Contraseña correcta");
-                return res.status(200).send('Inicio de sesión exitoso');
+            if (isMatch){              
+                res.status(200).json({ message: 'Inicio de sesión exitoso', id: row.id });
+
+                return;
             } else{
                 console.log("Contraseña incorrecta");
                 return res.status(400).send('Contraseña incorrecta');
