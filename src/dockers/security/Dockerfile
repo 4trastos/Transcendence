@@ -11,6 +11,10 @@ ENV MOZ_HEADLESS=1
 RUN groupadd -r vault && \
     useradd -r -g vault vault
 
+# Crear usuario y grupo vault si no existen
+#RUN getent group vault || groupadd -r vault && \
+#    getent passwd vault || useradd -r -g vault vault
+
 # Crear directorios necesarios
 RUN mkdir -p /zap/wrk/ && \
     mkdir -p /zap/wrk/tls && \
