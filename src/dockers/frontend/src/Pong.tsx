@@ -1,33 +1,61 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; // Añade useState
 import axios from "axios";
 import bgImg from './assets/imgs/bg.png';
+
+interface GameHistory {
+    id: number;
+    player1_id: number;
+    player2_id: number;
+    score_player1: number;
+    score_player2: number;
+    winner_id: number;
+    played_at: string;
+}
 
 const Pong = () => {
     const [player1Score, setPlayer1Score] = useState(0);
     const [player2Score, setPlayer2Score] = useState(0);
-    const [gameHistory, setGameHistory] = useState([]);
-
-    const sendResultsToDB = async (p1, p2) => {
+   // const [gameHistory, setGameHistory] = useState([]);
+    const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
+    const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
+    
+    const sendResultsToDB = async (p1Score: string, p2Score: string) => {
         try {
-            const response = await axios.post(
-                "/api/gameResult",
-                { Player1: p1, Player2: p2 },
-                {
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+            // Obtener el usuario actual del localStorage
+            const userData = localStorage.getItem("user");
+            if (!userData) throw new Error("No hay usuario logueado");
+            
+            const [userId, username] = JSON.parse(userData).split(" ");
+            
+            // Enviar datos al backend
+            const response = await axios.post("/api/gameResult", {
+                player1_id: userId,
+                player2_id: 0,
+                score_player1: parseInt(p1Score),
+                score_player2: parseInt(p2Score),
+                winner_id: parseInt(p1Score) > parseInt(p2Score) ? userId : 0
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            );
-            console.log("Resultados enviados a la base de datos:", response.data);
+            });
+            
+            console.log("Resultado guardado:", response.data);
+            fetchGameHistory(); // Actualizar el historial después de guardar
         } catch (error) {
-            console.error("Error al enviar los resultados:", error);
+            console.error("Error al guardar resultado:", error);
         }
     };
 
     const fetchGameHistory = async () => {
         try {
-            const response = await axios.get('/api/gameHistory', {
+            const userData = localStorage.getItem("user");
+            if (!userData) throw new Error("No hay usuario logueado");
+            
+            const [userId] = JSON.parse(userData).split(" ");
+            
+            const response = await axios.get(`/api/gameHistory?user_id=${userId}`, {
                 withCredentials: true
             });
             setGameHistory(response.data);
@@ -37,15 +65,13 @@ const Pong = () => {
     };
 
     useEffect(() => {
-        fetchGameHistory();
-    }, []);
-
-    useEffect(() => {
-      if (player1Score === 3 || player2Score === 3){
-        sendResultsToDB(player1Score, player2Score);
-        fetchGameHistory();
-      }
-    }, [player1Score, player2Score])
+        if (player1Score === 3 || player2Score === 3) {
+            sendResultsToDB(player1Score, player2Score);
+            fetchGameHistory();
+            setPlayer1Score(0);
+            setPlayer2Score(0);
+        }
+    }, [player1Score, player2Score]);
 
     useEffect(() => {
         const canvas = document.getElementById('pong') as HTMLCanvasElement;
@@ -150,34 +176,67 @@ const Pong = () => {
     }, []);
 
     return (
-        <div
+        <div 
             className="overflow-auto flex-1 flex items-center justify-center min-h-screen"
             style={{
-                backgroundImage: `url(${bgImg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                backgroundAttachment: 'fixed',
+            backgroundImage: `url(${bgImg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
             }}
         >
-            <canvas
-                id="pong"
-                width="800"
+            <div className="absolute top-4 left-4">
+                <button 
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                >
+                    {showHistory ? 'Ocultar Historial' : 'Mostrar Historial'}
+                </button>
+            </div>
+    
+            {showHistory && (
+                <div className="absolute top-20 left-4 bg-gray-800 bg-opacity-90 p-4 rounded-md max-h-96 overflow-y-auto w-64 shadow-xl border border-gray-700">
+                    <h3 className="text-white text-lg font-bold mb-3 text-center">Tus últimos juegos</h3>
+                    {gameHistory.length > 0 ? (
+                        <ul className="text-white space-y-3">
+                            {gameHistory.map((game) => (
+                                <li 
+                                    key={game.id} 
+                                    className={`p-3 rounded-md ${game.winner_id === parseInt(localStorage.getItem("user")?.split(" ")[0]) ? 'bg-green-900 bg-opacity-50' : 'bg-red-900 bg-opacity-50'}`}
+                                >
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-medium">Fecha:</span>
+                                        <span>{new Date(game.played_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm mt-1">
+                                        <span className="font-medium">Resultado:</span>
+                                        <span className="font-bold">
+                                            {game.score_player1} - {game.score_player2}
+                                        </span>
+                                    </div>
+                                    <div className="text-center mt-2 text-xs">
+                                        {game.winner_id === parseInt(localStorage.getItem("user")?.split(" ")[0]) 
+                                            ? '🏆 Ganaste' 
+                                            : '😢 Perdiste'}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-white text-center py-4">No hay historial de juegos aún</p>
+                    )}
+                </div>
+            )}
+    
+            <canvas 
+                id="pong" 
+                width="800" 
                 height="400"
             >
             </canvas><br></br>
-            <label id="player1id">Player 1: </label><label id="points_1">{player1Score}</label>
-            <label id="player2id">Player 2: </label><label id="points_2">{player2Score}</label>
-            <div>
-                <h2>Historial de Juegos</h2>
-                <ul>
-                    {gameHistory.map((game, index) => (
-                        <li key={index}>
-                            Jugador 1: {game.Player1}, Jugador 2: {game.Player2}
-                        </li>
-                    ))}
-                </ul>
-            </div>
+            <label id="player1id">Player 1: </label><label id="points_1">0</label>
+            <label id="player2id">Player 2: </label><label id="points_2">0</label>
         </div>
     );
 };
