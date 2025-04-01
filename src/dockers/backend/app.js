@@ -103,9 +103,8 @@ app.post('/api/gameResult', (req, res) => {
     });
 });
 
-// Ruta para obtener historial de juegos de un usuario
+// Ruta para obtener historial de juegos
 app.get('/api/gameHistory', (req, res) => {
-    // En una aplicación real, obtendrías el user_id de la sesión
     const userId = req.query.user_id;
     
     if (!userId) {
