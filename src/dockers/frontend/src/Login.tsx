@@ -41,24 +41,34 @@ const Login = () => {
         });
     };
     
-
     const handleSubmit = async (e: React.FormEvent, playerData: typeof player1Data) => {
         e.preventDefault();
         try {
-            const response = await axios.post("http://localhost:3000/api/login", playerData);
+            const response = await axios.post("/api/login", playerData, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
             alert("Inicio de sesión exitoso: " + response.data.message);
-            if (playerData.guestMode == false)
-                localStorage.setItem("user", JSON.stringify(response.data.id+" "+playerData.username));
-            else
+            if (!playerData.guestMode) {
+                localStorage.setItem("user", JSON.stringify(`${response.data.id} ${playerData.username}`));
+            } else {
                 localStorage.setItem("user", JSON.stringify("guest,Invitado"));
+            }
             navigate("/");
             window.location.reload();
         } catch (error: any) {
             console.error("Error detallado:", error);
-            alert("Error al iniciar sesión: " + (error.response?.data?.error || error.message));
+            if (error.response) {
+                alert("Error al iniciar sesión: " + 
+                    (error.response.data?.error || error.response.statusText));
+            } else {
+                alert("Error de conexión con el servidor");
+            }
         }
-    };
-    
+    };    
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 space-x-10">

@@ -4,7 +4,6 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-# Instala las dependencias, incluyendo el plugin de React
 RUN npm install react-dom@18
 RUN npm install serve --save
 

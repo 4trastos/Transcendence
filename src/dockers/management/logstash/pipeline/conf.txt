@@ -1,0 +1,110 @@
+input {
+  file {
+    path => "/var/log/backend.log"
+    start_position => "beginning"
+    codec => "json"
+  }
+  file {
+    path => "/var/log/nginx/access.log"
+    type => "nginx"
+  }
+}
+
+filter {
+  if [type] == "nginx" {
+    grok {
+      match => { "message" => "%{COMBINEDAPACHELOG}" }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://elasticsearch:9200"]
+    index => "logs-%{+YYYY.MM.dd}"
+  }
+}
+
+
+
+
+
+#################################
+#     nuevo #
+###################################
+
+input {
+  # Logs de aplicaciones Node.js
+  tcp {
+    port => 5000
+    codec => json
+    type => "nodejs"
+  }
+  
+  # Logs de Nginx
+  file {
+    path => "/var/log/nginx/access.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    type => "nginx-access"
+  }
+  
+  # Logs de errores
+  file {
+    path => "/var/log/nginx/error.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    type => "nginx-error"
+  }
+  
+  # Logs de microservicios
+  http {
+    port => 8082
+    codec => "json"
+  }
+}
+
+filter {
+  # Parseo de logs de Node.js
+  if [type] == "nodejs" {
+    grok {
+      match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:log_level} %{GREEDYDATA:message}" }
+    }
+    date {
+      match => ["timestamp", "ISO8601"]
+    }
+  }
+  
+  # Parseo de logs de Nginx
+  if [type] == "nginx-access" {
+    grok {
+      match => { "message" => "%{COMBINEDAPACHELOG}" }
+    }
+    date {
+      match => ["timestamp", "dd/MMM/yyyy:HH:mm:ss Z"]
+    }
+  }
+  
+  # Añadir metadatos comunes
+  mutate {
+    add_field => {
+      "environment" => "production"
+      "project" => "transcendence"
+    }
+  }
+}
+
+output {
+  # Envío a Elasticsearch
+  elasticsearch {
+    hosts => ["http://elasticsearch:9200"]
+    index => "transcendence-%{+YYYY.MM.dd}"
+    template => "/usr/share/logstash/pipeline/elasticsearch-template.json"
+    template_name => "transcendence"
+  }
+  
+  # Logs en consola para desarrollo
+  stdout {
+    codec => rubydebug
+  }
+}

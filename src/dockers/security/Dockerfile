@@ -7,13 +7,30 @@ USER root
 # Definir variables de entorno al inicio
 ENV MOZ_HEADLESS=1
 
-RUN mkdir -p /zap/wrk/
-RUN mkdir -p /root/.ZAP/firefox
-RUN export MOZ_HEADLESS=1
+# Crear usuario y grupo vault
+RUN groupadd -r vault && \
+    useradd -r -g vault vault
 
-# Instalar dependencias y ModSecurity
-RUN apt-get update && apt-get install -y apache2 libapache2-mod-security2 && \
-apt-get clean
+# Crear directorios necesarios
+RUN mkdir -p /zap/wrk/ && \
+    mkdir -p /zap/wrk/tls && \
+    mkdir -p /root/.ZAP/firefox && \
+    mkdir -p /etc/vault/tls && \
+    mkdir -p /etc/vault/data && \
+    mkdir -p /ca && \
+    mkdir -p /vault/backup && \
+    chown -R vault:vault /vault && \
+    chmod -R 755 /zap/wrk /etc/vault
+
+# Instalar dependencias
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    firefox-esr \
+    jq \
+    openssl \
+    nmap \
+    && apt-get clean
 
 # Instalar HashiCorp Vault
 RUN apt-get update && apt-get install -y wget \
@@ -22,6 +39,33 @@ unzip vault_1.13.0_linux_amd64.zip && \
 mv vault /usr/local/bin/ && rm vault_1.13.0_linux_amd64.zip && \
 apt-get clean
 
+# =============================================
+# AUTOMATIZACION DE VAULT
+# =============================================
+
+RUN mkdir -p /vault/backup && \
+    chown -R vault:vault /vault && \
+    apt-get install -y cron && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear directorio para políticas
+RUN mkdir -p /etc/vault/policies
+
+# Copiar archivos de configuración
+COPY vault/policy.hcl /etc/vault/policy.hcl
+COPY vault/configure_vault.sh /etc/vault/configure_vault.sh
+
+# Permisos adicionales
+RUN chmod 644 /etc/vault/policy.hcl && \
+    chmod 750 /etc/vault/configure_vault.sh
+
+# =============================================
+# Verificación Automática (Healthcheck)
+# =============================================
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -k -s -o /dev/null -w "%{http_code}" https://localhost:8200/v1/sys/health | grep -q 200 || exit 1
+
 # Instalar Firefox
 RUN apt-get update && apt-get install -y firefox-esr && apt-get clean
 
@@ -29,15 +73,18 @@ RUN apt-get update && apt-get install -y firefox-esr && apt-get clean
 RUN apt-get update && apt-get install -y jq
 
 # Copiar scripts y configuraciones
-COPY /zap/zap_scan.sh /zap/wrk/zap_scan.sh
-COPY /zap/get_zap_api_key.sh /zap/wrk/get_zap_api_key.sh
-COPY /zap/entrypoint.sh /zap/wrk/entrypoint.sh
-COPY /mod/modsecurity.conf /etc/modsecurity/modsecurity.conf
+COPY zap/zap_scan.sh /zap/wrk/zap_scan.sh
+COPY zap/get_zap_api_key.sh /zap/wrk/get_zap_api_key.sh
+COPY zap/entrypoint.sh /zap/wrk/entrypoint.sh
+COPY vault/get_vault_secrets.sh /zap/wrk/get_vault_secrets.sh
+COPY vault/vault.hcl /etc/vault/vault.hcl
+COPY vault/openssl.cnf /zap/wrk/openssl.cnf
+COPY vault/policy.hcl /etc/vault/policy.hcl
+COPY vault/generate_secret_id.sh /usr/local/bin/generate_secret_id.sh
 
 # Dar permisos de ejecución a los scripts
-RUN chmod +x /zap/wrk/get_zap_api_key.sh
-RUN chmod +x /zap/wrk/zap_scan.sh
-RUN chmod +x /zap/wrk/entrypoint.sh
+RUN chown -R 996:996 /etc/vault
+RUN chmod +x /zap/wrk/*.sh
 
 EXPOSE 8081 8200
 

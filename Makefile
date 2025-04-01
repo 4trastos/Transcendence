@@ -1,5 +1,65 @@
-all: restart_if_needed setup
+all: grant_permissions restart_if_needed setup
 	@docker compose -f ./src/docker-compose.yml up -d --build
+	@clear
+	@./script/loading.sh 
+	@clear
+	@echo " ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄";
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                          █      █                 █                ███████                                             ";
+	@echo "  █                                                       █      █                 █                      █                                     ";
+	@echo "  █                                                       ████████                 █                ███████                                      ";
+	@echo "  █                                                              █                 █                █                                            ";
+	@echo "  █                                                              █                 █                ███████                                            ";
+	@echo "  █                                                                                █                                                            ";
+	@echo "  █                                                                                █                                                            ";
+	@echo "  █                                                                                █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo "    "
+	@echo "                                                           ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄        ▄  ▄▄▄▄▄▄▄▄▄▄▄ ";
+	@echo "                                                          ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░▌      ▐░▌▐░░░░░░░░░░░▌ ";
+	@echo "                                                          ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░▌░▌     ▐░▌▐░█▀▀▀▀▀▀▀▀▀  ";
+	@echo "                                                          ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌▐░▌    ▐░▌▐░▌                                                             ";
+	@echo "                                                          ▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌▐░▌ ▐░▌   ▐░▌▐░▌ ▄▄▄▄▄▄▄▄                                                    █";
+	@echo "                                                          ▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░▌  ▐░▌  ▐░▌▐░▌▐░░░░░░░░▌                       █                           █";
+	@echo "                                                          ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░▌   ▐░▌ ▐░▌▐░▌ ▀▀▀▀▀▀█░▌                                                   █";
+	@echo "                                                          ▐░▌          ▐░▌       ▐░▌▐░▌    ▐░▌▐░▌▐░▌       ▐░▌                                                   █";
+	@echo "                                                          ▐░▌          ▐░█▄▄▄▄▄▄▄█░▌▐░▌     ▐░▐░▌▐░█▄▄▄▄▄▄▄█░▌                                                   █";
+	@echo "                                                          ▐░▌          ▐░░░░░░░░░░░▌▐░▌      ▐░░▌▐░░░░░░░░░░░▌                                                   █";
+	@echo "                                                           ▀            ▀▀▀▀▀▀▀▀▀▀▀  ▀        ▀▀  ▀▀▀▀▀▀▀▀▀▀▀                                                    █";
+	@echo "    "
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo "                                                                                   █                                                            ";
+	@echo " ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄";
+	@echo "    "
+	@echo "    "
+	@echo "    "
+	@echo "    "
+	@echo "                                                   · ················ 42Madrid Telefónica Proyect ······················· ·                                     ";
+	@echo "    "
+	@echo "    "
+	@echo "    "
+	@echo " ███████████ ███████████    █████████  ██████   █████  █████████    █████████  ██████████ ██████   ███████████████  ██████████ ██████   █████  █████████  ██████████";
+	@echo "░█░░░███░░░█░░███░░░░░███  ███░░░░░███░░██████ ░░███  ███░░░░░███  ███░░░░░███░░███░░░░░█░░██████ ░░███░░███░░░░███░░███░░░░░█░░██████ ░░███  ███░░░░░███░░███░░░░░█";
+	@echo "░   ░███  ░  ░███    ░███ ░███    ░███ ░███░███ ░███ ░███    ░░░  ███     ░░░  ░███  █ ░  ░███░███ ░███ ░███   ░░███░███  █ ░  ░███░███ ░███ ███     ░░░  ░███  █ ░ ";
+	@echo "    ░███     ░██████████  ░███████████ ░███░░███░███ ░░█████████ ░███          ░██████    ░███░░███░███ ░███    ░███░██████    ░███░░███░███░███          ░██████   ";
+	@echo "    ░███     ░███░░░░░███ ░███░░░░░███ ░███ ░░██████  ░░░░░░░░███░███          ░███░░█    ░███ ░░██████ ░███    ░███░███░░█    ░███ ░░██████░███          ░███░░█   ";
+	@echo "    ░███     ░███    ░███ ░███    ░███ ░███  ░░█████  ███    ░███░░███     ███ ░███ ░   █ ░███  ░░█████ ░███    ███ ░███ ░   █ ░███  ░░█████░░███     ███ ░███ ░   █";
+	@echo "    █████    █████   ██████████   ██████████  ░░█████░░█████████  ░░█████████  ██████████ █████  ░░███████████████  ██████████ █████  ░░█████░░█████████  ██████████";
+	@echo "   ░░░░░    ░░░░░   ░░░░░░░░░░   ░░░░░░░░░░    ░░░░░  ░░░░░░░░░    ░░░░░░░░░  ░░░░░░░░░░ ░░░░░    ░░░░░░░░░░░░░░░  ░░░░░░░░░░ ░░░░░    ░░░░░  ░░░░░░░░░  ░░░░░░░░░░ ";
+	@echo "    "
+	@echo "                                                           · A project conceived, designed, and executed by: ·                                                ";
+	@echo "                                                        Inés Sainz - Nicolás González De Mendoza - David Gallego                                               ";
+	@echo "    "
+	@echo "                                                                            *  Since 2025 *      ";
+	@echo "    "
+
+grant_permissions:
+	@chmod +x ./script/loading.sh
+	@chmod +x ./script/verify_user.sh 
 
 kill_docker:
 	@./script/kill_docker.sh
@@ -59,7 +119,11 @@ clean:
 	rm -rf $(HOME)/goinfre/data/frontend/*
 	rm -rf $(HOME)/goinfre/data/blockchain/*
 	rm -rf $(HOME)/goinfre/data/security/*
-	rm -rf $(HOME)/goinfre/data/modsecurity/*
+	rm -rf $(HOME)/goinfre/data/vault/*
+	rm -rf $(HOME)/goinfre/data/elasticsearch/*
+	rm -rf $(HOME)/goinfre/data/logstash/*
+	rm -rf $(HOME)/goinfre/data/grafana/*
+	rm -rf $(HOME)/goinfre/data/prometheus/*
 	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
@@ -76,7 +140,11 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/frontend
 	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
-	@mkdir -p $(HOME)/goinfre/data/modsecurity
+	@mkdir -p $(HOME)/goinfre/data/vault
+	@mkdir -p $(HOME)/goinfre/data/elasticsearch
+	@mkdir -p $(HOME)/goinfre/data/logstash
+	@mkdir -p $(HOME)/goinfre/data/grafana
+	@mkdir -p $(HOME)/goinfre/data/prometheus
 
 re: down all
 
@@ -87,6 +155,7 @@ delete:
 	else \
 		echo "No transcendence volumes to remove."; \
 	fi
+	@docker system prune --volumes -a
 
 ps:
 	@docker compose -f ./src/docker-compose.yml ps -a
@@ -104,6 +173,20 @@ logs_service:
 scan:
 	@docker exec -it security /zap/wrk/zap_scan.sh
 
+
+security:
+	@echo "Ejecutando pruebas de seguridad..."
+	@docker exec security mkdir -p /zap/reports
+	@docker cp script/security_test.sh security:/tmp/security_test.sh
+	@docker exec security chmod +x /tmp/security_test.sh
+	@docker exec security /tmp/security_test.sh
+	@echo "Reportes disponibles en:"
+	@echo "- Resumen de seguridad: https://localhost/zap_reports/security_report.html"
+	@echo "- Reporte detallado de ZAP: https://localhost/zap_reports/zap_report.html"
+
+token:
+	@docker exec -it security cat /vault/data/ui_token.txt
+
 help:
 	@echo "Available commands:"
 	@echo "  make                     - Restart Docker if needed and build the containers"
@@ -113,10 +196,16 @@ help:
 	@echo "  make clean               - Remove data, containers, images, volumes, and networking"
 	@echo "  make setup               - Setup the necessary directories"
 	@echo "  make re                  - Stop everything and restart it (down + all)"
-	@echo "  make delete              - Remove Docker volumes related to 'transcendence'"
+	@echo "  make delete              - Remove Docker volumes related to 'transcendence' and clean up unused Docker resources"
 	@echo "  make ps                  - Show the status of containers"
 	@echo "  make logs                - Show logs for all services"
 	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
 	@echo "  make scan                - Execute ZAP security scan"
+	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
+	@echo "  make token               - Displays Vault credentials"
+	@echo "  make verify (user)       - Verify a user's account"
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan
+verify: grant_permissions
+	@./script/verify_user.sh $(user)
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify
