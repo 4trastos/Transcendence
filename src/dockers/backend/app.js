@@ -17,10 +17,14 @@ const app = express();
 const port = 3000;
 
 const corsOptions = {
-    origin: 'http://localhost:8080', // Cambia este valor según el puerto de tu frontend
+    origin: ['http://localhost:8080', 'https://localhost:8080'],
+    //origin: 'http://localhost:8080', // Cambia este valor según el puerto de tu frontend
     methods: 'GET,POST,PUT,DELETE', // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
+    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas
+    credentials: true,
+    optionsSuccessStatus: 200
 };
+
 app.use(cors(corsOptions));
 
 app.use(express.json());
@@ -137,7 +141,6 @@ app.post('/api/items', (req, res) => {
         res.json({ id: this.lastID, name, description }); // Devuelve el nuevo ítem con el ID generado
     });
 });
-
 
 // Ruta para probar la conexión a la base de datos con una consulta de prueba
 app.get('/api/test_db', (req, res) => {

@@ -127,6 +127,16 @@ RUN mkdir -p /etc/nginx/ssl \
     && touch /etc/nginx/ssl/.keep \
     && chown www-data:www-data /etc/nginx/ssl/.keep
 
+# Generación de certificados (NUEVO)
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/server.key \
+        -out /etc/nginx/ssl/server.crt \
+        -subj "/CN=localhost" \
+        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" && \
+    chmod 644 /etc/nginx/ssl/server.crt && \
+    chmod 600 /etc/nginx/ssl/server.key
+
 # Configurar PHP-FPM para usar el socket correcto
 RUN sed -i 's/;listen.owner = www-data/listen.owner = www-data/g' /usr/local/etc/php-fpm.d/www.conf \
     && sed -i 's/;listen.group = www-data/listen.group = www-data/g' /usr/local/etc/php-fpm.d/www.conf \
