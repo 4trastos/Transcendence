@@ -1,0 +1,13 @@
+server.host: "0.0.0.0"
+server.name: "kibana-transcendence"
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+# ---- NUEVO ---
+
+#monitoring.ui.container.elasticsearch.enabled: true
+
+#i18n.locale: "es"
+#telemetry.enabled: false
+
+# Configuración de dashboards iniciales
+#kibana.defaultAppId: "dashboards"
