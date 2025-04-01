@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import axios from "axios";
+import { useNavigate, Link } from "react-router-dom"; 
 
 const Register = () => {
+    const navigate = useNavigate();
     const formRef = useRef<HTMLFormElement>(null);
     const [formData, setFormData] = useState({
         username: "",
@@ -29,6 +31,13 @@ const Register = () => {
             );
             alert("Registro exitoso: " + response.data.message);
             setFormData({username: "", email: "", password: ""});
+
+            // Redirige a login después del registro
+            navigate("/login");
+            
+            if (formRef.current) {
+                formRef.current.reset();
+            }
             
             // Opcional: Resetear el formulario usando la ref
             if (formRef.current) {

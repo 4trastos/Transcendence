@@ -59,6 +59,7 @@ all: grant_permissions restart_if_needed setup
 
 grant_permissions:
 	@chmod +x ./script/loading.sh
+	@chmod +x ./script/verify_user.sh 
 
 kill_docker:
 	@./script/kill_docker.sh
@@ -202,5 +203,9 @@ help:
 	@echo "  make scan                - Execute ZAP security scan"
 	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
 	@echo "  make token               - Displays Vault credentials"
+	@echo "  make verify (user)       - Verify a user's account"
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token
+verify: grant_permissions
+	@./script/verify_user.sh $(user)
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify

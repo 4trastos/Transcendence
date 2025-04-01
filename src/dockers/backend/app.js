@@ -18,8 +18,7 @@ const port = 3000;
 
 const corsOptions = {
     origin: ['http://localhost:8080', 'https://localhost:8080'],
-    //origin: 'http://localhost:8080', // Cambia este valor según el puerto de tu frontend
-    methods: 'GET,POST,PUT,DELETE', // Métodos permitidos
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas
     credentials: true,
     optionsSuccessStatus: 200
@@ -30,16 +29,16 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use(session({
-    secret: "super_safe_secret",
+    secret: process.env.SESSION_SECRET || "super_safe_secret",
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        sameSite: 'none'
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 1 día
     }
 }));
-
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -84,6 +83,48 @@ app.get('/prueba', (req, res) => {
     res.send('¡Hola, mundo desde Node.js!');
 });
 
+// Ruta para guardar resultados del juego
+app.post('/api/gameResult', (req, res) => {
+    const { player1_id, player2_id, score_player1, score_player2, winner_id } = req.body;
+    
+    const sql = `INSERT INTO games 
+        (player1_id, player2_id, score_player1, score_player2, winner_id, played_at) 
+        VALUES (?, ?, ?, ?, ?, datetime('now'))`;
+    
+    db.run(sql, [player1_id, player2_id, score_player1, score_player2, winner_id], function(err) {
+        if (err) {
+            console.error('Error al guardar resultado:', err.message);
+            return res.status(500).json({ error: 'Error al guardar resultado' });
+        }
+        res.json({ 
+            message: 'Resultado guardado', 
+            gameId: this.lastID 
+        });
+    });
+});
+
+// Ruta para obtener historial de juegos de un usuario
+app.get('/api/gameHistory', (req, res) => {
+    // En una aplicación real, obtendrías el user_id de la sesión
+    const userId = req.query.user_id;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'Se requiere user_id' });
+    }
+    
+    const sql = `SELECT * FROM games 
+                WHERE player1_id = ? OR player2_id = ?
+                ORDER BY played_at DESC
+                LIMIT 10`;
+    
+    db.all(sql, [userId, userId], (err, rows) => {
+        if (err) {
+            console.error('Error al consultar historial:', err.message);
+            return res.status(500).json({ error: 'Error al consultar historial' });
+        }
+        res.json(rows);
+    });
+});
 
 // Ruta para obtener todos los juegos
 app.get('/api/games', (req, res) => {
