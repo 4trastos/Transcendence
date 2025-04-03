@@ -106,6 +106,14 @@ verify_token_with_curl() {
 }
 
 # Generar y verificar token
+parse_json() {
+    local json="$1"
+    local key="$2"
+    
+    # Extraer valor usando awk (método robusto sin jq)
+    echo "$json" | awk -F"\"$key\":" '{print $2}' | awk -F'"' '{print $2}'
+}
+
 jwt_process() {
     check_dependencies
     
@@ -120,29 +128,40 @@ jwt_process() {
     
     read_password
     
-    # Generar token
     echo -e "\n${CYAN}🛠️ Generando token para $username...${NC}"
-    response=$(curl -s -X POST "$API_URL/login" \
+    
+    # Usar archivo temporal para capturar respuesta
+    temp_file=$(mktemp)
+    http_code=$(curl -s -o "$temp_file" -w "%{http_code}" \
+        -X POST "$API_URL/login" \
         -H "Content-Type: application/json" \
         -d "{\"username\":\"$username\",\"password\":\"$password\"}")
     
-    echo -e "\n${GREEN}📨 Respuesta del servidor:${NC}"
-    echo -e "${MAGENTA}-----------------------${NC}"
-    echo "$response"
-    echo ""
-    
-    # Extraer token
-    token=$(echo "$response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-    if [ -z "$token" ] || [ "$token" = "null" ]; then
-        show_error "Error al obtener el token"
+    # Verificar código HTTP
+    if [ "$http_code" != "200" ]; then
+        error_msg=$(cat "$temp_file")
+        show_error "Error HTTP $http_code: $error_msg"
     fi
     
-    # Mostrar token claramente
-    echo -e "${GREEN}🔐 Token generado:${NC}"
+    response=$(cat "$temp_file")
+    rm -f "$temp_file"
+    
+    # Extraer token con método nativo
+    token=$(parse_json "$response" "accessToken")
+    
+    if [ -z "$token" ]; then
+        error_msg=$(parse_json "$response" "error" || echo "Respuesta inesperada")
+        show_error "Error al obtener token: $error_msg"
+    fi
+    
+    echo -e "\n${GREEN}📨 Respuesta del servidor:${NC}"
+    echo -e "${MAGENTA}-----------------------${NC}"
+    echo "$response"  # Mostramos el JSON crudo
+    
+    echo -e "\n${GREEN}🔐 Token generado:${NC}"
     echo -e "${MAGENTA}---------------${NC}"
     echo "$token"
-    echo ""
-    
+
     # Preguntar qué hacer a continuación
     while true; do
         echo -e "${BLUE}¿Qué deseas hacer ahora?${NC}"

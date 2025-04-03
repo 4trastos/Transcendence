@@ -14,7 +14,7 @@ const Setup2FA = () => {
             try {
                 const response = await axios.post('/api/setup-2fa', {}, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem('authToken')}`
+                        Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`
                     }
                 });
                 setQrCode(response.data.qrCode);
@@ -27,20 +27,23 @@ const Setup2FA = () => {
         setup2FA();
     }, []);
 
+    // Actualizado handleVerify para usar nuevos tokens
     const handleVerify = async () => {
         try {
-            await axios.post('/api/verify-2fa-setup', {
-                token: verificationCode
+            const response = await axios.post('/api/verify-2fa', { // Cambiado a /api/verify-2fa
+                userId: JSON.parse(localStorage.getItem('user') || '{}').userid, // Obtener userId de localStorage
+                code: verificationCode // Usar verificationCode del estado
             }, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('authToken')}`
+                    Authorization: `Bearer ${sessionStorage.getItem('accessToken')}`
                 }
             });
             
+            // No se guardan nuevos tokens aquí, solo se confirma la verificación
             alert('2FA configurado correctamente');
             navigate('/profile');
         } catch (error) {
-            setError('Código de verificación incorrecto');
+            setError('Código incorrecto');
         }
     };
 

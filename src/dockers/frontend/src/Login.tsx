@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from './App'; // Importa el contexto
 
 const Login = () => {
     const navigate = useNavigate();
+    const { setUser } = useContext(AuthContext); // Usa el contexto
     const [player1Data, setPlayer1Data] = useState({
         username: "",
         password: "",
@@ -13,6 +14,7 @@ const Login = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [needs2FA, setNeeds2FA] = useState(false);
     const [twoFACode, setTwoFACode] = useState("");
+    const [userId, setUserId] = useState<number | null>(null); // Nuevo estado para userId
 
     function clearTextBox() {
         const username = document.getElementById("username") as HTMLInputElement;
@@ -52,10 +54,11 @@ const Login = () => {
 
         try {
             // Si necesita 2FA y tenemos código, verificar
-            if (needs2FA && twoFACode) {
+            if (needs2FA && twoFACode && userId) { // Agregado userId
                 const verifyResponse = await axios.post("/api/verify-2fa", {
-                    userId: playerData.username,
-                    code: twoFACode
+                    userId: userId, // Usar userId del estado
+                    code: twoFACode,
+                    tempToken: sessionStorage.getItem('temp2FAToken') // Usa token temporal de sessionStorage
                 }, {
                     withCredentials: true,
                     headers: {
@@ -63,7 +66,7 @@ const Login = () => {
                     }
                 });
 
-                return handleLoginSuccess(verifyResponse.data, playerData);
+                return handleLoginSuccess(verifyResponse.data, verifyResponse.headers, playerData);
             }
 
             // Login normal
@@ -75,13 +78,16 @@ const Login = () => {
             });
 
             // Si el backend indica que necesita 2FA
-            if (response.data?.needs2FA) {
+            if (response.data?.requires2FA) {
                 setNeeds2FA(true);
+                setUserId(response.data.userId);
+                // Guardar el token temporal en memoria, no en localStorage
+                sessionStorage.setItem('temp2FAToken', response.data.tempToken);
                 setIsSubmitting(false);
                 return;
             }
 
-            handleLoginSuccess(response.data, playerData);
+            handleLoginSuccess(response.data, response.headers, playerData);
         } catch (error: any) {
             console.error("Error detallado:", error);
             setIsSubmitting(false);
@@ -95,33 +101,67 @@ const Login = () => {
         }
     };
 
-    const handleLoginSuccess = (responseData: any, playerData: typeof player1Data) => {
-        // Guardar tokens
-        if (responseData.token) {
-            localStorage.setItem("jwt", responseData.token);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.token}`;
-            
-            // Guardar refresh token en httpOnly cookie (mejor seguridad)
-            document.cookie = `refreshToken=${responseData.refreshToken}; Secure; SameSite=Strict; path=/; max-age=${7 * 24 * 60 * 60}`;
+    // Actualizado handleLoginSuccess
+    const handleLoginSuccess = (responseData: any, headers: any, playerData: typeof player1Data) => {
+        // Access token en memoria (no localStorage)
+        sessionStorage.setItem('accessToken', responseData.accessToken);
+        
+        // Refresh token en cookie segura
+        const setCookieHeader = headers['set-cookie'];
+        if (setCookieHeader) {
+            // El backend debe establecer la cookie HTTP-Only
+            // No intentamos establecerla desde el frontend
         }
+
+        // Configurar axios
+        axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         
         // Guardar información de usuario
-        if (!playerData.guestMode) {
-            localStorage.setItem("user", JSON.stringify({
-                id: responseData.userId,
-                username: playerData.username
-            }));
-        } else {
-            localStorage.setItem("user", JSON.stringify({
-                id: "guest",
-                username: "Invitado"
-            }));
-        }
-        
-        // Redirigir y recargar
+        const userData = {
+            userid: responseData.user.id,
+            username: playerData.username
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData); // Actualiza el estado global
+
+        // Redirigir
         navigate("/");
-        window.location.reload();
     };
+
+    // Nueva función para manejar token expirado
+    const handleTokenRefresh = async () => {
+        try {
+            const refreshToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('refreshToken='))
+                ?.split('=')[1];
+
+            const response = await axios.post('/api/refresh-token', { refreshToken });
+            sessionStorage.setItem('accessToken', response.data.accessToken);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
+            return true;
+        } catch (error) {
+            sessionStorage.removeItem('accessToken');
+            document.cookie = 'refreshToken=; Max-Age=0';
+            navigate('/login');
+            return false;
+        }
+    };
+
+    // Interceptor para manejar tokens expirados
+    axios.interceptors.response.use(
+        response => response,
+        async error => {
+            if (error.response?.status === 401 && error.config && !error.config._retry) {
+                error.config._retry = true;
+                const refreshed = await handleTokenRefresh();
+                if (refreshed) {
+                    return axios(error.config);
+                }
+            }
+            return Promise.reject(error);
+        }
+    );
 
     const handleResend2FACode = async () => {
         try {

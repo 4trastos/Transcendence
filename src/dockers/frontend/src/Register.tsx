@@ -10,6 +10,7 @@ const Register = () => {
         email: "",
         password: "",
     });
+    const [enable2FA, setEnable2FA] = useState(false); // Agregar estado para 2FA
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -19,37 +20,27 @@ const Register = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await axios.post(
-                "/api/register", 
-                formData,
-                {
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+            const response = await axios.post("/api/register", {...formData, enable2FA}, { // Modificar para enviar enable2FA
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            );
-            alert("Registro exitoso: " + response.data.message);
-            setFormData({username: "", email: "", password: ""});
+            });
 
-            // Redirige a login después del registro
-            navigate("/login");
-            
-            if (formRef.current) {
-                formRef.current.reset();
-            }
-            
-            // Opcional: Resetear el formulario usando la ref
-            if (formRef.current) {
-                formRef.current.reset();
-            }
-        } catch (error: any) {
-            console.error("Error detallado:", error);
-            if (error.response?.status === 502) {
-                alert("Error de conexión con el servidor. Por favor intenta nuevamente.");
+            // Mostrar mensaje específico para cuentas no verificadas
+            if (response.data.message.includes('registrado')) {
+                alert("Registro exitoso. Por favor inicia sesión después de verificar tu cuenta.");
+                navigate("/login");
             } else {
-                alert("Error al registrar el usuario: " + 
-                    (error.response?.data?.error || error.message));
+                alert("Registro exitoso: " + response.data.message);
+            }
+
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                alert("Registro completado. Debes verificar tu cuenta antes de iniciar sesión.");
+                navigate("/login");
+            } else {
+                alert("Error al registrar: " + (error.response?.data?.error || error.message));
             }
         }
     };
@@ -93,6 +84,14 @@ const Register = () => {
                     required
                     minLength={8}
                 />
+                <label className="text-white flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={enable2FA}
+                        onChange={() => setEnable2FA(!enable2FA)}
+                    />
+                    Habilitar autenticación en dos pasos (recomendado)
+                </label>
                 <button
                     type="submit"
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"

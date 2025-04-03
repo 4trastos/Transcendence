@@ -11,28 +11,54 @@ check_url_ready() {
   fi
 }
 
+# Función para centrar texto en la terminal
+center_text() {
+  local text="$1"
+  local cols=$(tput cols)
+  local padding=$(( (cols - ${#text}) / 2 ))
+  printf "%*s%s\n" "$padding" "" "$text"
+}
+
 loading_bar() {
   local progress=0
   local bar_length=80
+  local rows=$(tput lines)
+  local center_row=$((rows / 2))  # Posición vertical centrada
+
+  tput civis  # Ocultar cursor para una mejor experiencia
+  tput cup $center_row 0
+  center_text "🚀 Initializing services... Please wait! 🚀"
+  
   while ! check_url_ready; do
-    echo -ne "\rCHECKING IF ALL SERVICES ARE OPERATIONAL ["
+    tput sc  # Guardar posición del cursor
+
+    # Barra de carga centrada
+    local bar="["
     for ((i = 0; i < bar_length; i++)); do
       if [ $i -lt $progress ]; then
-        echo -n "█"
+        bar+="█"
       else
-        echo -n "-"
+        bar+="-"
       fi
     done
-    echo -n "]"
+    bar+="]"
+
+    tput cup $((center_row + 2)) 0  # Mover el cursor donde debe ir la barra
+    center_text "$bar"
+
+    tput rc  # Restaurar cursor a la posición guardada
     progress=$(( (progress + 1) % (bar_length + 1) ))
-    echo -n " PLEASE WAIT..."
-    sleep 1
+    sleep 0.9
   done
+  tput cnorm  # Restaurar cursor
 }
 
 url_ready() {
-  echo -e "\n"  
-  echo -e "\n✅ ALL SERVICES are available! - ENJOY THE EXPERIENCE ✅"
+  clear
+  local rows=$(tput lines)
+  local center_row=$((rows / 2))  
+  tput cup $center_row 0  
+  center_text "✅ ALL SERVICES are available! - ENJOY THE EXPERIENCE ✅"
   sleep 2
 }
 

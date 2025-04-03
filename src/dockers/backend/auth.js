@@ -1,124 +1,92 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const db = require('./database'); // Asume conexión a DB
 
-// Configuración mejorada del secreto JWT
-if (!process.env.JWT_SECRET) {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('❌ JWT_SECRET must be defined in production environment');
-    }
-    console.warn('⚠️  Using temporary JWT secret. For production, set JWT_SECRET in your environment variables');
-}
+// Configuración centralizada
+const config = {
+    secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+    algorithm: 'HS256',
+    issuer: 'pong-app.com',
+    audience: 'pong-client',
+    accessExpiry: '15m',
+    refreshExpiry: '7d'
+};
 
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
-const JWT_ALGORITHM = 'HS256';
-const JWT_ISSUER = 'pong-app.com';
-const JWT_AUDIENCE = 'pong-client';
-const JWT_EXPIRES_IN = '1h';
-
-module.exports = {
-    JWT_SECRET,
-    JWT_ALGORITHM,
-    
-    generateToken: (user) => {
-        const tokenPayload = {
+// Nuevas funciones añadidas
+const tokenUtils = {
+    generateAccessToken: (user) => {
+        const payload = {
             sub: user.id,
             jti: crypto.randomBytes(16).toString('hex'),
-            iss: JWT_ISSUER,
-            aud: JWT_AUDIENCE,
+            iss: config.issuer,
+            aud: config.audience,
             iat: Math.floor(Date.now() / 1000),
-            id: user.id,
             role: user.role || 'user',
             auth_method: user.authMethod || 'standard'
         };
-
-        return jwt.sign(tokenPayload, JWT_SECRET, {
-            expiresIn: JWT_EXPIRES_IN,
-            algorithm: JWT_ALGORITHM
+        return jwt.sign(payload, config.secret, {
+            expiresIn: config.accessExpiry,
+            algorithm: config.algorithm
         });
     },
 
-    verifyToken: (req, res, next) => {
-        const authHeader = req.headers.authorization;
+    generateRefreshToken: async (userId) => {
+        const token = crypto.randomBytes(64).toString('hex');
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Formato de autorización inválido. Use: Bearer <token>' });
-        }
-    
-        const token = authHeader.split(' ')[1];
-        
-        if (!token) {
-            return res.status(401).json({ error: 'Token no proporcionado' });
-        }
-    
-        jwt.verify(token, JWT_SECRET, {
-            algorithms: ['HS256'],
-            issuer: 'pong-app.com',
-            audience: 'pong-client'
-        }, (err, decoded) => {
-            if (err) {
-                console.error('Error al verificar token:', err);
-                return res.status(401).json({ error: 'Token inválido' });
-            }
-            
-            req.user = decoded;
-            next();
-        });
+        await db.run(
+            `INSERT INTO refresh_tokens 
+             (token, user_id, expires_at) 
+             VALUES (?, ?, ?)`,
+            [token, userId, expiresAt]
+        );
+        return token;
     },
 
-    middleware: (req, res, next) => {
-        const authHeader = req.headers.authorization;
+    revokeToken: async (jti) => {
+        await db.run(
+            `INSERT INTO revoked_tokens (jti, expires_at) 
+             VALUES (?, datetime('now', '+1 hour'))`,
+            [jti]
+        );
+    },
+
+    verifyToken: async (token) => {
+        const decoded = jwt.verify(token, config.secret, {
+            algorithms: [config.algorithm],
+            issuer: config.issuer,
+            audience: config.audience
+        });
+
+        const isRevoked = await db.get(
+            'SELECT 1 FROM revoked_tokens WHERE jti = ?',
+            [decoded.jti]
+        );
+        if (isRevoked) throw new Error('Token revoked');
         
-        if (!authHeader) {
-            return res.status(401).json({ 
-                error: 'Authorization header missing',
-                code: 'MISSING_AUTH_HEADER'
-            });
-        }
-
-        const [scheme, token] = authHeader.split(' ');
-        
-        if (scheme !== 'Bearer' || !token) {
-            return res.status(401).json({ 
-                error: 'Invalid authorization format. Expected: Bearer <token>',
-                code: 'INVALID_AUTH_FORMAT'
-            });
-        }
-
-        try {
-            const decoded = this.verifyToken(token);
-            req.user = {
-                id: decoded.id,
-                role: decoded.role,
-                authMethod: decoded.auth_method,
-                sessionId: decoded.jti
-            };
-            next();
-        } catch (err) {
-            const errorMap = {
-                TokenExpiredError: {
-                    status: 401,
-                    error: 'Token expired',
-                    code: 'TOKEN_EXPIRED'
-                },
-                JsonWebTokenError: {
-                    status: 403,
-                    error: 'Invalid token',
-                    code: 'INVALID_TOKEN'
-                },
-                NotBeforeError: {
-                    status: 403,
-                    error: 'Token not active',
-                    code: 'TOKEN_NOT_ACTIVE'
-                }
-            };
-
-            const response = errorMap[err.name] || {
-                status: 403,
-                error: 'Authentication failed',
-                code: 'AUTH_FAILED'
-            };
-
-            return res.status(response.status).json(response);
-        }
+        return decoded;
     }
+};
+
+// Middleware actualizado
+const authMiddleware = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) throw new Error('Missing token');
+
+        req.user = await tokenUtils.verifyToken(token);
+        next();
+    } catch (err) {
+        res.status(401).json({
+            error: 'Authentication failed',
+            details: err.message,
+            code: err.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'AUTH_ERROR'
+        });
+    }
+};
+
+module.exports = {
+    ...tokenUtils,
+    middleware: authMiddleware,
+    config
 };
