@@ -1,0 +1,19 @@
+{
+    "network-id": 1,
+    "http-host": "0.0.0.0",
+    "http-port": 9650,
+    "staking-enabled": false,
+    "index-transactions": false,
+    "index-allow-incomplete": false,
+    "checksums-enabled": false,
+    "bootstrapIDs":[
+        "NodeID-7Xhw5m88j39P87nZ5fHTz5CqPVpVu2Xyh", 
+        "NodeID-8ayjK2m8nm5duG22jLpd229qEw52c91c",
+        "NodeID-9cNLx8jVtSjEqc2v9Qd7q9g99r449v9c",
+        "NodeID-B9mN6L78k9o2p7cKq5Cz9z25z4z9p84d",
+        "NodeID-C5mP9p9t1mN4p9c9p9p9p9p9p9p9p9p9"
+    ],
+    "db-dir": "/root/.avalanchego/db",
+    "log-dir": "/root/.avalanchego/logs",
+    "log-level": "debug"
+}
