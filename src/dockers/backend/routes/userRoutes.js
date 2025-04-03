@@ -10,6 +10,7 @@ const { console } = require('inspector');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const { verifyToken } = require('../auth');
+const jwt = require('jsonwebtoken'); 
 
 const router = express.Router();
 const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -165,16 +166,21 @@ router.post('/login', async (req, res) => {
                             }
 
                             // Generar JWT para el usuario invitado
-                            const jwtToken = generateToken({ 
-                                id: this.lastID,
-                                isGuest: true 
+                            const token = generateToken({
+                                id: user.id,
+                                role: user.role,
+                                authMethod: 'standard'
                             });
 
-                            res.status(200).json({ 
-                                message: 'Sesión de invitado creada',
-                                sessionToken, // ← Mantén esto para compatibilidad
-                                token: jwtToken, // ← Nuevo: JWT
-                                userId: this.lastID
+                            res.json({
+                                message: 'Login successful',
+                                token,
+                                user: {
+                                    id: user.id,
+                                    username: user.username,
+                                    email: user.email,
+                                    role: user.role
+                                }
                             });
                         }
                     );
@@ -295,6 +301,57 @@ router.get('/protected-test', verifyToken, (req, res) => {
         user: req.user,
         timestamp: new Date().toISOString()
     });
+});
+
+router.post('/refresh-token', async (req, res) => {
+    const { refreshToken } = req.body;
+    
+    // Verificar en DB
+    db.get('SELECT user_id FROM refresh_tokens WHERE token = ? AND expires_at > ?', 
+      [refreshToken, new Date()], 
+      (err, row) => {
+        if (err || !row) {
+          return res.status(401).json({ error: 'Refresh token inválido' });
+        }
+        
+        // Generar nuevo token
+        const newToken = auth.generateToken({ id: row.user_id });
+        res.json({ token: newToken });
+      }
+    );
+  });
+
+  /**
+ * Endpoint para validar tokens
+ */
+  router.post('/validate-token', (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.status(400).json({ 
+            valid: false,
+            error: 'Token no proporcionado' 
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+            algorithms: ['HS256'],
+            issuer: 'pong-app.com',
+            audience: 'pong-client'
+        });
+        
+        res.json({
+            valid: true,
+            decoded,
+            expiresAt: new Date(decoded.exp * 1000).toISOString()
+        });
+    } catch (err) {
+        res.status(401).json({
+            valid: false,
+            error: err.message
+        });
+    }
 });
 
 module.exports = router;

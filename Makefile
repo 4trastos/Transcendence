@@ -9,6 +9,8 @@ grant_permissions:
 	@chmod +x ./script/loading.sh
 	@chmod +x ./script/verify_user.sh
 	@chmod +x ./script/display_art.sh
+	@chmod +x ./script/jwt_tools.sh
+	@chmod +x ./script/display_help.sh
 
 kill_docker:
 	@./script/kill_docker.sh
@@ -136,25 +138,13 @@ security:
 token:
 	@docker exec -it security cat /vault/data/ui_token.txt
 
-help:
-	@echo "Available commands:"
-	@echo "  make                     - Restart Docker if needed and build the containers"
-	@echo "  make kill_docker         - Kill the Docker process and restart the application"
-	@echo "  make restart_if_needed   - Restart Docker only if needed"
-	@echo "  make down                - Stop and remove containers"
-	@echo "  make clean               - Remove data, containers, images, volumes, and networking"
-	@echo "  make setup               - Setup the necessary directories"
-	@echo "  make re                  - Stop everything and restart it (down + all)"
-	@echo "  make delete              - Remove Docker volumes related to 'transcendence' and clean up unused Docker resources"
-	@echo "  make ps                  - Show the status of containers"
-	@echo "  make logs                - Show logs for all services"
-	@echo "  make logs_service        - Show logs for a specific service (use: make logs_service SERVICE=<service_name>)"
-	@echo "  make scan                - Execute ZAP security scan"
-	@echo "  make security            - Execute ZAP, WAULT, ModSecurty and WAF security scan"
-	@echo "  make token               - Displays Vault credentials"
-	@echo "  make verify (user)       - Verify a user's account"
+help: grant_permissions
+	@./script/display_help.sh
+
+jwt: grant_permissions
+	@./script/jwt_tools.sh jwt
 
 verify: grant_permissions
 	@./script/verify_user.sh $(user)
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt
