@@ -52,11 +52,27 @@ const Login = () => {
             });
             
             alert("Inicio de sesión exitoso: " + response.data.message);
-            if (!playerData.guestMode) {
-                localStorage.setItem("user", JSON.stringify(`${response.data.id} ${playerData.username}`));
-            } else {
-                localStorage.setItem("user", JSON.stringify("guest,Invitado"));
+            
+            // Cambios para JWT  ==============
+            if (response.data.token) {
+                localStorage.setItem("jwt", response.data.token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
+            // ======================================
+            
+            // Mantén el sistema existente (esto sigue funcionando)
+            if (!playerData.guestMode) {
+                localStorage.setItem("user", JSON.stringify({
+                    id: response.data.id,
+                    username: playerData.username
+                }));
+            } else {
+                localStorage.setItem("user", JSON.stringify({
+                    id: "guest",
+                    username: "Invitado"
+                }));
+            }
+            
             navigate("/");
             window.location.reload();
         } catch (error: any) {
@@ -68,7 +84,7 @@ const Login = () => {
                 alert("Error de conexión con el servidor");
             }
         }
-    };    
+    };  
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 space-x-10">
@@ -85,7 +101,7 @@ const Login = () => {
                     id="username"
                     placeholder="Username"
                     value={player1Data.username}
-                    onChange={(e) => handleChange(e, 1)}
+                    onChange={handleChange}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
@@ -94,7 +110,7 @@ const Login = () => {
                     id="password"
                     placeholder="Password"
                     value={player1Data.password}
-                    onChange={(e) => handleChange(e, 1)}
+                    onChange={handleChange}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <label className="text-white flex items-center gap-2">
@@ -102,7 +118,7 @@ const Login = () => {
                         type="checkbox"
                         name="guestMode"
                         checked={player1Data.guestMode}
-                        onChange={(e) => handleChange(e, 1)}
+                        onChange={handleChange}
                     />
                     Jugar como invitado?
                 </label>

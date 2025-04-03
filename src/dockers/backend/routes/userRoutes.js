@@ -9,6 +9,7 @@ const path = require('path');
 const { console } = require('inspector');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
+const { verifyToken } = require('../auth');
 
 const router = express.Router();
 const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -33,33 +34,6 @@ db.exec(initSQL, (err) => {
         console.log('Base de datos inicializada correctamente');
     }
 });
-
-/**
- * @brief Ruta para registrar usuarios en la base de datos (NICO).
- */
-/* router.post('/register', async(req, res) => {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-        return res.status(400).send('Faltan campos requeridos');
-    }
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10); // await es esperar a que la 'promesa' del brcrypt se resuelva.
-
-        const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
-        db.run(query, [username, email, hashedPassword], function (err) {
-            if (err) {
-                console.error('Error al registrar el usuario: ', err.message);
-                return res.status(500).json({error: 'Error al registrar el usuario'});
-            }
-            res.status(201).json({ message: 'Usuario registrado exitosamente', id: this.lastID });
-        });
-    } catch (error) {
-        console.error('Error al registrar el usuario: ', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
-    }
-}); */
 
 /**
  * @brief Ruta para registrar usuarios en la base de datos (NUEVA).
@@ -155,52 +129,11 @@ router.post('/register', async (req, res) => {
 });
 
 /**
- * @brief Loguea al usuario (NICO)
- */
-/* router.post('/login', async(req, res) =>{
-    const { username, password, guestMode } = req.body;
-
-    if (guestMode) {
-        console.log("Accediendo como invitado");
-            res.status(200).json({ message: "Inicio de sesión como invitado exitoso" });
-
-        return;
-    }
-
-    if (typeof username !== "string" || typeof password !== "string" || username.trim() === "" || password.trim() === "") {
-        return res.status(400).send('Faltan campos requeridos');
-    }
-
-    try {
-        const query = 'SELECT password FROM users WHERE username = ?';
-        db.get(query, [username], async (err, row) =>{
-            if (err){
-                console.error("Error en la base de datos:", err);
-                return res.status(500).json({ error: "Error al buscar el usuario" });
-            }
-            if (!row) {
-                return res.status(404).send('Usuario no encontrado');
-            }
-            const isMatch = await bcrypt.compare(password, row.password);
-            if (isMatch){              
-                res.status(200).json({ message: 'Inicio de sesión exitoso', id: row.id });
-
-                return;
-            } else{
-                console.log("Contraseña incorrecta");
-                return res.status(400).send('Contraseña incorrecta');
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ error : 'Error interno del servidor'});
-    }
-}); */
-
-/**
  * @brief Loguea al usuario (NUEVA)
  */
 router.post('/login', async (req, res) => {
     const { username, password, guestMode } = req.body;
+    const { generateToken } = require('../auth'); // Asegúrate de que la ruta es correcta
 
     if (guestMode) {
         // Crear usuario invitado
@@ -220,12 +153,10 @@ router.post('/login', async (req, res) => {
                     // Crear sesión
                     const sessionToken = crypto.randomBytes(64).toString('hex');
                     const expiresAt = new Date();
-                    expiresAt.setHours(expiresAt.getHours() + 24); // 24 horas de sesión
+                    expiresAt.setHours(expiresAt.getHours() + 24);
 
                     db.run(
-                        `INSERT INTO user_sessions 
-                        (user_id, session_token, expires_at) 
-                        VALUES (?, ?, ?)`,
+                        `INSERT INTO user_sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)`,
                         [this.lastID, sessionToken, expiresAt.toISOString()],
                         (err) => {
                             if (err) {
@@ -233,20 +164,18 @@ router.post('/login', async (req, res) => {
                                 return res.status(500).json({ error: 'Error al crear sesión' });
                             }
 
-                            // Registrar log
-                            db.run(
-                                'INSERT INTO security_logs (user_id, action_type, status) VALUES (?, ?, ?)',
-                                [this.lastID, 'guest_login', 'success'],
-                                (err) => {
-                                    if (err) console.error('Error en log:', err);
-                                    
-                                    res.status(200).json({ 
-                                        message: 'Sesión de invitado creada',
-                                        sessionToken,
-                                        userId: this.lastID
-                                    });
-                                }
-                            );
+                            // Generar JWT para el usuario invitado
+                            const jwtToken = generateToken({ 
+                                id: this.lastID,
+                                isGuest: true 
+                            });
+
+                            res.status(200).json({ 
+                                message: 'Sesión de invitado creada',
+                                sessionToken, // ← Mantén esto para compatibilidad
+                                token: jwtToken, // ← Nuevo: JWT
+                                userId: this.lastID
+                            });
                         }
                     );
                 }
@@ -265,7 +194,6 @@ router.post('/login', async (req, res) => {
     }
 
     try {
-        // Buscar usuario incluyendo estado de verificación
         db.get(
             'SELECT id, password, is_verified FROM users WHERE username = ?', 
             [username], 
@@ -276,32 +204,24 @@ router.post('/login', async (req, res) => {
                 }
 
                 if (!user) {
-                    // Registrar intento fallido en logs
                     db.run(
                         'INSERT INTO security_logs (action_type, status, details) VALUES (?, ?, ?)',
                         ['login_attempt', 'failed', `Usuario no encontrado: ${username}`],
-                        (err) => {
-                            if (err) console.error('Error en log:', err);
-                        }
+                        (err) => { if (err) console.error('Error en log:', err); }
                     );
                     return res.status(404).json({ error: 'Usuario no encontrado' });
                 }
 
-                // Verificar contraseña
                 const isMatch = await bcrypt.compare(password, user.password);
                 if (!isMatch) {
-                    // Registrar intento fallido
                     db.run(
                         'INSERT INTO security_logs (user_id, action_type, status) VALUES (?, ?, ?)',
                         [user.id, 'login_attempt', 'failed'],
-                        (err) => {
-                            if (err) console.error('Error en log:', err);
-                        }
+                        (err) => { if (err) console.error('Error en log:', err); }
                     );
                     return res.status(401).json({ error: 'Credenciales inválidas' });
                 }
 
-                // Verificar si el usuario está verificado
                 if (!user.is_verified) {
                     return res.status(403).json({ 
                         error: 'Cuenta no verificada', 
@@ -309,10 +229,10 @@ router.post('/login', async (req, res) => {
                     });
                 }
 
-                // Crear nueva sesión
+                // Crear sesión tradicional (mantén esto)
                 const sessionToken = crypto.randomBytes(64).toString('hex');
                 const expiresAt = new Date();
-                expiresAt.setHours(expiresAt.getHours() + 24); // 24 horas de sesión
+                expiresAt.setHours(expiresAt.getHours() + 24);
 
                 db.run(
                     `INSERT INTO user_sessions 
@@ -329,25 +249,21 @@ router.post('/login', async (req, res) => {
                         db.run(
                             'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
                             [user.id],
-                            (err) => {
-                                if (err) console.error('Error al actualizar last_login:', err);
-                            }
+                            (err) => { if (err) console.error('Error al actualizar last_login:', err); }
                         );
 
-                        // Registrar login exitoso
-                        db.run(
-                            'INSERT INTO security_logs (user_id, action_type, status) VALUES (?, ?, ?)',
-                            [user.id, 'login', 'success'],
-                            (err) => {
-                                if (err) console.error('Error en log:', err);
-                                
-                                res.status(200).json({ 
-                                    message: 'Inicio de sesión exitoso', 
-                                    sessionToken,
-                                    userId: user.id
-                                });
-                            }
-                        );
+                        // Generar JWT
+                        const jwtToken = generateToken({ 
+                            id: user.id,
+                            isGuest: false 
+                        });
+
+                        res.status(200).json({ 
+                            message: 'Inicio de sesión exitoso',
+                            sessionToken, // ← Sesión tradicional (compatibilidad)
+                            token: jwtToken, // ← Nuevo JWT
+                            userId: user.id
+                        });
                     }
                 );
             }
@@ -370,6 +286,14 @@ router.get('/users', (req, res) => {
             return;
         }
         res.json(rows);
+    });
+});
+
+router.get('/protected-test', verifyToken, (req, res) => {
+    res.json({ 
+        message: 'Acceso concedido', 
+        user: req.user,
+        timestamp: new Date().toISOString()
     });
 });
 

@@ -17,12 +17,12 @@ const app = express();
 const port = 3000;
 
 const corsOptions = {
-    origin: ['http://localhost:8080', 'https://localhost:8080'],
+    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001'],
     methods: 'GET,POST,PUT,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200
-};
+  };
 
 app.use(cors(corsOptions));
 

@@ -8,6 +8,8 @@ RUN npm install --production
 RUN npm install cors
 RUN npm install node-vault
 RUN npm install jsonwebtoken
+RUN npm install speakeasy
+RUN npm install qrcode
 RUN npm install joi
 RUN npm install express-rate-limit
 #RUN npm install pyotp
@@ -18,7 +20,7 @@ COPY . .
 RUN mkdir -p /usr/src/app/data
 
 # Copiar init.sql al volumen compartido
-COPY tools/init.sql /var/lib/sqlite/init.sql
+#COPY tools/init.sql /var/lib/sqlite/init.sql
 
 EXPOSE 3000
 
