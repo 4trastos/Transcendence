@@ -19,7 +19,7 @@ const Pong = () => {
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
     const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
     
-    const sendResultsToDB = async (p1Score: string, p2Score: string) => {
+    const sendResultsToDB = async (p1Score: Number, p2Score: Number) => {
         try {
             // Obtener el usuario actual del localStorage
             const userData = localStorage.getItem("user");
@@ -31,9 +31,9 @@ const Pong = () => {
             const response = await axios.post("/api/gameResult", {
                 player1_id: userId,
                 player2_id: 0,
-                score_player1: parseInt(p1Score),
-                score_player2: parseInt(p2Score),
-                winner_id: parseInt(p1Score) > parseInt(p2Score) ? userId : 0
+                score_player1: (p1Score),
+                score_player2: (p2Score),
+                winner_id: (p1Score) > (p2Score) ? userId : 0
             }, {
                 withCredentials: true,
                 headers: {

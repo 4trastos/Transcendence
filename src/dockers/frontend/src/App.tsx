@@ -2,6 +2,7 @@ import { useEffect, useState, createContext } from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import axios from "axios";
 import Pong from "./Pong";
+import Profile from "./Profile";
 import Register from "./Register";
 import Login from "./Login";
 
@@ -39,9 +40,9 @@ const App = () => {
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       <Router>
-        <div className="bg-gray-800 min-h-screen text-white">
+        <div className="bg-gray-800 min-h-screen">
           <div className="flex" style={{ flex: "0 0 10%" }}>
-            <nav className="p-4 flex items-center justify-center">
+            <nav className="p-4 flex items-center justify-center text-white">
               <ul className="flex space-x-4">
                 <li>
                   <Link
@@ -55,10 +56,10 @@ const App = () => {
                   <>
                     <li>
                       <Link
-                        to="/perfil"
+                        to="/profile"
                         className="text-gray-300 hover:text-white transition duration-300"
                       >
-                        Perfil ({user.username})
+                        Perfil {user.username}
                       </Link>
                     </li>
                     <li>
@@ -98,6 +99,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Pong />} />
               <Route path="/registro" element={<Register />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/login" element={<Login />} />
             </Routes>
           </div>
