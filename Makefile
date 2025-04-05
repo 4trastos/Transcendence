@@ -75,6 +75,8 @@ clean:
 	rm -rf $(HOME)/goinfre/data/logstash/*
 	rm -rf $(HOME)/goinfre/data/grafana/*
 	rm -rf $(HOME)/goinfre/data/prometheus/*
+	rm -rf $(HOME)/goinfre/data/mail/*
+	rm -rf $(HOME)/goinfre/data/mail-state/*
 	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
@@ -96,6 +98,8 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/logstash
 	@mkdir -p $(HOME)/goinfre/data/grafana
 	@mkdir -p $(HOME)/goinfre/data/prometheus
+	@mkdir -p $(HOME)/goinfre/data/mail
+	@mkdir -p $(HOME)/goinfre/data/mail-state
 
 re: down all
 

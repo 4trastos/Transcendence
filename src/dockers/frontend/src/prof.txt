@@ -1,0 +1,124 @@
+import { useState, useContext, useEffect } from "react";
+import axios from "axios";
+import { AuthContext } from './App'; // Importa el contexto
+
+const Profile = () => {
+    const { user } = useContext(AuthContext);
+    const [userData, setUserData] = useState({
+        username: "Cargando...",
+        tournament_wins: "Cargando...",
+        vs_wins: "Cargando...",
+        name: "Cargando...",
+        lastname: "Cargando...",
+        email: "Cargando...",
+        image: "", // Agrega la imagen
+    });
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                if (user) {
+                    // Modificación segura para obtener el user ID
+                    const userId = typeof user === 'string' ? 
+                        JSON.parse(user).id : 
+                        user.id;
+                    
+                    const response = await axios.get(`/api/user/${userId}`, {
+                        withCredentials: true,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+    
+                    // Verificación robusta de la respuesta
+                    if (response.data && typeof response.data === 'object') {
+                        setUserData({
+                            username: response.data.username || "No disponible",
+                            tournament_wins: response.data.tournament_wins || 0,
+                            vs_wins: response.data.vs_wins || 0,
+                            name: response.data.name || "No disponible",
+                            lastname: response.data.lastname || "No disponible",
+                            email: response.data.email || "No disponible",
+                            image: response.data.image || "https://via.placeholder.com/150",
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                // Manejo mejorado del error
+                if (axios.isAxiosError(error)) {
+                    console.error("Detalles del error:", {
+                        status: error.response?.status,
+                        data: error.response?.data
+                    });
+                }
+            }
+        };
+    
+        fetchUserData();
+    }, [user]);
+
+    return (
+        <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-12">
+            {/* CARD PRINCIPAL */}
+            <div className="bg-gray-900 p-10 shadow-2xl rounded-b-2xl w-full max-w-2xl space-y-8">
+
+                {/* HEADER - Imagen de perfil y Nombre */}
+                <div className="flex flex-col items-center space-y-4">
+                <img
+                    src={userData.image || "/default-profile.png"} // Usa una imagen local por defecto
+                    alt="Imagen de Perfil"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-gray-500"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/default-profile.png";
+                    }}
+                />
+                    <div className="border-2 border-white px-6 py-2">
+                        <h1 className="text-4xl font-bold text-white tracking-wide">
+                            {userData.username}
+                        </h1>
+                    </div>
+                </div>
+
+                {/* User Stats */}
+                <div className="text-center">
+                    <h3 className="text-3xl font-bold text-blue-400">Stats de usuario</h3>
+                    <div className="mt-3 text-lg text-gray-300 space-y-1">
+                        <div>
+                            <span className="font-semibold text-white">Torneos Ganados:</span>{" "}
+                            <span>{userData.tournament_wins}</span>
+                        </div>
+                        <div>
+                            <span className="font-semibold text-white">Partidos Vs Ganados:</span>{" "}
+                            <span>{userData.vs_wins}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr className="border-gray-700" />
+
+                {/* User Info */}
+                <div className="text-center">
+                    <h3 className="text-3xl font-bold text-blue-400">Datos de usuario</h3>
+                    <div className="mt-3 text-lg text-gray-300 space-y-1">
+                        <div>
+                            <span className="font-semibold text-white">Nombre:</span>{" "}
+                            <span>{userData.name}</span>
+                        </div>
+                        <div>
+                            <span className="font-semibold text-white">Apellido:</span>{" "}
+                            <span>{userData.lastname}</span>
+                        </div>
+                        <div>
+                            <span className="font-semibold text-white">Email:</span>{" "}
+                            <span>{userData.email}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Profile;

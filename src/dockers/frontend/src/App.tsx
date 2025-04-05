@@ -40,9 +40,9 @@ const App = () => {
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       <Router>
-        <div className="bg-gray-800 min-h-screen">
+        <div className="bg-gray-800 min-h-screen text-white">
           <div className="flex" style={{ flex: "0 0 10%" }}>
-            <nav className="p-4 flex items-center justify-center text-white">
+            <nav className="p-4 flex items-center justify-center">
               <ul className="flex space-x-4">
                 <li>
                   <Link
@@ -59,7 +59,7 @@ const App = () => {
                         to="/profile"
                         className="text-gray-300 hover:text-white transition duration-300"
                       >
-                        Perfil {user.username}
+                        Perfil ({user.username})
                       </Link>
                     </li>
                     <li>

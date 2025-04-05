@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom"; 
+import GoogleAuthButton from './components/GoogleAuthButton'; // Importa el componente
 
 const Register = () => {
     const navigate = useNavigate();
@@ -92,6 +93,19 @@ const Register = () => {
                     />
                     Habilitar autenticación en dos pasos (recomendado)
                 </label>
+
+                <div className="mt-4">
+                    <div className="relative flex items-center">
+                        <div className="flex-grow border-t border-gray-600"></div>
+                        <span className="flex-shrink mx-4 text-gray-300">o</span>
+                        <div className="flex-grow border-t border-gray-600"></div>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-center">
+                        <GoogleAuthButton />
+                    </div>
+                </div>
+
                 <button
                     type="submit"
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"

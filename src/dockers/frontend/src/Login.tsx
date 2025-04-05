@@ -1,11 +1,12 @@
 import { useState, useContext } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthContext } from './App'; // Importa el contexto
+import { AuthContext } from './App';
+import GoogleAuthButton from './components/GoogleAuthButton';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext); // Usa el contexto
+    const { setUser } = useContext(AuthContext);
     const [player1Data, setPlayer1Data] = useState({
         username: "",
         password: "",
@@ -14,7 +15,8 @@ const Login = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [needs2FA, setNeeds2FA] = useState(false);
     const [twoFACode, setTwoFACode] = useState("");
-    const [userId, setUserId] = useState<number | null>(null); // Nuevo estado para userId
+    const [userId, setUserId] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     function clearTextBox() {
         const username = document.getElementById("username") as HTMLInputElement;
@@ -51,25 +53,25 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent, playerData: typeof player1Data) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setError(null);
 
         try {
-            // Si necesita 2FA y tenemos código, verificar
-            if (needs2FA && twoFACode && userId) { // Agregado userId
+            if (needs2FA && twoFACode && userId) {
                 const verifyResponse = await axios.post("/api/verify-2fa", {
-                    userId: userId, // Usar userId del estado
+                    userId: userId,
                     code: twoFACode,
-                    tempToken: sessionStorage.getItem('temp2FAToken') // Usa token temporal de sessionStorage
+                    tempToken: sessionStorage.getItem('temp2FAToken')
                 }, {
                     withCredentials: true,
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
                     }
                 });
 
                 return handleLoginSuccess(verifyResponse.data, verifyResponse.headers, playerData);
             }
 
-            // Login normal
             const response = await axios.post("/api/login", playerData, {
                 withCredentials: true,
                 headers: {
@@ -77,11 +79,9 @@ const Login = () => {
                 }
             });
 
-            // Si el backend indica que necesita 2FA
             if (response.data?.requires2FA) {
                 setNeeds2FA(true);
                 setUserId(response.data.userId);
-                // Guardar el token temporal en memoria, no en localStorage
                 sessionStorage.setItem('temp2FAToken', response.data.tempToken);
                 setIsSubmitting(false);
                 return;
@@ -92,43 +92,33 @@ const Login = () => {
             console.error("Error detallado:", error);
             setIsSubmitting(false);
             
-            if (error.response) {
-                alert("Error al iniciar sesión: " + 
-                    (error.response.data?.error || error.response.statusText));
+            if (error.response?.data?.error === 'Código 2FA inválido') {
+                setError('Código incorrecto. Por favor intenta nuevamente.');
             } else {
-                alert("Error de conexión con el servidor");
+                alert("Error al iniciar sesión: " + 
+                    (error.response?.data?.error || error.response?.statusText || "Error de conexión"));
             }
         }
     };
 
-    // Actualizado handleLoginSuccess
     const handleLoginSuccess = (responseData: any, headers: any, playerData: typeof player1Data) => {
-        // Access token en memoria (no localStorage)
         sessionStorage.setItem('accessToken', responseData.accessToken);
         
-        // Refresh token en cookie segura
         const setCookieHeader = headers['set-cookie'];
-        if (setCookieHeader) {
-            // El backend debe establecer la cookie HTTP-Only
-            // No intentamos establecerla desde el frontend
-        }
+        if (setCookieHeader) {}
 
-        // Configurar axios
         axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         
-        // Guardar información de usuario
         const userData = {
             userid: responseData.user.id,
             username: playerData.username
         };
         localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData); // Actualiza el estado global
+        setUser(userData);
 
-        // Redirigir
         navigate("/");
     };
 
-    // Nueva función para manejar token expirado
     const handleTokenRefresh = async () => {
         try {
             const refreshToken = document.cookie
@@ -148,7 +138,6 @@ const Login = () => {
         }
     };
 
-    // Interceptor para manejar tokens expirados
     axios.interceptors.response.use(
         response => response,
         async error => {
@@ -183,6 +172,8 @@ const Login = () => {
                 <h2 className="text-3xl font-bold mb-4 text-center text-white">
                     {needs2FA ? "Verificación 2FA" : "Get Ready Player1!"}
                 </h2>
+
+                {error && <p className="text-red-500">{error}</p>}
 
                 {!needs2FA ? (
                     <>
@@ -256,6 +247,17 @@ const Login = () => {
                         </Link>
                     </p>
                 )}
+                <div className="mt-4">
+                  <div className="relative flex items-center">
+                    <div className="flex-grow border-t border-gray-600"></div>
+                    <span className="flex-shrink mx-4 text-gray-300">o</span>
+                    <div className="flex-grow border-t border-gray-600"></div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-center">
+                    <GoogleAuthButton />
+                  </div>
+                </div>
             </form>
         </div>
     );

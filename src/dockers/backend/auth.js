@@ -9,7 +9,9 @@ const config = {
     issuer: 'pong-app.com',
     audience: 'pong-client',
     accessExpiry: '15m',
-    refreshExpiry: '7d'
+    refreshExpiry: '7d',
+    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    googleRedirectUri: process.env.GOOGLE_REDIRECT_URI
 };
 
 // Nuevas funciones añadidas
@@ -22,7 +24,8 @@ const tokenUtils = {
             aud: config.audience,
             iat: Math.floor(Date.now() / 1000),
             role: user.role || 'user',
-            auth_method: user.authMethod || 'standard'
+            auth_method: user.auth_method || 'standard', // 'google' o 'standard'
+            provider: user.provider || 'local' // 'google' o 'local'
         };
         return jwt.sign(payload, config.secret, {
             expiresIn: config.accessExpiry,
@@ -31,14 +34,18 @@ const tokenUtils = {
     },
 
     generateRefreshToken: async (userId) => {
+        if (!userId) {
+            throw new Error('userId es requerido para generar refresh token');
+        }
+        
         const token = crypto.randomBytes(64).toString('hex');
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
         
         await db.run(
-            `INSERT INTO refresh_tokens 
-             (token, user_id, expires_at) 
+            `INSERT INTO refresh_tokens (token, user_id, expires_at) 
              VALUES (?, ?, ?)`,
-            [token, userId, expiresAt]
+            [token, userId, expiresAt.toISOString()]
         );
         return token;
     },
@@ -88,5 +95,6 @@ const authMiddleware = async (req, res, next) => {
 module.exports = {
     ...tokenUtils,
     middleware: authMiddleware,
-    config
+    config,
+    googleAuth: require('./googleAuth')
 };

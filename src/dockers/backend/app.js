@@ -17,9 +17,9 @@ const app = express();
 const port = 3000;
 
 const corsOptions = {
-    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001'],
+    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001', 'http://localhost:3000', 'https://localhost:3000'],
     methods: 'GET,POST,PUT,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
     optionsSuccessStatus: 200
   };
@@ -42,6 +42,24 @@ app.use(session({
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+});
+
+// Reemplaza el middleware CSP con esto:
+app.use((req, res, next) => {
+    const csp = [
+        "default-src 'self'",
+        "script-src 'self' https://accounts.google.com https://apis.google.com 'unsafe-inline'",
+        "script-src-elem 'self' https://accounts.google.com https://apis.google.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: https://*.googleusercontent.com",
+        "connect-src 'self' https://accounts.google.com https://*.googleapis.com",
+        "frame-src https://accounts.google.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "form-action 'self' https://accounts.google.com"
+    ].join('; ');
+
+    res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
     next();
 });
 

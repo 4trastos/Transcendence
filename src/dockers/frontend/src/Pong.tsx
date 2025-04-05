@@ -19,7 +19,7 @@ const Pong = () => {
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
     const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
     
-    const sendResultsToDB = async (p1Score: Number, p2Score: Number) => {
+    const sendResultsToDB = async (p1Score: string, p2Score: string) => {
         try {
             // Obtener el usuario actual del localStorage
             const userData = localStorage.getItem("user");
