@@ -1,0 +1,15 @@
+mailserver:
+  build: dockers/mailserver
+  hostname: mail.pongapp.com
+  container_name: mailserver
+  ports:
+    - "587:587"
+  environment:
+    - POSTFIX_DAGENT=lmtp:unix:/var/run/dovecot/lmtp
+    - SSL_TYPE=self-signed # Cambiar a letsencrypt en producción
+  volumes:
+    - mail_data:/var/mail
+    - ./dockers/mailserver/ssl/:/etc/letsencrypt/live/mail.pongapp.com/
+  networks:
+    - transcendence
+  restart: unless-stopped

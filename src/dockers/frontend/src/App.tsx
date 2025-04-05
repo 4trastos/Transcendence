@@ -2,6 +2,7 @@ import { useEffect, useState, createContext } from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import axios from "axios";
 import Pong from "./Pong";
+import Profile from "./Profile";
 import Register from "./Register";
 import Login from "./Login";
 
@@ -55,7 +56,7 @@ const App = () => {
                   <>
                     <li>
                       <Link
-                        to="/perfil"
+                        to="/profile"
                         className="text-gray-300 hover:text-white transition duration-300"
                       >
                         Perfil ({user.username})
@@ -98,6 +99,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Pong />} />
               <Route path="/registro" element={<Register />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/login" element={<Login />} />
             </Routes>
           </div>

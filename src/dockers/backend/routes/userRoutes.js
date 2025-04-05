@@ -13,6 +13,7 @@ const jwt = require('jsonwebtoken');
 const { generateAccessToken, generateRefreshToken, middleware: authMiddleware } = require('../auth'); // Importa el nuevo módulo
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+const emailService = require('../emailService'); // Importa el servicio de email
 
 const router = express.Router();
 const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -119,8 +120,13 @@ router.post('/register', async (req, res) => {
                                             console.error('Error en log de seguridad:', err);
                                         }
 
-                                        // Enviar email de verificación (simulado)
-                                        console.log(`Token de verificación para ${email}: ${verificationToken}`);
+                                        // Enviar email de verificación
+                                        if (process.env.NODE_ENV !== 'test') {
+                                            const emailSent = emailService.sendVerificationEmail(email, verificationToken);
+                                            if (!emailSent) {
+                                                console.error('Error al enviar email de verificación');
+                                            }
+                                        }
                                         
                                         res.status(201).json({ 
                                             message: 'Usuario registrado exitosamente', 
@@ -405,41 +411,104 @@ router.post('/setup-2fa', authMiddleware, async (req, res) => {
 router.post('/verify-2fa', async (req, res) => {
     const { userId, code, tempToken } = req.body;
     
-    // Verificar token temporal
-    const tokenRecord = await db.get(
-        'SELECT * FROM two_fa_tokens WHERE user_id = ? AND token = ? AND expires_at > datetime("now")',
-        [userId, tempToken]
-    );
-    
-    if (!tokenRecord) {
-        return res.status(401).json({ error: 'Token inválido o expirado' });
+    // Validación robusta
+    if (!userId || !code || !tempToken) {
+        return res.status(400).json({
+            error: 'Parámetros inválidos',
+            required: { userId: 'number', code: 'string', tempToken: 'string' }
+        });
     }
-    
-    // Verificar código 2FA
-    const user = await db.get(
-        'SELECT two_factor_secret FROM users WHERE id = ?',
-        [userId]
-    );
-    
-    const verified = speakeasy.totp.verify({
-        secret: user.two_factor_secret,
-        encoding: 'base32',
-        token: code,
-        window: 1
-    });
-    
-    if (!verified) {
-        return res.status(401).json({ error: 'Código 2FA inválido' });
+
+    try {
+        // 1. Verificar token temporal con transacción
+        await db.run('BEGIN TRANSACTION');
+        
+        const tokenRecord = await new Promise((resolve, reject) => {
+            db.get(`
+                SELECT * FROM two_fa_tokens 
+                WHERE user_id = ? AND token = ? AND expires_at > datetime('now', 'localtime')
+                FOR UPDATE`,  // Bloquea el registro
+                [userId, tempToken],
+                (err, row) => err ? reject(err) : resolve(row)
+            );
+        });
+
+        if (!tokenRecord) {
+            await db.run('ROLLBACK');
+            return res.status(401).json({ 
+                error: 'Token 2FA inválido o expirado',
+                solution: 'Intenta iniciar sesión nuevamente'
+            });
+        }
+
+        // 2. Obtener secreto 2FA
+        const user = await new Promise((resolve, reject) => {
+            db.get(`
+                SELECT two_factor_secret FROM users 
+                WHERE id = ? AND two_factor_enabled = 1`,
+                [userId],
+                (err, row) => err ? reject(err) : resolve(row)
+            );
+        });        
+
+        if (!user) {
+            await db.run('ROLLBACK');
+            return res.status(403).json({
+                error: '2FA no configurado',
+                debug: `Ejecuta: docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db "SELECT two_factor_secret FROM users WHERE id = ${userId}"`
+            });
+        }
+
+        // 3. Verificación con tolerancia de tiempo
+        const verified = speakeasy.totp.verify({
+            secret: user.two_factor_secret,
+            encoding: 'base32',
+            token: code,
+            window: 2,  // 60 segundos de tolerancia (30s * 2)
+            time: Math.floor(Date.now() / 1000)
+        });
+
+        if (!verified) {
+            await db.run('ROLLBACK');
+            const currentCode = speakeasy.totp({
+                secret: user.two_factor_secret,
+                encoding: 'base32'
+            });
+            return res.status(401).json({
+                error: 'Código inválido',
+                debug: {
+                    currentCode,
+                    serverTime: new Date().toISOString(),
+                    timeSkew: 'Verifica sincronización de reloj'
+                }
+            });
+        }
+
+        // 4. Generar tokens
+        const accessToken = generateAccessToken({ 
+            id: userId,
+            authMethod: '2fa' 
+        });
+        const refreshToken = await generateRefreshToken(userId);
+
+        // 5. Limpiar y confirmar
+        await db.run('DELETE FROM two_fa_tokens WHERE token = ?', [tempToken]);
+        await db.run('COMMIT');
+
+        res.json({
+            accessToken,
+            refreshToken,
+            user: { id: userId }
+        });
+
+    } catch (error) {
+        await db.run('ROLLBACK');
+        console.error('Error en verify-2fa:', error);
+        res.status(500).json({ 
+            error: 'Error interno',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
-    
-    // Generar tokens finales
-    const accessToken = generateAccessToken({ id: userId });
-    const refreshToken = await generateRefreshToken(userId);
-    
-    // Limpiar token temporal
-    await db.run('DELETE FROM two_fa_tokens WHERE token = ?', [tempToken]);
-    
-    res.json({ accessToken, refreshToken });
 });
 
 // Endpoint para re-enviar el código de 2FA
@@ -470,6 +539,26 @@ router.post('/resend-2fa', async (req, res) => {
         console.error('Error al re-enviar el código 2FA:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
+});
+
+// Nuevo endpoint para verificación de email
+router.get('/verify-email', async (req, res) => {
+  const { token } = req.query;
+  
+  try {
+    const result = await db.run(
+      'UPDATE users SET is_verified = 1 WHERE verification_token = ?',
+      [token]
+    );
+    
+    if (result.changes > 0) {
+      res.json({ success: true, message: 'Email verificado correctamente' });
+    } else {
+      res.status(404).json({ error: 'Token de verificación inválido' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error al verificar email' });
+  }
 });
 
 module.exports = router;

@@ -197,7 +197,47 @@ services:
       - transcendence
     restart: unless-stopped
 
-  # --- SECCIÓN DEVOPS ---------------------
+  mailserver:
+    build: 
+      context: dockers/mailserver
+      dockerfile: Dockerfile
+    hostname: mail.pongapp.com
+    domainname: pongapp.com
+    container_name: mailserver
+    ports:
+      - "25:25"    # SMTP
+      - "143:143"  # IMAP
+      - "465:465"  # SMTPS
+      - "587:587"  # Submission
+      - "993:993"  # IMAPS
+      - "8025:8025" # MailHog UI (opcional para monitoreo)
+    environment:
+      - ENABLE_SPAMASSASSIN=1
+      - ENABLE_CLAMAV=1
+      - ENABLE_FAIL2BAN=1
+      - ONE_DIR=1
+      - SSL_TYPE=letsencrypt
+      - POSTMASTER_ADDRESS=postmaster@pongapp.com
+      - ENABLE_POSTFIX_VIRTUAL_TRANSPORT=1
+      - PERMIT_DOCKER=network
+      - OVERRIDE_HOSTNAME=mail.pongapp.com
+      - DMS_DEBUG=0
+    volumes:
+      - mail_data:/var/mail
+      - mail_state:/var/mail-state
+      - ./dockers/mailserver/config/:/tmp/docker-mailserver/
+      - ./dockers/mailserver/ssl/:/etc/letsencrypt/live/mail.pongapp.com/
+    networks:
+      - transcendence
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ss -ltn | grep -q 25 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Microservicios (Backend Reestructurado)
 
   auth-service:
@@ -330,4 +370,18 @@ volumes:
       type: none
       o: bind
       device: "$HOME/goinfre/data/prometheus"
+  
+  mail_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/mail"
+      o: bind
+  
+  mail_state:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/mail-state"
+      o: bind
   

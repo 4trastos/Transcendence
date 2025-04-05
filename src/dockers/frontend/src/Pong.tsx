@@ -31,9 +31,9 @@ const Pong = () => {
             const response = await axios.post("/api/gameResult", {
                 player1_id: userId,
                 player2_id: 0,
-                score_player1: parseInt(p1Score),
-                score_player2: parseInt(p2Score),
-                winner_id: parseInt(p1Score) > parseInt(p2Score) ? userId : 0
+                score_player1: (p1Score),
+                score_player2: (p2Score),
+                winner_id: (p1Score) > (p2Score) ? userId : 0
             }, {
                 withCredentials: true,
                 headers: {

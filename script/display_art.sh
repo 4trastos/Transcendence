@@ -4,6 +4,23 @@
 TERMINAL_WIDTH=$(tput cols)
 TERMINAL_HEIGHT=$(tput lines)
 
+# Líneas específicas del arte donde está "PONG"
+# Puedes cambiar estos índices si el texto está en otras líneas
+COLOR_LINES=(33 34 35 36 37 38 39 40)
+
+# Definir los colores ANSI (puedes añadir más si quieres)
+COLORS=(
+  "\033[1;31m" # rojo
+  "\033[1;32m" # verde
+  "\033[1;33m" # amarillo
+  "\033[1;34m" # azul
+  "\033[1;35m" # magenta
+  "\033[1;36m" # cyan
+)
+
+# Número de repeticiones (animaciones)
+ITERATIONS=10 
+
 # Definir el arte ASCII en un array
 ART=(
 "                                                                                                                                                                    " \
@@ -60,18 +77,36 @@ ART=(
 "                                                                                                                                                                    " \
 )
 
-# Calcular el espacio en blanco necesario
+# Calcular el espacio
 ART_HEIGHT=${#ART[@]}
 VERTICAL_PADDING=$(( (TERMINAL_HEIGHT - ART_HEIGHT) / 2 ))
 
-# Imprimir líneas en blanco para centrar verticalmente
-for ((i=0; i<VERTICAL_PADDING; i++)); do
-    echo ""
+# Función para limpiar y mostrar el arte
+mostrar_arte_con_color() {
+    clear
+
+    # Saltar líneas para centrar verticalmente
+    for ((i=0; i<VERTICAL_PADDING; i++)); do
+        echo ""
+    done
+
+    for i in "${!ART[@]}"; do
+        LINE="${ART[$i]}"
+        LINE_LENGTH=${#LINE}
+        HORIZONTAL_PADDING=$(( (TERMINAL_WIDTH - LINE_LENGTH) / 2 ))
+
+        if [[ " ${COLOR_LINES[@]} " =~ " $i " ]]; then
+            COLOR=${COLORS[$RANDOM % ${#COLORS[@]}]}
+            printf "%*s${COLOR}%s\033[0m\n" $HORIZONTAL_PADDING "" "$LINE"
+        else
+            printf "%*s%s\n" $HORIZONTAL_PADDING "" "$LINE"
+        fi
+    done
+}
+
+
+for ((iter=0; iter<ITERATIONS; iter++)); do
+    mostrar_arte_con_color
+    sleep 0.5
 done
 
-# Imprimir cada línea centrada horizontalmente
-for LINE in "${ART[@]}"; do
-    LINE_LENGTH=${#LINE}
-    HORIZONTAL_PADDING=$(( (TERMINAL_WIDTH - LINE_LENGTH) / 2 ))
-    printf "%*s%s\n" $HORIZONTAL_PADDING "" "$LINE"
-done

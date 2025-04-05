@@ -86,7 +86,7 @@ check_user() {
 
 # Función para leer contraseña sin mostrarla
 read_password() {
-    echo -e -n "${BLUE}🔑 Introduce la contraseña: ${NC}"
+    echo -e -n "${BLUE} Introduce la contraseña: ${NC}"
     read -s password
     echo ""
 }
@@ -94,13 +94,13 @@ read_password() {
 # Función para verificar el token
 verify_token_with_curl() {
     local token=$1
-    echo -e "\n${CYAN}🔍 Verificando token a través del endpoint /api/validate...${NC}"
+    echo -e "\n${CYAN} Verificando token a través del endpoint /api/validate...${NC}"
     
     response=$(curl -s -X POST "$API_URL/validate-token" \
         -H "Content-Type: application/json" \
         -d "{\"token\":\"$token\"}")
     
-    echo -e "\n${GREEN}📊 Resultado de la verificación:${NC}"
+    echo -e "\n${GREEN} Resultado de la verificación:${NC}"
     echo -e "${MAGENTA}----------------------------${NC}"
     echo "$response" | python -m json.tool 2>/dev/null || echo "$response"
 }
@@ -122,13 +122,13 @@ jwt_process() {
         exit 1
     fi
     
-    echo -e -n "${BLUE}👤 Introduce el usuario: ${NC}"
+    echo -e -n "${BLUE} Introduce el usuario: ${NC}"
     read username
     check_user "$username"
     
     read_password
     
-    echo -e "\n${CYAN}🛠️ Generando token para $username...${NC}"
+    echo -e "\n${CYAN}️ Generando token para $username...${NC}"
     
     # Usar archivo temporal para capturar respuesta
     temp_file=$(mktemp)
@@ -149,16 +149,57 @@ jwt_process() {
     # Extraer token con método nativo
     token=$(parse_json "$response" "accessToken")
     
+    # Después de recibir la respuesta que requiere 2FA
+    if [[ "$response" == *"requires2FA"* ]]; then
+        tempToken=$(parse_json "$response" "tempToken")
+        userId=$(parse_json "$response" "userId")
+        
+        echo -e "${YELLOW}⚠️ Se requiere verificación 2FA${NC}"
+        
+        # Obtener secreto actual de la base de datos
+        secret=$(docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db \
+            "SELECT two_factor_secret FROM users WHERE id = $userId;")
+        
+        echo -e "${CYAN} Secreto 2FA del usuario: ${MAGENTA}$secret${NC}"
+        
+        # Generar código actual
+        current_code=$(docker exec app node -e \
+            "console.log(require('speakeasy').totp({secret: '$secret', encoding: 'base32'}))")
+        
+        echo -e "${CYAN} Código generado actualmente: ${MAGENTA}$current_code${NC}"
+        
+        # Solicitar código al usuario
+        echo -e -n "${BLUE} Introduce el código 2FA: ${NC}"
+        read code2fa
+        
+        # Enviar verificación 2FA con timeout
+        temp_file=$(mktemp)
+        http_code=$(curl -m 30 -s -o "$temp_file" -w "%{http_code}" \
+            -X POST "$API_URL/verify-2fa" \
+            -H "Content-Type: application/json" \
+            -d "{\"userId\":\"$userId\", \"code\":\"$code2fa\", \"tempToken\":\"$tempToken\"}")
+        
+        response=$(cat "$temp_file")
+        rm -f "$temp_file"
+        
+        if [[ "$http_code" != "200" ]]; then
+            error_msg=$(parse_json "$response" "error" || echo "Respuesta inesperada")
+            show_error "Error HTTP $http_code en verificación 2FA: $error_msg"
+        fi
+        
+        token=$(parse_json "$response" "accessToken")
+    fi
+    
     if [ -z "$token" ]; then
         error_msg=$(parse_json "$response" "error" || echo "Respuesta inesperada")
         show_error "Error al obtener token: $error_msg"
     fi
     
-    echo -e "\n${GREEN}📨 Respuesta del servidor:${NC}"
+    echo -e "\n${GREEN} Respuesta del servidor:${NC}"
     echo -e "${MAGENTA}-----------------------${NC}"
     echo "$response"  # Mostramos el JSON crudo
     
-    echo -e "\n${GREEN}🔐 Token generado:${NC}"
+    echo -e "\n${GREEN} Token generado:${NC}"
     echo -e "${MAGENTA}---------------${NC}"
     echo "$token"
 
@@ -173,17 +214,17 @@ jwt_process() {
                     break
                     ;;
                 2)
-                    echo -e "\n${CYAN}🛡️ Realizando petición protegida...${NC}"
+                    echo -e "\n${CYAN}️ Realizando petición protegida...${NC}"
                     response=$(curl -s "$API_URL/protected-test" \
                         -H "Authorization: Bearer $token")
                     
-                    echo -e "\n${GREEN}📡 Respuesta protegida:${NC}"
+                    echo -e "\n${GREEN} Respuesta protegida:${NC}"
                     echo -e "${MAGENTA}--------------------${NC}"
                     echo "$response" | python -m json.tool 2>/dev/null || echo "$response"
                     break
                     ;;
                 3)
-                    echo -e "\n${GREEN}👋 ¡Hasta pronto!${NC}\n"
+                    echo -e "\n${GREEN} ¡Hasta pronto!${NC}\n"
                     exit 0
                     ;;
                 *)
@@ -201,7 +242,7 @@ admin_verify_user() {
     
     if [ -z "$user" ]; then
         # Modo administrador - mostrar todos los usuarios
-        echo -e "\n${CYAN}📊 Estado de verificación de usuarios:${NC}"
+        echo -e "\n${CYAN} Estado de verificación de usuarios:${NC}"
         echo -e "${MAGENTA}----------------------------------${NC}"
         docker exec sqlite sqlite3 sqlite.db \
             "SELECT username, 
@@ -222,11 +263,11 @@ admin_verify_user() {
         show_error "El usuario '$user' no existe en la base de datos."
     fi
     
-    echo -e "\n${CYAN}🔄 Actualizando verificación para '$user'...${NC}"
+    echo -e "\n${CYAN} Actualizando verificación para '$user'...${NC}"
     docker exec sqlite sqlite3 sqlite.db \
         "UPDATE users SET is_verified = 1 WHERE username = '$user';"
     
-    echo -e "\n${GREEN}📈 Estado actual:${NC}"
+    echo -e "\n${GREEN} Estado actual:${NC}"
     docker exec sqlite sqlite3 sqlite.db \
         "SELECT username, is_verified, datetime('now') as verified_at 
          FROM users WHERE username = '$user';"
@@ -241,6 +282,6 @@ case "$1" in
         jwt_process
         ;;
     *)
-        echo -e "${BLUE}📝 Uso: $0 {verify [usuario]|jwt}${NC}"
+        echo -e "${BLUE} Uso: $0 {verify [usuario]|jwt}${NC}"
         exit 1
 esac

@@ -12,15 +12,13 @@ RUN npm install speakeasy
 RUN npm install qrcode
 RUN npm install joi
 RUN npm install express-rate-limit
-#RUN npm install pyotp
+RUN npm install nodemailer
+RUN npm install googleapis
+RUN npm install google-auth-library
 
 COPY . .
 
-# Crear la carpeta para la base de datos SQLite dentro del contenedor
 RUN mkdir -p /usr/src/app/data
-
-# Copiar init.sql al volumen compartido
-#COPY tools/init.sql /var/lib/sqlite/init.sql
 
 EXPOSE 3000
 
