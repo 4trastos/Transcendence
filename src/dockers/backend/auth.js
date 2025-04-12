@@ -16,7 +16,7 @@ const config = {
 const tokenUtils = {
     generateAccessToken: (user) => {
         const payload = {
-            sub: user.id,
+            id: user.id, // cambio a id
             jti: crypto.randomBytes(16).toString('hex'),
             iss: config.issuer,
             aud: config.audience,
@@ -97,6 +97,7 @@ const authMiddleware = async (req, res, next) => {
         if (scheme !== 'Bearer' || !token) throw new Error('Invalid authorization format');
 
         req.user = await tokenUtils.verifyToken(token);
+        // req.user.sub => req.user.id
         next();
     } catch (err) {
         console.error('Authentication error:', err);

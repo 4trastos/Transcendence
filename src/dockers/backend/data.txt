@@ -1,0 +1,32 @@
+// src-backend/database.js
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'data', 'sqlite.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error al abrir la base de datos:', err);
+    } else {
+        console.log('Conectado a la base de datos SQLite');
+        db.serialize(() => { // Usar serialize()
+            console.log('Base de datos SQLite en modo serializado');
+        });
+    }
+});
+
+// Exportar instancia de DB y funciones comunes
+module.exports = {
+    db,
+    run: (query, params) => new Promise((resolve, reject) => {
+        db.run(query, params, function(err) {
+            if (err) reject(err);
+            else resolve(this);
+        });
+    }),
+    get: (query, params) => new Promise((resolve, reject) => {
+        db.get(query, params, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    })
+};

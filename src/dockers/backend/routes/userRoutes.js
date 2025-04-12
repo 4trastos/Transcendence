@@ -115,7 +115,7 @@ router.post('/register', async (req, res) => {
                                         
                                         res.status(201).json({ 
                                             message: 'Usuario registrado exitosamente', 
-                                            userId: this.lastID 
+                                            user: {id: this.lastID}
                                         });
                                     }
                                 );
@@ -246,10 +246,10 @@ router.post('/login', async (req, res) => {
                 
                     return res.status(202).json({
                         requires2FA: true,
-                        tempToken,  // ¡Este es el JWT!
-                        userId: user.id,
+                        tempToken,
+                        user: { id: user.id }, // userID como objeto user.id
                         message: 'Se requiere verificación 2FA',
-                        generatedCode: secretCode // <--- esto se usa solo en dev para mostrarlo
+                        generatedCode: secretCode
                     });
                 }
 
@@ -376,6 +376,7 @@ function verifyTOTPCode(code, secret) {
 // POST /verify-2fa
 router.post('/verify-2fa', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 500));
+    console.log("🔍 VERIFICACIÓN 2FA - BODY:", req.body);
 
     const { code, userId: rawUserId } = req.body;
     const authHeader = req.headers.authorization;
@@ -441,7 +442,7 @@ router.post('/verify-2fa', async (req, res) => {
             success: true,
             accessToken,
             refreshToken,
-            user: { id: userId }
+            user: { id: userId } // userID como objeto user.id
         });
 
     } catch (error) {

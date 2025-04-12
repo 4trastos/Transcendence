@@ -90,7 +90,7 @@ const Login = () => {
             if (response.data?.requires2FA) {
                 console.log("DEBUG - 2FA response:", response.data);
                 setNeeds2FA(true);
-                setUserId(response.data.userId);
+                setUserId(response.data.user.id);
                 sessionStorage.setItem('temp2FAToken', response.data.tempToken);
                 setTwoFACode("");
                 setIsSubmitting(false);
@@ -121,7 +121,7 @@ const Login = () => {
         axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         
         const userData = {
-            userid: responseData.user.id,
+            id: responseData.user.id,
             username: player1Data.username
         };
         localStorage.setItem("user", JSON.stringify(userData));
