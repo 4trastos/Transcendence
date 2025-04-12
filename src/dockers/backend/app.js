@@ -1,230 +1,159 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const userRoutes = require('./routes/userRoutes');
-const session = require("express-session");
-const gameRoutes = require('./routes/gameRoutes');
-const fs = require('fs');
 const path = require('path');
-const cors = require('cors');  // <-- Importa cors
-const axios = require('axios');  // Añadir axios para hacer solicitudes HTTP
+const cors = require('cors');
+const morgan = require('morgan');
+const helmet = require('helmet');
+const crypto = require('crypto'); // Añade esta línea
+const rateLimit = require('express-rate-limit');
+const session = require("express-session");
+const fs = require('fs');
+const { db } = require('./database');
 const vault = require("node-vault")({
     apiVersion: "v1",
     endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
     token: process.env.VAULT_TOKEN || "root",
-  });
+});
+const userRoutes = require('./routes/userRoutes');
+const gameRoutes = require('./routes/gameRoutes');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-const corsOptions = {
+// Configuración de seguridad mejorada
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // límite de 100 peticiones por IP
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Middlewares
+app.use(morgan('dev'));
+app.use(helmet());
+app.use(limiter);
+app.use(cors({
     origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001', 'http://localhost:3000', 'https://localhost:3000'],
     methods: 'GET,POST,PUT,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
     optionsSuccessStatus: 200
-  };
-
-app.use(cors(corsOptions));
-
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Configuración de sesión
 app.use(session({
-    secret: process.env.SESSION_SECRET || "super_safe_secret",
+    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 1 día
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
+// Headers de seguridad adicionales
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'DENY');
+    res.header('X-XSS-Protection', '1; mode=block');
     next();
 });
 
-// Reemplaza el middleware CSP con esto:
+// CSP
 app.use((req, res, next) => {
     const csp = [
         "default-src 'self'",
-        "script-src 'self' https://accounts.google.com https://apis.google.com 'unsafe-inline'",
-        "script-src-elem 'self' https://accounts.google.com https://apis.google.com",
+        "script-src 'self' 'unsafe-inline'",
+        "script-src-elem 'self'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "img-src 'self' data: https://*.googleusercontent.com",
-        "connect-src 'self' https://accounts.google.com https://*.googleapis.com",
-        "frame-src https://accounts.google.com",
+        "img-src 'self' data:",
+        "connect-src 'self'",
         "font-src 'self' https://fonts.gstatic.com",
-        "form-action 'self' https://accounts.google.com"
+        "form-action 'self'"
     ].join('; ');
-
-    res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
+    res.setHeader('Content-Security-Policy', csp);
     next();
 });
 
+// Rutas
 app.use('/api', userRoutes);
-
 app.use('/api', gameRoutes);
 
-app.options('*', cors(corsOptions));
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Conectar a la base de datos SQLite
-const dbPath = path.join(__dirname, 'data', 'sqlite.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error al conectar a la base de datos:', err.message);
-    } else {
-        console.log('Conectado a la base de datos SQLite');
-    }
-});
-
-// Ejecutar el script de inicialización de la base de datos desde tools/init.sql
-const initSQL = fs.readFileSync(path.join(__dirname, 'tools', 'init.sql'), 'utf-8');
-db.exec(initSQL, (err) => {
-    if (err) {
-        console.error('Error al inicializar la base de datos:', err.message);
-    } else {
-        console.log('Base de datos inicializada correctamente');
-    }
-});
-
-// Ruta de prueba
-app.get('/api/test', (req, res) => {
-    res.json({ message: '¡Conexión con el backend exitosa!' });
-});
-
-// Ruta básica para probar el servidor
-app.get('/prueba', (req, res) => {
-    res.send('¡Hola, mundo desde Node.js!');
-});
-
-// Ruta para guardar resultados del juego
-app.post('/api/gameResult', (req, res) => {
-    const { player1_id, player2_id, score_player1, score_player2, winner_id } = req.body;
-    
-    const sql = `INSERT INTO games 
-        (player1_id, player2_id, score_player1, score_player2, winner_id, played_at) 
-        VALUES (?, ?, ?, ?, ?, datetime('now'))`;
-    
-    db.run(sql, [player1_id, player2_id, score_player1, score_player2, winner_id], function(err) {
-        if (err) {
-            console.error('Error al guardar resultado:', err.message);
-            return res.status(500).json({ error: 'Error al guardar resultado' });
+// Health check endpoint
+app.get('/health', async (req, res) => {
+    try {
+        const dbStatus = db.open ? 'connected' : 'disconnected';
+        let vaultStatus = 'disconnected';
+        
+        try {
+            await vault.health();
+            vaultStatus = 'connected';
+        } catch (vaultError) {
+            console.error('Error checking Vault health:', vaultError);
         }
-        res.json({ 
-            message: 'Resultado guardado', 
-            gameId: this.lastID 
+
+        res.status(200).json({ 
+            status: 'OK', 
+            db: dbStatus,
+            vault: vaultStatus,
+            timestamp: new Date().toISOString()
         });
-    });
-});
-
-// Ruta para obtener historial de juegos
-app.get('/api/gameHistory', (req, res) => {
-    const userId = req.query.user_id;
-    
-    if (!userId) {
-        return res.status(400).json({ error: 'Se requiere user_id' });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'ERROR',
+            error: error.message 
+        });
     }
-    
-    const sql = `SELECT * FROM games 
-                WHERE player1_id = ? OR player2_id = ?
-                ORDER BY played_at DESC
-                LIMIT 10`;
-    
-    db.all(sql, [userId, userId], (err, rows) => {
-        if (err) {
-            console.error('Error al consultar historial:', err.message);
-            return res.status(500).json({ error: 'Error al consultar historial' });
-        }
-        res.json(rows);
-    });
 });
 
-// Ruta para obtener todos los juegos
-app.get('/api/games', (req, res) => {
-    db.all('SELECT * FROM games', [], (err, rows) => {
-        if (err) {
-            console.error('Error al consultar la tabla games:', err.message);
-            res.status(500).send('Error al consultar la tabla games');
-            return;
-        }
-        // Devuelve los juegos en formato JSON
-        res.json(rows);
-    });
-});
-
-// Ruta para obtener todos los elementos (items)
-app.get('/api/items', (req, res) => {
-    db.all('SELECT * FROM items', [], (err, rows) => {
-        if (err) {
-            console.error('Error al consultar los elementos:', err.message);
-            res.status(500).send('Error al consultar los elementos');
-            return;
-        }
-        res.json(rows);
-    });
-});
-
-// Endpoint para obtener secrets
+// Endpoint de secretos de Vault
 app.get("/api/secret", async (req, res) => {
     try {
-      const secret = await vault.read("secret/myapp");
-      console.error("Secreto leído de Vault:", secret); 
-      res.json(secret.data.data);
+        const secret = await vault.read("secret/myapp");
+        res.json(secret.data.data);
     } catch (error) {
-      console.error("Error al obtener secretos de Vault:", error);
-      res.status(500).json({ error: "Error al obtener secretos  ################" });
+        console.error("Error al obtener secretos de Vault:", error);
+        res.status(500).json({ 
+            error: "Error al obtener secretos",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
-  });
+});
 
+// Manejador de errores centralizado
+app.use((err, req, res, next) => {
+    console.error('Error global:', {
+        error: err.message,
+        stack: err.stack,
+        url: req.originalUrl,
+        method: req.method,
+        timestamp: new Date().toISOString()
+    });
 
-// Endpoint para crear un nuevo ítem
-app.post('/api/items', (req, res) => {
-    const { name, description } = req.body;
-
-    if (!name || !description) {
-        return res.status(400).json({ error: 'Name and description are required' });
-    }
-
-    const sql = 'INSERT INTO items (name, description) VALUES (?, ?)';
-    const params = [name, description];
-
-    db.run(sql, params, function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ id: this.lastID, name, description }); // Devuelve el nuevo ítem con el ID generado
+    res.status(err.status || 500).json({
+        error: 'Internal Server Error',
+        message: err.message,
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
 
-// Ruta para probar la conexión a la base de datos con una consulta de prueba
-app.get('/api/test_db', (req, res) => {
-    db.get('SELECT 1', [], (err, row) => {
-        if (err) {
-            console.error('Error al hacer la consulta de prueba:', err.message);
-            res.status(500).send('Error al hacer la consulta de prueba');
-            return;
-        }
-        // Respuesta de éxito si la consulta de prueba fue correcta
-        res.send('Conexión a la base de datos exitosa');
-    });
-});
-
-// Nueva ruta para obtener el estado de Avalanche
-//app.get('/api/avalanche_status', async (req, res) => {
-//    try {
-//       const response = await axios.get('http://blockchain:9650/ext/health');
-//       res.json(response.data);
-//    } catch (error) {
-//        console.error('Error al obtener el estado de Avalanche:', error.message);
-//        res.status(500).send('Error al obtener el estado de Avalanche');
-//    }
-//});
-
-// Iniciar el servidor
+// Iniciar servidor
 app.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
+    console.log('Configuración:');
+    console.log('- Entorno:', process.env.NODE_ENV || 'development');
+    console.log('- Vault:', process.env.VAULT_ADDR || 'http://0.0.0.0:8200');
 });
+
+// Manejo de cierre limpio
+process.on('SIGINT', () => {
+    db.close();
+    console.log('Conexión a SQLite cerrada');
+    process.exit();
+});
+
+module.exports = app;

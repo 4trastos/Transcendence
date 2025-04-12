@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom"; 
-import GoogleAuthButton from './components/GoogleAuthButton'; // Importa el componente
 
 const Register = () => {
     const navigate = useNavigate();
@@ -11,7 +10,7 @@ const Register = () => {
         email: "",
         password: "",
     });
-    const [enable2FA, setEnable2FA] = useState(false); // Agregar estado para 2FA
+    const [enable2FA, setEnable2FA] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -21,14 +20,13 @@ const Register = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await axios.post("/api/register", {...formData, enable2FA}, { // Modificar para enviar enable2FA
+            const response = await axios.post("/api/register", {...formData, enable2FA}, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
 
-            // Mostrar mensaje específico para cuentas no verificadas
             if (response.data.message.includes('registrado')) {
                 alert("Registro exitoso. Por favor inicia sesión después de verificar tu cuenta.");
                 navigate("/login");
@@ -93,18 +91,6 @@ const Register = () => {
                     />
                     Habilitar autenticación en dos pasos (recomendado)
                 </label>
-
-                <div className="mt-4">
-                    <div className="relative flex items-center">
-                        <div className="flex-grow border-t border-gray-600"></div>
-                        <span className="flex-shrink mx-4 text-gray-300">o</span>
-                        <div className="flex-grow border-t border-gray-600"></div>
-                    </div>
-                    
-                    <div className="mt-4 flex justify-center">
-                        <GoogleAuthButton />
-                    </div>
-                </div>
 
                 <button
                     type="submit"

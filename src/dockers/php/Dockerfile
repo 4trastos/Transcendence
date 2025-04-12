@@ -77,6 +77,9 @@ RUN mkdir -p /etc/nginx/modsec
 # Crear directorio /var/www/html
 RUN mkdir -p /var/www/html
 
+RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
+ENV TZ=Europe/Madrid
+
 # Crear el archivo test.php
 RUN echo '<?php \
 $response = file_get_contents("http://backend:3000/api/test"); \

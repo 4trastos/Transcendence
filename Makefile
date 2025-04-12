@@ -11,6 +11,7 @@ grant_permissions:
 	@chmod +x ./script/display_art.sh
 	@chmod +x ./script/jwt_tools.sh
 	@chmod +x ./script/display_help.sh
+	@chmod +x ./script/2fa_tools.sh
 
 kill_docker:
 	@./script/kill_docker.sh
@@ -151,4 +152,7 @@ jwt: grant_permissions
 verify: grant_permissions
 	@./script/verify_user.sh $(user)
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt
+2fa: grant_permissions
+	@./script/2fa_tools.sh $(user)
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa

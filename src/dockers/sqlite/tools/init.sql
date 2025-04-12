@@ -1,4 +1,7 @@
 -- init.sql en tools/
+
+-- DROP TABLE IF EXISTS two_fa_tokens;
+
 -- Tabla de usuarios principal
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

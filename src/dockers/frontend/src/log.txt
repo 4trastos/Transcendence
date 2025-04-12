@@ -26,7 +26,7 @@ const Login = () => {
         username.disabled = true;
         password.disabled = true;
     }
-
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
         const username = document.getElementById("username") as HTMLInputElement;
@@ -48,7 +48,7 @@ const Login = () => {
     const handle2FAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTwoFACode(e.target.value);
     };
-
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -56,24 +56,14 @@ const Login = () => {
 
         try {
             if (needs2FA && twoFACode && userId) {
-                const tempToken = sessionStorage.getItem('temp2FAToken');
-                console.log('Token temporal recuperado:', tempToken);
-                
-                if (!tempToken) {
-                    setError("Error: Token 2FA temporal no encontrado.");
-                    setIsSubmitting(false);
-                    return;
-                }
-
                 const verifyResponse = await axios.post("/api/verify-2fa", {
                     code: twoFACode,
-                    tempToken: tempToken,
+                    tempToken: sessionStorage.getItem('temp2FAToken'),
                     userId: userId
                 }, {
                     withCredentials: true,
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${tempToken}`,
                     }
                 });
 
@@ -92,7 +82,8 @@ const Login = () => {
                 setNeeds2FA(true);
                 setUserId(response.data.userId);
                 sessionStorage.setItem('temp2FAToken', response.data.tempToken);
-                setTwoFACode("");
+                
+                setTwoFACode(""); 
                 setIsSubmitting(false);
                 return;
             }
@@ -102,7 +93,7 @@ const Login = () => {
             setIsSubmitting(false);
             
             if (error.response?.status === 401) {
-                setError(error.response.data?.error || 'Código incorrecto. Inténtalo de nuevo.');
+                setError(error.response.data?.error || 'Código incorrecto');
             } else {
                 setError(`Error: ${error.response?.data?.error || error.message}`);
                 console.error('Error completo:', error.response?.data || error);
@@ -153,9 +144,12 @@ const Login = () => {
         const interceptor = axios.interceptors.response.use(
             response => response,
             async error => {
-                if (error.config && error.response?.status === 401 && !error.config.url.includes('/api/verify-2fa')) {
+                if (error.response?.status === 401 && error.config && !error.config._retry) {
+                    error.config._retry = true;
                     const refreshed = await handleTokenRefresh();
-                    if (refreshed) return axios(error.config);
+                    if (refreshed) {
+                        return axios(error.config);
+                    }
                 }
                 return Promise.reject(error);
             }
@@ -248,8 +242,8 @@ const Login = () => {
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? "Procesando..." :
-                        needs2FA ? "Verificar" : "Ready!"}
+                    {isSubmitting ? "Procesando..." : 
+                     needs2FA ? "Verificar" : "Ready!"}
                 </button>
 
                 {!needs2FA && (

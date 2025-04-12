@@ -1,0 +1,109 @@
+#!/bin/bash
+user="$1"
+
+# Función para mostrar errores (exit 1)
+show_error() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+# Función para mensajes informativos (exit 0)
+show_info() {
+    echo "Info: $1"
+    exit 0
+}
+
+# Verificar conexión con BD
+if ! docker exec sqlite sqlite3 --version >/dev/null 2>&1; then
+    show_error "El contenedor 'sqlite' no está accesible"
+fi
+
+# Mostrar usuarios verificados y no verificados si no se proporciona usuario
+if [ -z "$user" ]; then
+    echo "Usuarios verificados:"
+    echo "-------------------"
+    
+    verified_users=$(docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db \
+        "SELECT username FROM users WHERE is_verified = 1;" 2>/dev/null)
+    
+    if [ -z "$verified_users" ]; then
+        echo "No hay usuarios verificados en la base de datos."
+    else
+        echo "$verified_users"
+    fi
+
+    echo ""
+    echo "Usuarios no verificados:"
+    echo "------------------------"
+    
+    unverified_users=$(docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db \
+        "SELECT username FROM users WHERE is_verified = 0 OR is_verified IS NULL;" 2>/dev/null)
+    
+    if [ -z "$unverified_users" ]; then
+        echo "No hay usuarios no verificados en la base de datos."
+    else
+        echo "$unverified_users"
+    fi
+    
+    echo ""
+    read -p "Introduce el nombre de usuario para verificar 2FA (o presiona Enter para salir): " user
+    if [ -z "$user" ]; then
+        show_info "Para verificar 2FA de un usuario, ejecuta: make 2fa user=nombre_usuario"
+    fi
+fi
+
+# Consulta segura para verificar existencia del usuario
+result=$(docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db \
+    "SELECT username, two_factor_secret FROM users WHERE username = '$user';" 2>/dev/null)
+
+# Caso 2: Usuario no existe
+if [ -z "$result" ]; then
+    show_error "El usuario '$user' no existe en la base de datos o no tiene 2FA habilitado."
+fi
+
+# Extraer el secreto 2FA
+secret=$(echo "$result" | cut -d'|' -f2)
+
+# Ejecutar comandos de verificación 2FA
+echo ""
+echo "Verificando 2FA para el usuario: $user"
+echo "-------------------------------------"
+echo "Secreto 2FA: $secret"
+echo ""
+
+# Generar códigos TOTP
+echo "Generando códigos de verificación:"
+docker exec app node -e "
+const speakeasy = require('speakeasy');
+const secret = '$secret';
+console.log('Código actual:', speakeasy.totp({secret, encoding:'base32'}));
+console.log('Próximo código:', speakeasy.totp({secret, encoding:'base32', time: Math.floor(Date.now()/1000)+30}));
+console.log('Hora servidor:', new Date());
+"
+
+# Verificar código
+echo ""
+read -p "Introduce el código de verificación para probar: " code
+echo ""
+
+echo "Verificando código '$code':"
+docker exec app node -e "
+const speakeasy = require('speakeasy');
+const secret = '$secret';
+const code = '$code';
+const verified = speakeasy.totp.verify({
+    secret,
+    encoding: 'base32',
+    token: code,
+    window: 6,
+    time: Math.floor(Date.now()/1000)
+});
+console.log('Resultado:', {
+    code,
+    verified,
+    currentTime: new Date(),
+    expectedCode: speakeasy.totp({secret, encoding:'base32'})
+});
+"
+
+show_info "Verificación 2FA completada para el usuario $user"

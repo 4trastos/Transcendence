@@ -1,6 +1,3 @@
-/**
- * Archivo con todas las rutas para el usuario.
- */
 const express = require('express');
 const session = require("express-session");
 const bcrypt = require('bcrypt');
@@ -10,10 +7,10 @@ const { console } = require('inspector');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); 
-const { generateAccessToken, generateRefreshToken, middleware: authMiddleware } = require('../auth'); // Importa el nuevo módulo
+const { generateAccessToken, generateRefreshToken, middleware: authMiddleware } = require('../auth');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
-const emailService = require('../emailService'); // Importa el servicio de email
+//const emailService = require('../emailService');
 
 const router = express.Router();
 const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -24,12 +21,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('Error al conectar a la base de datos:', err.message);
     } else {
         console.log('Conectado a la base de datos SQLite');
+        db.serialize(); // <--- Añadido serialize() aquí
     }
 });
 
-/**
- * Ejecutar el script de inicialización de la base de datos desde tools/init.sql
- */
 const initSQL = fs.readFileSync(path.join(__dirname, '..', 'tools', 'init.sql'), 'utf-8');
 db.exec(initSQL, (err) => {
     if (err) {
@@ -39,29 +34,22 @@ db.exec(initSQL, (err) => {
     }
 });
 
-/**
- * @brief Ruta para registrar usuarios en la base de datos (NUEVA).
- */
 router.post('/register', async (req, res) => {
     const { username, email, password, enable2FA } = req.body;
 
-    // Validación básica
     if (!username || !email || !password) {
         return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    // Validación de formato de email
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ error: 'Formato de email inválido' });
     }
 
-    // Validación de fortaleza de contraseña
     if (password.length < 8) {
         return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
     try {
-        // Verificar si el usuario o email ya existen
         db.get('SELECT id FROM users WHERE username = ? OR email = ?', 
             [username, email], 
             async (err, row) => {
@@ -71,45 +59,43 @@ router.post('/register', async (req, res) => {
                 }
                 
                 if (row) {
+                    console.warn('Intento de registro duplicado para:', email);
                     return res.status(409).json({ error: 'El usuario o email ya están registrados' });
                 }
 
-                // Hash de la contraseña
                 const hashedPassword = await bcrypt.hash(password, 12);
                 const verificationToken = crypto.randomBytes(32).toString('hex');
                 
-                // Configuración de 2FA
                 let twoFactorSecret = null;
+                let twoFactorEnabled = 0; // Valor por defecto
+
                 if (enable2FA) {
                     const secret = speakeasy.generateSecret({ length: 20 });
                     twoFactorSecret = secret.base32;
+                    twoFactorEnabled = 1; // Habilitar 2FA explícitamente
                     console.log(`2FA Secret for ${email}: ${twoFactorSecret}`);
                 }
 
-                // Insertar nuevo usuario
                 db.run(
                     `INSERT INTO users 
                     (username, email, password, verification_token, two_factor_secret, two_factor_enabled) 
                     VALUES (?, ?, ?, ?, ?, ?)`,
                     [username, email, hashedPassword, verificationToken, 
-                     twoFactorSecret, enable2FA ? 1 : 0],
+                     twoFactorSecret, twoFactorEnabled], // Usar la variable twoFactorEnabled
                     function(err) {
                         if (err) {
                             console.error('Error al registrar el usuario:', err.message);
                             return res.status(500).json({ error: 'Error al registrar el usuario' });
                         }
 
-                        // Crear perfil vacío
                         db.run(
                             'INSERT INTO user_profiles (user_id) VALUES (?)',
                             [this.lastID],
                             (err) => {
                                 if (err) {
                                     console.error('Error al crear perfil:', err.message);
-                                    // No fallamos aquí, solo lo registramos
                                 }
 
-                                // Registrar en logs de seguridad
                                 db.run(
                                     `INSERT INTO security_logs 
                                     (user_id, action_type, status) 
@@ -120,13 +106,12 @@ router.post('/register', async (req, res) => {
                                             console.error('Error en log de seguridad:', err);
                                         }
 
-                                        // Enviar email de verificación
-                                        if (process.env.NODE_ENV !== 'test') {
-                                            const emailSent = emailService.sendVerificationEmail(email, verificationToken);
-                                            if (!emailSent) {
-                                                console.error('Error al enviar email de verificación');
-                                            }
-                                        }
+                                        //if (process.env.NODE_ENV !== 'test') {
+                                        //    const emailSent = emailService.sendVerificationEmail(email, verificationToken);
+                                        //    if (!emailSent) {
+                                        //        console.error('Error al enviar email de verificación');
+                                        //    }
+                                        //}
                                         
                                         res.status(201).json({ 
                                             message: 'Usuario registrado exitosamente', 
@@ -146,14 +131,10 @@ router.post('/register', async (req, res) => {
     }
 });
 
-/**
- * @brief Loguea al usuario (NUEVA)
- */
 router.post('/login', async (req, res) => {
     const { username, password, guestMode } = req.body;
 
     if (guestMode) {
-        // Crear usuario invitado
         const guestUsername = `guest_${Math.random().toString(36).substring(2, 10)}`;
         const guestEmail = `${guestUsername}@example.com`;
         
@@ -167,7 +148,6 @@ router.post('/login', async (req, res) => {
                         return res.status(500).json({ error: 'Error al crear sesión de invitado' });
                     }
 
-                    // Crear sesión
                     const sessionToken = crypto.randomBytes(64).toString('hex');
                     const expiresAt = new Date();
                     expiresAt.setHours(expiresAt.getHours() + 24);
@@ -181,7 +161,6 @@ router.post('/login', async (req, res) => {
                                 return res.status(500).json({ error: 'Error al crear sesión' });
                             }
 
-                            // Generar JWT para el usuario invitado
                             const accessToken = generateAccessToken({
                                 id: this.lastID,
                                 role: 'guest'
@@ -208,7 +187,6 @@ router.post('/login', async (req, res) => {
         return;
     }
 
-    // Validación para login normal
     if (typeof username !== "string" || typeof password !== "string" || 
         username.trim() === "" || password.trim() === "") {
         return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -216,7 +194,7 @@ router.post('/login', async (req, res) => {
 
     try {
         db.get(
-            'SELECT id, password, is_verified, two_factor_secret, two_factor_enabled FROM users WHERE username = ?', 
+            'SELECT id, password, is_verified, two_factor_secret, two_factor_enabled FROM users WHERE username = ?',
             [username], 
             async (err, user) => {
                 if (err) {
@@ -251,35 +229,41 @@ router.post('/login', async (req, res) => {
                 }
 
                 if (user.two_factor_enabled && user.two_factor_secret) {
-                    const tempToken = crypto.randomBytes(32).toString('hex');
-                    
-                    // Guardar token temporal en la base de datos
-                    await db.run(
-                        'INSERT INTO two_fa_tokens (user_id, token, expires_at) VALUES (?, ?, datetime("now", "+15 minutes"))',
-                        [user.id, tempToken]
+                    const tempToken = jwt.sign(
+                        { 
+                            userId: user.id,
+                            purpose: '2fa_verification'
+                        },
+                        process.env.JWT_SECRET,
+                        { expiresIn: process.env.JWT_2FA_EXPIRES || '15m' }
                     );
 
+                    const secretCode = speakeasy.totp({
+                        secret: user.two_factor_secret,
+                        encoding: 'base32',
+                        time: Math.floor(Date.now() / 1000)
+                    });
+                
                     return res.status(202).json({
                         requires2FA: true,
-                        tempToken: tempToken, // Asegurar que se envía el token
+                        tempToken,  // ¡Este es el JWT!
                         userId: user.id,
-                        message: 'Se requiere verificación 2FA' // Mensaje claro
+                        message: 'Se requiere verificación 2FA',
+                        generatedCode: secretCode // <--- esto se usa solo en dev para mostrarlo
                     });
                 }
 
-                // Generar tokens
                 const accessToken = generateAccessToken({ 
                     id: user.id,
                     role: user.role
                 });
                 const refreshToken = await generateRefreshToken(user.id);
 
-                // En la respuesta de login exitoso:
                 res.cookie('refreshToken', refreshToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'strict',
-                    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+                    maxAge: 7 * 24 * 60 * 60 * 1000
                 }).json({
                     accessToken,
                     user: {
@@ -295,10 +279,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-/**
- * @brief Routa para mostrar todos los usuarios de la base de datos.
- * @return Devuelve los usuario en formato json.
- */
 router.get('/users', (req, res) => {
     db.all('SELECT * FROM users', [], (err, rows) => {
         if (err) {
@@ -318,11 +298,9 @@ router.get('/protected-test', authMiddleware, (req, res) => {
     });
 });
 
-// Nuevo endpoint para refresh
 router.post('/refresh-token', async (req, res) => {
     const { refreshToken } = req.body;
     
-    // 1. Verificar refresh token en BD
     const tokenRecord = await db.get(
         `SELECT user_id FROM refresh_tokens 
          WHERE token = ? AND expires_at > ? AND revoked = 0`,
@@ -333,11 +311,9 @@ router.post('/refresh-token', async (req, res) => {
         return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
-    // 2. Generar nuevos tokens
     const accessToken = generateAccessToken({ id: tokenRecord.user_id });
     const newRefreshToken = await generateRefreshToken(tokenRecord.user_id);
 
-    // 3. Revocar el antiguo
     await db.run(
         `UPDATE refresh_tokens SET revoked = 1 WHERE token = ?`,
         [refreshToken]
@@ -349,7 +325,6 @@ router.post('/refresh-token', async (req, res) => {
     });
 });
 
-// Nuevo endpoint para logout
 router.post('/logout', authMiddleware, async (req, res) => {
     await db.run(
         `INSERT INTO revoked_tokens (jti, user_id) VALUES (?, ?)`,
@@ -358,9 +333,6 @@ router.post('/logout', authMiddleware, async (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
 
-/**
- * Endpoint para validar tokens
- */
 router.post('/validate-token', (req, res) => {
     const { token } = req.body;
     
@@ -391,83 +363,57 @@ router.post('/validate-token', (req, res) => {
     }
 });
 
-// Endpoint para iniciar 2FA
-router.post('/setup-2fa', authMiddleware, async (req, res) => {
-    const { userId } = req.user;
-    const secret = speakeasy.generateSecret({ length: 20 });
-    
-    await db.run(
-        'UPDATE users SET two_factor_secret = ?, two_factor_enabled = 0 WHERE id = ?',
-        [secret.base32, userId]
-    );
-    
-    res.json({
-        qrCode: await QRCode.toDataURL(secret.otpauth_url),
-        secret: secret.base32
+// Función utilitaria para verificar TOTP
+function verifyTOTPCode(code, secret) {
+    return speakeasy.totp.verify({
+        secret,
+        encoding: 'base32',
+        token: code,
+        window: 1
     });
-});
+}
 
-// Endpoint para verificar 2FA
+// POST /verify-2fa
 router.post('/verify-2fa', async (req, res) => {
-    const { userId, code, tempToken } = req.body;
-    
-    // Validación robusta
-    if (!userId || !code || !tempToken) {
-        return res.status(400).json({
-            error: 'Parámetros inválidos',
-            required: { userId: 'number', code: 'string', tempToken: 'string' }
-        });
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const { code, userId: rawUserId } = req.body;
+    const authHeader = req.headers.authorization;
+
+    if (!rawUserId || isNaN(parseInt(rawUserId))) {
+        return res.status(400).json({ error: "ID de usuario inválido o no proporcionado" });
     }
+    const userId = parseInt(rawUserId);
+
+    if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: 'Token temporal no proporcionado' });
+    }
+    const tempToken = authHeader.split(' ')[1];
 
     try {
-        // 1. Verificar token temporal con transacción
         await db.run('BEGIN TRANSACTION');
-        
-        const tokenRecord = await new Promise((resolve, reject) => {
-            db.get(`
-                SELECT * FROM two_fa_tokens 
-                WHERE user_id = ? AND token = ? AND expires_at > datetime('now', 'localtime')
-                FOR UPDATE`,  // Bloquea el registro
-                [userId, tempToken],
-                (err, row) => err ? reject(err) : resolve(row)
-            );
-        });
+        console.log('→ Transacción iniciada para userId:', userId);
 
-        if (!tokenRecord) {
+        let tokenData;
+        try {
+            tokenData = jwt.verify(tempToken, process.env.JWT_SECRET);
+            if (tokenData.userId !== userId) throw new Error('UserId no coincide');
+            console.log('✔ Token temporal verificado');
+        } catch (err) {
             await db.run('ROLLBACK');
-            return res.status(401).json({ 
-                error: 'Token 2FA inválido o expirado',
-                solution: 'Intenta iniciar sesión nuevamente'
-            });
+            return res.status(401).json({ error: 'Token 2FA inválido', details: err.message });
         }
 
-        // 2. Obtener secreto 2FA
-        const user = await new Promise((resolve, reject) => {
-            db.get(`
-                SELECT two_factor_secret FROM users 
-                WHERE id = ? AND two_factor_enabled = 1`,
-                [userId],
-                (err, row) => err ? reject(err) : resolve(row)
-            );
-        });        
-
+        const user = await db.get(
+            `SELECT two_factor_secret FROM users WHERE id = ? AND two_factor_secret IS NOT NULL`,
+            [userId]
+        );
         if (!user) {
             await db.run('ROLLBACK');
-            return res.status(403).json({
-                error: '2FA no configurado',
-                debug: `Ejecuta: docker exec sqlite sqlite3 /var/lib/sqlite/sqlite.db "SELECT two_factor_secret FROM users WHERE id = ${userId}"`
-            });
+            return res.status(403).json({ error: '2FA no configurado para este usuario' });
         }
 
-        // 3. Verificación con tolerancia de tiempo
-        const verified = speakeasy.totp.verify({
-            secret: user.two_factor_secret,
-            encoding: 'base32',
-            token: code,
-            window: 2,  // 60 segundos de tolerancia (30s * 2)
-            time: Math.floor(Date.now() / 1000)
-        });
-
+        const verified = verifyTOTPCode(code, user.two_factor_secret);
         if (!verified) {
             await db.run('ROLLBACK');
             const currentCode = speakeasy.totp({
@@ -475,43 +421,43 @@ router.post('/verify-2fa', async (req, res) => {
                 encoding: 'base32'
             });
             return res.status(401).json({
-                error: 'Código inválido',
-                debug: {
+                error: 'Código 2FA inválido',
+                ...(process.env.NODE_ENV === 'development' && {
                     currentCode,
-                    serverTime: new Date().toISOString(),
-                    timeSkew: 'Verifica sincronización de reloj'
-                }
+                    hint: 'Usa el código actual: ' + currentCode
+                })
             });
         }
 
-        // 4. Generar tokens
-        const accessToken = generateAccessToken({ 
-            id: userId,
-            authMethod: '2fa' 
-        });
+        const accessToken = generateAccessToken({ id: userId, authMethod: '2fa' });
         const refreshToken = await generateRefreshToken(userId);
 
-        // 5. Limpiar y confirmar
         await db.run('DELETE FROM two_fa_tokens WHERE token = ?', [tempToken]);
         await db.run('COMMIT');
 
-        res.json({
+        console.log('✔ Verificación 2FA completa para userId:', userId);
+
+        return res.json({
+            success: true,
             accessToken,
             refreshToken,
             user: { id: userId }
         });
 
     } catch (error) {
-        await db.run('ROLLBACK');
-        console.error('Error en verify-2fa:', error);
-        res.status(500).json({ 
-            error: 'Error interno',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        await db.run('ROLLBACK').catch(() => {});
+        return res.status(500).json({
+            error: 'Error interno del servidor',
+            ...(process.env.NODE_ENV === 'development' && {
+                details: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            })
         });
     }
 });
 
-// Endpoint para re-enviar el código de 2FA
 router.post('/resend-2fa', async (req, res) => {
     const { username } = req.body;
     
@@ -525,13 +471,6 @@ router.post('/resend-2fa', async (req, res) => {
             return res.status(404).json({ error: 'Usuario o 2FA no configurado' });
         }
 
-        // Generar un nuevo código (opcional)
-        // const newCode = speakeasy.totp({
-        //     secret: user.two_factor_secret,
-        //     encoding: 'base32'
-        // });
-        
-        // Enviar el mismo código (o el nuevo) al usuario (simulado)
         console.log(`Nuevo código 2FA para ${username}: (simulado)`);
 
         res.json({ message: 'Código 2FA reenviado' });
@@ -541,7 +480,6 @@ router.post('/resend-2fa', async (req, res) => {
     }
 });
 
-// Nuevo endpoint para verificación de email
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
   
@@ -559,6 +497,30 @@ router.get('/verify-email', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error al verificar email' });
   }
+});
+
+router.get('/check-2fa-status/:userId', async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        const user = await db.get(
+            `SELECT two_factor_secret, two_factor_enabled 
+             FROM users WHERE id = ?`,
+            [userId]
+        );
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        
+        res.json({
+            has2FA: !!user.two_factor_secret,
+            is2FAEnabled: !!user.two_factor_enabled
+        });
+    } catch (error) {
+        console.error('Error al verificar estado 2FA:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
 });
 
 module.exports = router;

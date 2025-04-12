@@ -4,6 +4,9 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
+RUN apk add --no-cache tzdata
+ENV TZ=Europe/Madrid
+
 RUN npm install react-dom@18
 RUN npm install serve --save
 

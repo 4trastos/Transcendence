@@ -6,7 +6,7 @@ TERMINAL_HEIGHT=$(tput lines)
 
 # Líneas específicas del arte donde está "PONG"
 # Puedes cambiar estos índices si el texto está en otras líneas
-COLOR_LINES=(33 34 35 36 37 38 39 40)
+COLOR_LINES=(33 34 35 36 37 38 39 40 41 42)
 
 # Definir los colores ANSI (puedes añadir más si quieres)
 COLORS=(
