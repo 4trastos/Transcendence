@@ -17,8 +17,8 @@ RUN npm install joi
 RUN npm install express-rate-limit
 RUN npm install nodemailer
 RUN npm install morgan
-RUN npm install fastify
 RUN npm install helmet
+RUN npm install fastify fastify-helmet fastify-cors @fastify/session @fastify/rate-limit @fastify/auth
 
 COPY . .
 

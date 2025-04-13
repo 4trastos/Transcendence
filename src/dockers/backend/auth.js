@@ -70,22 +70,21 @@ const tokenUtils = {
         );
     },
 
-    verifyToken: async (token) => {
+    verifyTempToken: (token) => {
         const decoded = jwt.verify(token, config.secret, {
-            algorithms: [config.algorithm],
-            issuer: config.issuer,
-            audience: config.audience,
-            clockTolerance: config.clockTolerance
+          algorithms: [config.algorithm],
+          issuer: config.issuer,
+          audience: config.audience,
+          clockTolerance: config.clockTolerance
         });
-
-        const isRevoked = await db.get(
-            'SELECT 1 FROM revoked_tokens WHERE jti = ?',
-            [decoded.jti]
-        );
-        if (isRevoked) throw new Error('Token revoked');
-        
+      
+        // Verificación más estricta del propósito
+        if (decoded.purpose !== '2fa_verification' && decoded.purpose !== '2fa_verification') {
+          throw new Error('Invalid token purpose');
+        }
+      
         return decoded;
-    }
+      }
 };
 
 const authMiddleware = async (req, res, next) => {

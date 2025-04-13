@@ -113,10 +113,30 @@ router.post('/register', async (req, res) => {
                                         //    }
                                         //}
                                         
-                                        res.status(201).json({ 
-                                            message: 'Usuario registrado exitosamente', 
-                                            user: {id: this.lastID}
-                                        });
+                                        if (enable2FA) {
+                                            const otpauthUrl = speakeasy.otpauthURL({
+                                                secret: twoFactorSecret,
+                                                label: `Pong:${email}`,
+                                                issuer: 'PongApp',
+                                                encoding: 'base32',
+                                            });
+                                            QRCode.toDataURL(otpauthUrl, (err, imageUrl) => {
+                                                if (err) {
+                                                    console.error('Error al generar el código QR:', err);
+                                                    return res.status(500).json({ error: 'Error interno del servidor' });
+                                                }
+                                                res.status(201).json({
+                                                    message: 'Usuario registrado exitosamente',
+                                                    user: { id: this.lastID },
+                                                    qrCode: imageUrl,
+                                                });
+                                            });
+                                        } else {
+                                            res.status(201).json({
+                                                message: 'Usuario registrado exitosamente',
+                                                user: { id: this.lastID },
+                                            });
+                                        }
                                     }
                                 );
                             }
@@ -187,76 +207,79 @@ router.post('/login', async (req, res) => {
         return;
     }
 
-    if (typeof username !== "string" || typeof password !== "string" || 
-        username.trim() === "" || password.trim() === "") {
-        return res.status(400).json({ error: 'Faltan campos requeridos' });
+    // Validación mejorada
+    if (typeof username !== "string" || username.trim() === "" ||
+        typeof password !== "string" || password.trim() === "") {
+        return res.status(400).json({ 
+            error: 'Credenciales inválidas',
+            details: 'Username y password son requeridos'
+        });
     }
 
     try {
         db.get(
-            'SELECT id, password, is_verified, two_factor_secret, two_factor_enabled FROM users WHERE username = ?',
-            [username], 
+            'SELECT id, username, password, is_verified, two_factor_secret, two_factor_enabled FROM users WHERE username = ?',
+            [username.trim()], 
             async (err, user) => {
                 if (err) {
                     console.error("Error en la base de datos:", err);
-                    return res.status(500).json({ error: "Error al buscar el usuario" });
+                    return res.status(500).json({ 
+                        error: "Error al buscar el usuario",
+                        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+                    });
                 }
 
                 if (!user) {
-                    db.run(
-                        'INSERT INTO security_logs (action_type, status, details) VALUES (?, ?, ?)',
-                        ['login_attempt', 'failed', `Usuario no encontrado: ${username}`],
-                        (err) => { if (err) console.error('Error en log:', err); }
-                    );
-                    return res.status(404).json({ error: 'Usuario no encontrado' });
+                    return res.status(404).json({ 
+                        error: 'Usuario no encontrado',
+                        solution: 'Verifique el username o registrese'
+                    });
                 }
 
                 const isMatch = await bcrypt.compare(password, user.password);
                 if (!isMatch) {
-                    db.run(
-                        'INSERT INTO security_logs (user_id, action_type, status) VALUES (?, ?, ?)',
-                        [user.id, 'login_attempt', 'failed'],
-                        (err) => { if (err) console.error('Error en log:', err); }
-                    );
-                    return res.status(401).json({ error: 'Credenciales inválidas' });
+                    return res.status(401).json({ 
+                        error: 'Credenciales inválidas',
+                        details: 'La contraseña es incorrecta'
+                    });
                 }
 
                 if (!user.is_verified) {
                     return res.status(403).json({ 
                         error: 'Cuenta no verificada', 
-                        needsVerification: true 
+                        needsVerification: true,
+                        solution: 'Verifique su email o contacte al administrador'
                     });
                 }
 
+                // Flujo 2FA
                 if (user.two_factor_enabled && user.two_factor_secret) {
                     const tempToken = jwt.sign(
                         { 
                             userId: user.id,
-                            purpose: '2fa_verification'
+                            purpose: '2fa_verification',
+                            aud: 'pong-client',
+                            iss: 'pong-app.com'
                         },
                         process.env.JWT_SECRET,
-                        { expiresIn: process.env.JWT_2FA_EXPIRES || '15m' }
+                        { expiresIn: '15m' } // 15 minutos de validez
                     );
-
-                    const secretCode = speakeasy.totp({
-                        secret: user.two_factor_secret,
-                        encoding: 'base32',
-                        time: Math.floor(Date.now() / 1000)
-                    });
                 
                     return res.status(202).json({
                         requires2FA: true,
                         tempToken,
-                        user: { id: user.id }, // userID como objeto user.id
-                        message: 'Se requiere verificación 2FA',
-                        generatedCode: secretCode
+                        user: { id: user.id, username: user.username }, // Más datos del usuario
+                        message: 'Se requiere verificación 2FA con Google Authenticator'
                     });
                 }
 
+                // Flujo sin 2FA
                 const accessToken = generateAccessToken({ 
                     id: user.id,
-                    role: user.role
+                    username: user.username,
+                    authMethod: 'standard'
                 });
+
                 const refreshToken = await generateRefreshToken(user.id);
 
                 res.cookie('refreshToken', refreshToken, {
@@ -363,98 +386,120 @@ router.post('/validate-token', (req, res) => {
     }
 });
 
-// Función utilitaria para verificar TOTP
-function verifyTOTPCode(code, secret) {
-    return speakeasy.totp.verify({
-        secret,
-        encoding: 'base32',
-        token: code,
-        window: 1
-    });
-}
 
 // POST /verify-2fa
 router.post('/verify-2fa', async (req, res) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log("🔍 VERIFICACIÓN 2FA - BODY:", req.body);
-
-    const { code, userId: rawUserId } = req.body;
+    const { code, userId: rawUserId, tempToken: bodyToken } = req.body;
     const authHeader = req.headers.authorization;
 
-    if (!rawUserId || isNaN(parseInt(rawUserId))) {
-        return res.status(400).json({ error: "ID de usuario inválido o no proporcionado" });
+    // Validaciones básicas
+    if (!code?.match(/^\d{6}$/)) {
+        return res.status(400).json({ error: 'Código 2FA inválido' });
     }
+
     const userId = parseInt(rawUserId);
-
-    if (!authHeader?.startsWith("Bearer ")) {
-        return res.status(401).json({ error: 'Token temporal no proporcionado' });
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID de usuario inválido' });
     }
-    const tempToken = authHeader.split(' ')[1];
 
+    const tokenToVerify = bodyToken || (authHeader?.startsWith("Bearer ") && authHeader.split(' ')[1]);
+    if (!tokenToVerify) {
+        return res.status(401).json({ error: 'Token no proporcionado' });
+    }
+
+    let dbConnection;
     try {
-        await db.run('BEGIN TRANSACTION');
-        console.log('→ Transacción iniciada para userId:', userId);
-
-        let tokenData;
-        try {
-            tokenData = jwt.verify(tempToken, process.env.JWT_SECRET);
-            if (tokenData.userId !== userId) throw new Error('UserId no coincide');
-            console.log('✔ Token temporal verificado');
-        } catch (err) {
-            await db.run('ROLLBACK');
-            return res.status(401).json({ error: 'Token 2FA inválido', details: err.message });
-        }
-
-        const user = await db.get(
-            `SELECT two_factor_secret FROM users WHERE id = ? AND two_factor_secret IS NOT NULL`,
-            [userId]
-        );
-        if (!user) {
-            await db.run('ROLLBACK');
-            return res.status(403).json({ error: '2FA no configurado para este usuario' });
-        }
-
-        const verified = verifyTOTPCode(code, user.two_factor_secret);
-        if (!verified) {
-            await db.run('ROLLBACK');
-            const currentCode = speakeasy.totp({
-                secret: user.two_factor_secret,
-                encoding: 'base32'
+        // Inicio de transacción segura
+        dbConnection = await new Promise((resolve, reject) => {
+            db.run('BEGIN TRANSACTION', [], function(err) {
+                if (err) reject(err);
+                else resolve(this);
             });
-            return res.status(401).json({
-                error: 'Código 2FA inválido',
-                ...(process.env.NODE_ENV === 'development' && {
-                    currentCode,
-                    hint: 'Usa el código actual: ' + currentCode
-                })
-            });
-        }
-
-        const accessToken = generateAccessToken({ id: userId, authMethod: '2fa' });
-        const refreshToken = await generateRefreshToken(userId);
-
-        await db.run('DELETE FROM two_fa_tokens WHERE token = ?', [tempToken]);
-        await db.run('COMMIT');
-
-        console.log('✔ Verificación 2FA completa para userId:', userId);
-
-        return res.json({
-            success: true,
-            accessToken,
-            refreshToken,
-            user: { id: userId } // userID como objeto user.id
         });
 
-    } catch (error) {
-        await db.run('ROLLBACK').catch(() => {});
-        return res.status(500).json({
-            error: 'Error interno del servidor',
-            ...(process.env.NODE_ENV === 'development' && {
-                details: {
-                    message: error.message,
-                    stack: error.stack
+        // Verificación del token
+        const tokenData = require('../auth').verifyTempToken(tokenToVerify);
+        if (tokenData.userId !== userId) {
+            throw new Error('ID de usuario no coincide');
+        }
+
+        // Obtener secreto 2FA
+        const user = await new Promise((resolve, reject) => {
+            db.get(
+                'SELECT two_factor_secret FROM users WHERE id = ? AND two_factor_secret IS NOT NULL',
+                [userId],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
                 }
-            })
+            );
+        });
+
+        if (!user) {
+            throw new Error('2FA no configurado');
+        }
+
+        // Verificación del código
+        const verified = speakeasy.totp.verify({
+            secret: user.two_factor_secret,
+            encoding: 'base32',
+            token: code,
+            window: 2,
+            step: 30
+        });
+
+        if (!verified) {
+            await new Promise((resolve, reject) => {
+                db.run('ROLLBACK', [], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            return res.status(401).json({ error: 'Código 2FA inválido' });
+        }
+
+        // Generar tokens
+        const accessToken = generateAccessToken({ 
+            id: userId,
+            auth_method: '2fa',
+            two_fa_verified: true
+        });
+
+        const refreshToken = await generateRefreshToken(userId);
+
+        await new Promise((resolve, reject) => {
+            db.run('COMMIT', [], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        return res.json({ accessToken, refreshToken, userId });
+
+    } catch (error) {
+        if (dbConnection) {
+            try {
+                await new Promise((resolve, reject) => {
+                    db.run('ROLLBACK', [], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            } catch (rollbackError) {
+                console.error('Error en ROLLBACK:', rollbackError);
+            }
+        }
+
+        console.error('Error en verify-2fa:', {
+            error: error.message,
+            userId,
+            code,
+            time: new Date().toISOString()
+        });
+
+        return res.status(500).json({ 
+            error: 'Error en verificación 2FA',
+            ...(process.env.NODE_ENV === 'development' && { details: error.message })
         });
     }
 });

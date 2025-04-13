@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from './App';
@@ -16,11 +16,11 @@ const Login = () => {
     const [twoFACode, setTwoFACode] = useState("");
     const [userId, setUserId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const tempTokenRef = useRef<string | null>(null);
 
     function clearTextBox() {
         const username = document.getElementById("username") as HTMLInputElement;
         const password = document.getElementById("password") as HTMLInputElement;
-    
         username.value = "";
         password.value = "";
         username.disabled = true;
@@ -31,14 +31,14 @@ const Login = () => {
         const { name, value, type, checked } = e.target;
         const username = document.getElementById("username") as HTMLInputElement;
         const password = document.getElementById("password") as HTMLInputElement;
-    
+
         if (checked) {
             clearTextBox();
         } else {
             username.disabled = false;
             password.disabled = false;
         }
-    
+
         setPlayer1Data({
             ...player1Data,
             [name]: type === "checkbox" ? checked : value
@@ -51,81 +51,98 @@ const Login = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setIsSubmitting(true);
         setError(null);
-
+    
         try {
+            // Modo invitado
+            if (player1Data.guestMode) {
+                setUser({ id: 'guest', username: 'Invitado' });
+                navigate('/');
+                return;
+            }
+    
+            // Verificación 2FA
             if (needs2FA && twoFACode && userId) {
-                const tempToken = sessionStorage.getItem('temp2FAToken');
-                console.log('Token temporal recuperado:', tempToken);
-                
-                if (!tempToken) {
-                    setError("Error: Token 2FA temporal no encontrado.");
+                if (twoFACode.length !== 6) {
+                    setError("El código 2FA debe tener 6 dígitos.");
                     setIsSubmitting(false);
                     return;
                 }
+    
+                console.log("🧪 Enviando verificación 2FA con código:", twoFACode);
 
-                const verifyResponse = await axios.post("/api/verify-2fa", {
-                    code: twoFACode,
-                    tempToken: tempToken,
-                    userId: userId
-                }, {
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${tempToken}`,
-                    }
-                });
-
-                return handleLoginSuccess(verifyResponse.data, verifyResponse.headers);
-            }
-
-            const response = await axios.post("/api/login", player1Data, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'application/json'
+                if (!tempTokenRef.current) {
+                    console.error("No tempToken disponible para verificar 2FA");
+                    setError("Error de autenticación, por favor inicie sesión nuevamente.");
+                    setIsSubmitting(false);
+                    return;
                 }
-            });
-
+    
+                try {
+                    console.log("📦 Enviando a verify-2fa:", {
+                        code: twoFACode,
+                        userId: userId,
+                        tempToken: tempTokenRef.current,
+                    });
+                    
+                    const response = await axios.post("/api/verify-2fa", {
+                        code: twoFACode,
+                        userId: userId,
+                        tempToken: tempTokenRef.current,  // Añadimos el token al body
+                    }, {
+                        headers: {
+                            'Authorization': `Bearer ${tempTokenRef.current}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+    
+                    console.log("✅ Respuesta de verify-2fa:", response.data);
+                    setTwoFACode("");
+                    return handleLoginSuccess(response.data);
+                } catch (error: any) {
+                    console.error("❌ Error en verify-2fa:", error.response?.data || error.message);
+                    throw error;
+                }
+            }
+    
+            // Login normal
+            const response = await axios.post("/api/login", player1Data);
+            console.log("🔑 Respuesta de login:", response.data);
+    
             if (response.data?.requires2FA) {
-                console.log("DEBUG - 2FA response:", response.data);
                 setNeeds2FA(true);
-                setUserId(response.data.user.id);
-                sessionStorage.setItem('temp2FAToken', response.data.tempToken);
-                setTwoFACode("");
+                setUserId(response.data.user.id);  // Aseguramos que usamos response.data.user.id
+                tempTokenRef.current = response.data.tempToken;
                 setIsSubmitting(false);
                 return;
             }
-
-            handleLoginSuccess(response.data, response.headers);
+    
+            handleLoginSuccess(response.data);
         } catch (error: any) {
             setIsSubmitting(false);
-            
-            if (error.response?.status === 401) {
-                setError(error.response.data?.error || 'Código incorrecto. Inténtalo de nuevo.');
-            } else {
-                setError(`Error: ${error.response?.data?.error || error.message}`);
-                console.error('Error completo:', error.response?.data || error);
-            }
+            setTwoFACode("");
+            const errorMessage = error.response?.data?.error || 
+                                error.response?.data?.message || 
+                                error.message || 
+                                'Error inesperado en la autenticación';
+            setError(errorMessage);
+            console.error("Error completo:", error.response?.data || error);
+            localStorage.removeItem("accessToken");
+        //    tempTokenRef.current = null;
         }
     };
+    
+    const handleLoginSuccess = (responseData: any) => {
+        tempTokenRef.current = null;
+        localStorage.setItem("accessToken", responseData.accessToken);
+        localStorage.setItem("refreshToken", responseData.refreshToken);
 
-    const handleLoginSuccess = (responseData: any, headers: any) => {
-        sessionStorage.setItem('accessToken', responseData.accessToken);
-        
-        const setCookieHeader = headers['set-cookie'];
-        if (setCookieHeader) {
-            // Manejar los cookies si es necesario
-        }
-
-        axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
-        
-        const userData = {
-            id: responseData.user.id,
+        setUser({
+            id: responseData.userId,
             username: player1Data.username
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
+        });
 
         navigate("/");
     };
@@ -138,11 +155,10 @@ const Login = () => {
                 ?.split('=')[1];
 
             const response = await axios.post('/api/refresh-token', { refreshToken });
-            sessionStorage.setItem('accessToken', response.data.accessToken);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
+            localStorage.setItem('accessToken', response.data.accessToken);
             return true;
         } catch (error) {
-            sessionStorage.removeItem('accessToken');
+            localStorage.removeItem('accessToken');
             document.cookie = 'refreshToken=; Max-Age=0';
             navigate('/login');
             return false;
@@ -165,8 +181,17 @@ const Login = () => {
         };
     }, []);
 
+    useEffect(() => {
+        console.log("tempToken actualizado:", tempTokenRef.current);
+    }, [tempTokenRef.current]);
+
     const handleResend2FACode = async () => {
         try {
+            if (!player1Data.username) {
+                alert("Por favor ingresa tu nombre de usuario para reenviar el código.");
+                return;
+            }
+
             await axios.post("/api/resend-2fa", {
                 username: player1Data.username
             });
@@ -197,6 +222,7 @@ const Login = () => {
                             placeholder="Username"
                             value={player1Data.username}
                             onChange={handleChange}
+                            autoFocus
                             className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                             disabled={player1Data.guestMode}
                         />
@@ -231,6 +257,7 @@ const Login = () => {
                             placeholder="Código 2FA"
                             value={twoFACode}
                             onChange={handle2FAChange}
+                            autoFocus
                             className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                         <button
