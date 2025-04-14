@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 const { generateAccessToken, generateRefreshToken, middleware: authMiddleware } = require('../auth');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
-//const emailService = require('../emailService');
+const emailService = require('../emailService');
 
 const router = express.Router();
 const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -106,13 +106,23 @@ router.post('/register', async (req, res) => {
                                             console.error('Error en log de seguridad:', err);
                                         }
 
-                                        //if (process.env.NODE_ENV !== 'test') {
-                                        //    const emailSent = emailService.sendVerificationEmail(email, verificationToken);
-                                        //    if (!emailSent) {
-                                        //        console.error('Error al enviar email de verificación');
-                                        //    }
-                                        //}
-                                        
+                                        // Enviar email de verificación (excepto en entorno de test)
+                                        if (process.env.NODE_ENV !== 'test') {
+                                            emailService.sendVerificationEmail(email, verificationToken)
+                                                .then(sent => {
+                                                    if (!sent) {
+                                                        console.error('Error: El email de verificación no pudo ser enviado');
+                                                    }
+                                                })
+                                                .catch(emailError => {   
+                                                console.error('Error en el servicio de email:', {
+                                                    error: emailError.message,
+                                                    stack: emailError.stack,
+                                                    userId: this.lastID       
+                                               });
+                                            })
+                                        }
+    
                                         if (enable2FA) {
                                             const otpauthUrl = speakeasy.otpauthURL({
                                                 secret: twoFactorSecret,
@@ -526,23 +536,34 @@ router.post('/resend-2fa', async (req, res) => {
     }
 });
 
+// Endpoint para verificar email
 router.get('/verify-email', async (req, res) => {
-  const { token } = req.query;
-  
-  try {
-    const result = await db.run(
-      'UPDATE users SET is_verified = 1 WHERE verification_token = ?',
-      [token]
-    );
-    
-    if (result.changes > 0) {
-      res.json({ success: true, message: 'Email verificado correctamente' });
-    } else {
-      res.status(404).json({ error: 'Token de verificación inválido' });
+    const { token, email } = req.query;
+
+    if (!token || !email) {
+        return res.status(400).json({ error: 'Token y email son requeridos' });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Error al verificar email' });
-  }
+
+    try {
+        await new Promise((resolve, reject) => {
+            db.run(
+                'UPDATE users SET verified = 1 WHERE email = ? AND verification_token = ?',
+                [email, token],
+                function(err) {
+                    if (err) return reject(err);
+                    if (this.changes === 0) {
+                        return reject(new Error('Token inválido o email incorrecto'));
+                    }
+                    resolve();
+                }
+            );
+        });
+
+        res.json({ success: true, message: 'Email verificado correctamente' });
+    } catch (error) {
+        console.error('Error al verificar email:', error);
+        res.status(400).json({ error: error.message });
+    }
 });
 
 router.get('/check-2fa-status/:userId', async (req, res) => {

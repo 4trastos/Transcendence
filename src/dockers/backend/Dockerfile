@@ -20,6 +20,9 @@ RUN npm install morgan
 RUN npm install helmet
 RUN npm install fastify fastify-helmet fastify-cors @fastify/session @fastify/rate-limit @fastify/auth
 
+#RUN apk add --no-cache openssl && \
+#    openssl rand -hex 64 > /app/jwt_secret
+
 COPY . .
 
 RUN mkdir -p /usr/src/app/data

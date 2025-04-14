@@ -32,7 +32,7 @@ const Register = () => {
             if (response.data.qrCode) {
                 setQrCode(response.data.qrCode);
             } else if (response.data.message.includes('registrado')) {
-                alert("Registro exitoso. Por favor inicia sesión después de verificar tu cuenta.");
+                alert("Registro exitoso. Se te ha enviado un Email de verificación. Por favor inicia sesión después de verificar tu cuenta.");
                 navigate("/login");
             } else {
                 alert("Registro exitoso: " + response.data.message);

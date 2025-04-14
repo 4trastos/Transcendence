@@ -84,7 +84,8 @@ display_menu_item "13" "make security" "Ejecuta escaneos de seguridad completos"
 display_menu_item "14" "make token" "Muestra credenciales de Vault" "$GREEN"
 display_menu_item "15" "make verify user=<user>" "Verifica la cuenta de un usuario" "$GREEN"
 display_menu_item "16" "make jwt" "Generador/validador de tokens JWT" "$GREEN"
-display_menu_item "17" "make 2fa user=<user>" "Verifica el código 2FA de un usuario" "$GREEN"
+display_menu_item "17" "make 2fa" "Verifica que 2FA está funcionando y sincronizado con Google Authenticator" "$GREEN"
+display_menu_item "19" "make email" "Verifica que el servicio de email está implementado y es funcional" "$GREEN"
 
 center_text " "
 

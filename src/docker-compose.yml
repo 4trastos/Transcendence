@@ -199,20 +199,21 @@ services:
     restart: unless-stopped
 
   mailserver:
-    build:
-      context: dockers/mailserver
-      dockerfile: Dockerfile
+    build: dockers/mailserver/.
+    image: namshi/smtp
     container_name: mailserver
     environment:
-      - RELAY_NETWORKS=172.16.0.0/12
-      - MYNETWORKS=172.16.0.0/12
+      - RELAY_NETWORKS=172.16.0.0/16
+      - MYNETWORKS=172.16.0.0/16
       - DISABLE_AUTH=true
       - DISABLE_TLS=true
-      - SMTP_ONLY=true
+    #  - WEB_PORT=1080
+    #  - SMTP_PORT=1025
     networks:
       - transcendence
     ports:
-      - "1025:25"
+      - "1080:1080" # Web interface
+      - "1025:25" # SMTP port
 
   # Microservicios (Backend Reestructurado)
 
