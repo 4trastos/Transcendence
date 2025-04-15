@@ -8,12 +8,10 @@ if (!fs.existsSync(path.dirname(dbPath))) {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 }
 
-const db = new sqlite3.Database(dbPath, 
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX, 
-    (err) => {
-      if (err) {
-        console.error('Error al conectar a SQLite:', err);
-      } else {
+const db = new sqlite3.Database('/var/lib/sqlite/sqlite.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX, (err) => {
+    if (err) {
+        console.error('Error al abrir la base de datos:', err.message);
+    } else {
         console.log('Conectado a SQLite con modo FULLMUTEX');
         // Configuración optimizada
         db.exec('PRAGMA journal_mode = WAL;');
@@ -22,7 +20,7 @@ const db = new sqlite3.Database(dbPath,
         db.exec('PRAGMA wal_autocheckpoint = 100;');
       }
     }
-  );
+);
 
 const executeWithRetry = async (fn, maxRetries = 5, delay = 200) => {
     let lastError;
@@ -54,10 +52,11 @@ const runQuery = (query, params) => {
     });
 };
 
-async function withTransaction(callback) {
+// Implementación corregida de withTransaction
+async function withTransaction(operations) {
     await this.beginTransaction();
     try {
-        const result = await callback();
+        const result = await operations();
         await this.commit();
         return result;
     } catch (error) {
@@ -69,6 +68,28 @@ async function withTransaction(callback) {
         throw error;
     }
 }
+
+// Funciones para manejo de transacciones
+const beginTransaction = () => new Promise((resolve, reject) => {
+    db.run('BEGIN TRANSACTION', (err) => {
+        if (err) reject(err);
+        else resolve(true);
+    });
+});
+
+const commit = () => new Promise((resolve, reject) => {
+    db.run('COMMIT', (err) => {
+        if (err) reject(err);
+        else resolve(true);
+    });
+});
+
+const rollback = () => new Promise((resolve, reject) => {
+    db.run('ROLLBACK', (err) => {
+        if (err) reject(err);
+        else resolve(true);
+    });
+});
 
 module.exports = {
     db,
@@ -91,23 +112,18 @@ module.exports = {
             else resolve();
         });
     })),
-    beginTransaction: () => new Promise((resolve, reject) => {
-        db.run('BEGIN TRANSACTION', (err) => {
-            if (err) reject(err);
-            else resolve(true);
-        });
-    }),
-    commit: () => new Promise((resolve, reject) => {
-        db.run('COMMIT', (err) => {
-            if (err) reject(err);
-            else resolve(true);
-        });
-    }),
-    rollback: () => new Promise((resolve, reject) => {
-        db.run('ROLLBACK', (err) => {
-            if (err) reject(err);
-            else resolve(true);
-        });
-    }),
-    withTransaction // Añadido al module.exports
+    beginTransaction,
+    commit,
+    rollback,
+    withTransaction: async (operations) => {
+        await beginTransaction();
+        try {
+            const result = await operations();
+            await commit();
+            return result;
+        } catch (error) {
+            await rollback();
+            throw error;
+        }
+    }
 };

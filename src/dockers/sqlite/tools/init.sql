@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   user_id INTEGER NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   expires_at TIMESTAMP NOT NULL,
+  device_info TEXT,
   revoked BOOLEAN DEFAULT 0,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );

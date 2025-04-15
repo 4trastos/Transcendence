@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
 const Register = () => {
@@ -28,22 +28,25 @@ const Register = () => {
                     'Content-Type': 'application/json'
                 }
             });
-
+    
             if (response.data.qrCode) {
                 setQrCode(response.data.qrCode);
-            } else if (response.data.message.includes('registrado')) {
+            } else if (response.data.message?.includes('registrado')) {
                 alert("Registro exitoso. Se te ha enviado un Email de verificación. Por favor inicia sesión después de verificar tu cuenta.");
                 navigate("/login");
             } else {
-                alert("Registro exitoso: " + response.data.message);
+                alert("Registro exitoso: " + (response.data.message || "Operación completada"));
             }
-
+    
         } catch (error: any) {
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               error.message || 
+                               "Error desconocido al registrar";
+            alert("Error al registrar: " + errorMessage);
+            
             if (error.response?.status === 403) {
-                alert("Registro completado. Debes verificar tu cuenta antes de iniciar sesión.");
                 navigate("/login");
-            } else {
-                alert("Error al registrar: " + (error.response?.data?.error || error.message));
             }
         }
     };
@@ -116,7 +119,7 @@ const Register = () => {
                         <button
                             type="button"
                             onClick={handleScanComplete}
-                            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold mt-4" // Clases de estilo añadidas aquí
+                            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold mt-4"
                         >
                             Ya he realizado el escaneo
                         </button>
