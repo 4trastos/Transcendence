@@ -8,7 +8,8 @@ SECRET_ID_FILE='/vault/data/secret_id.txt'
 # Validar existencia de archivos
 [ -f "$VAULT_TOKEN_FILE" ] || { echo "Error: No existe $VAULT_TOKEN_FILE"; exit 1; }
 
-export VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE")
+#export VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE")
+VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE")
 
 # Generar nuevo secret_id con validación
 if SECRET_ID=$(vault write -f -field=secret_id auth/approle/role/transcendence-app/secret-id); then

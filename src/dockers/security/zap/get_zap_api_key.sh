@@ -13,6 +13,12 @@ if [ -z "$ZAP_API_KEY" ]; then
   exit 1
 fi
 
+# Validación de VAULT_ADDR:
+if [ -z "$VAULT_ADDR" ]; then
+    echo "Error: VAULT_ADDR no está definido" >&2
+    exit 1
+fi
+
 # Exportar la variable
 export ZAP_API_KEY="$ZAP_API_KEY"
 

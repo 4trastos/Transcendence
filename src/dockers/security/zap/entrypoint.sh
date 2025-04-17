@@ -141,6 +141,11 @@ configure_vault() {
     vault kv put secret/transcendence/api_keys \
         zap_api_key="${ZAP_API_KEY:-my_zap_api_key}" \
         jwt_secret="$(openssl rand -base64 32)"
+
+    vault kv put secret/transcendence/auth \
+        jwt_expires_in="1h" \
+        refresh_expires_in="7d" \
+        twofa_expires="15m"
     
    # 4. Configurar autenticación AppRole (versión mejorada)
     vault auth enable approle
