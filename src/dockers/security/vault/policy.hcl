@@ -12,6 +12,30 @@ path "secret/data/transcendence/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 
+# Acceso a secretos JWT
+path "secret/data/transcendence/jwt" {
+  capabilities = ["read", "update"]  # Permite rotación de claves
+}
+
+# Acceso a secretos de la base de datos
+path "secret/data/transcendence/database" {
+  capabilities = ["read"]  # Solo lectura para seguridad
+}
+
+# Acceso a secretos de Redis
+path "secret/data/transcendence/redis" {
+  capabilities = ["read"]
+}
+
+path "secret/data/transcendence/users/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+
+
+path "secret/data/transcendence/auth/*" {
+  capabilities = ["read", "create", "update", "list"]
+}
+
 # Acceso a autenticación
 path "auth/userpass/login/*" {
   capabilities = ["create", "update"]
@@ -53,4 +77,19 @@ path "auth/approle/role/transcendence-app/secret-id" {
 
 path "auth/approle/login" {
   capabilities = ["create", "update"]
+}
+
+# Permitir listar los mounts en la UI (necesario para kv list)
+path "sys/internal/ui/mounts/*" {
+  capabilities = ["read"]
+}
+
+# Permitir que el token se inspeccione a sí mismo
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+
+# Permitir listar metadatos de los secretos (requerido para `kv list`)
+path "secret/metadata/*" {
+  capabilities = ["read", "list"]
 }

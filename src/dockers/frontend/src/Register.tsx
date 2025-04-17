@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
-import axios from "axios";
-import { useNavigate, Link } from "react-router-dom"; 
-import GoogleAuthButton from './components/GoogleAuthButton'; // Importa el componente
+import axios, { AxiosError } from "axios";
+import { useNavigate, Link } from "react-router-dom";
 
 const Register = () => {
     const navigate = useNavigate();
@@ -11,7 +10,9 @@ const Register = () => {
         email: "",
         password: "",
     });
-    const [enable2FA, setEnable2FA] = useState(false); // Agregar estado para 2FA
+    const [enable2FA, setEnable2FA] = useState(false);
+    const [qrCode, setQrCode] = useState<string | null>(null);
+    const [scanComplete, setScanComplete] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -21,34 +22,44 @@ const Register = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await axios.post("/api/register", {...formData, enable2FA}, { // Modificar para enviar enable2FA
+            const response = await axios.post("/api/register", { ...formData, enable2FA }, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-
-            // Mostrar mensaje específico para cuentas no verificadas
-            if (response.data.message.includes('registrado')) {
-                alert("Registro exitoso. Por favor inicia sesión después de verificar tu cuenta.");
+    
+            if (response.data.qrCode) {
+                setQrCode(response.data.qrCode);
+            } else if (response.data.message?.includes('registrado')) {
+                alert("Registro exitoso. Se te ha enviado un Email de verificación. Por favor inicia sesión después de verificar tu cuenta.");
                 navigate("/login");
             } else {
-                alert("Registro exitoso: " + response.data.message);
+                alert("Registro exitoso: " + (response.data.message || "Operación completada"));
             }
-
+    
         } catch (error: any) {
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               error.message || 
+                               "Error desconocido al registrar";
+            alert("Error al registrar: " + errorMessage);
+            
             if (error.response?.status === 403) {
-                alert("Registro completado. Debes verificar tu cuenta antes de iniciar sesión.");
                 navigate("/login");
-            } else {
-                alert("Error al registrar: " + (error.response?.data?.error || error.message));
             }
         }
     };
 
+    const handleScanComplete = () => {
+        setScanComplete(true);
+        alert("Configuración 2FA completada. Debes verificar tu cuenta antes de iniciar sesión.");
+        navigate("/login");
+    };
+
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600">
-            <form 
+            <form
                 ref={formRef}
                 onSubmit={handleSubmit}
                 className="bg-gray-900 p-8 shadow-xl rounded-lg w-96 space-y-4"
@@ -94,24 +105,26 @@ const Register = () => {
                     Habilitar autenticación en dos pasos (recomendado)
                 </label>
 
-                <div className="mt-4">
-                    <div className="relative flex items-center">
-                        <div className="flex-grow border-t border-gray-600"></div>
-                        <span className="flex-shrink mx-4 text-gray-300">o</span>
-                        <div className="flex-grow border-t border-gray-600"></div>
-                    </div>
-                    
-                    <div className="mt-4 flex justify-center">
-                        <GoogleAuthButton />
-                    </div>
-                </div>
-
                 <button
                     type="submit"
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"
                 >
                     Sign Up!
                 </button>
+
+                {qrCode && (
+                    <div className="mt-4 text-center">
+                        <p className="text-white">Escanea este código QR con Google Authenticator:</p>
+                        <img src={qrCode} alt="Código QR para 2FA" className="mx-auto mt-2" />
+                        <button
+                            type="button"
+                            onClick={handleScanComplete}
+                            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold mt-4"
+                        >
+                            Ya he realizado el escaneo
+                        </button>
+                    </div>
+                )}
             </form>
         </div>
     );

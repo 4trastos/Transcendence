@@ -17,13 +17,14 @@ fi
 
 # Obtener secreto
 echo "Obteniendo API Key de Vault..."
-API_KEY=$(vault kv get -field=api_key secret/data/transcendence/api_keys 2>&1)
+ZAP_API_KEY=$(vault kv get -field=zap_api_key secret/data/transcendence/api_keys 2>&1)
+JWT_SECRET=$(vault kv get -field=jwt_secret secret/data/transcendence/api_keys 2>&1)
 
 if [ $? -eq 0 ]; then
-    export API_KEY
+    export ZAP_API_KEY
     echo "API Key exportada correctamente"
 else
-    echo "Error al obtener API Key: $API_KEY" >&2
+    echo "Error al obtener API Key: $ZAP_API_KEY" >&2
     echo "Posibles soluciones:"
     echo "1. Verificar que el secreto existe: vault kv get secret/data/transcendence/api_keys"
     echo "2. Verificar permisos del token: vault token capabilities $VAULT_TOKEN secret/data/transcendence/api_keys"

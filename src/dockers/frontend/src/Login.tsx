@@ -1,45 +1,89 @@
-import { useState, useContext } from "react";
-import axios from "axios";
+import { useState, useContext, useEffect, useRef } from "react";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from './App';
-import GoogleAuthButton from './components/GoogleAuthButton';
+
+interface LoginResponse {
+    success: boolean;
+    accessToken: string;
+    refreshToken?: string;
+    userId: number;
+    username: string;
+    requires2FA?: boolean;
+    tempToken?: string;
+    user?: any;
+    error?: string;
+}
+
+interface AuthContextType {
+    setUser: React.Dispatch<React.SetStateAction<{ id: string; username: string } | null>>;
+}
+
+interface Player1Data {
+    username: string;
+    password: string;
+    guestMode: boolean;
+}
+
+interface Verify2FAResponse {
+    success?: boolean;
+    accessToken: string;
+    refreshToken?: string;
+    user: {
+        id: number;
+        username: string;
+    };
+    error?: string;
+    message?: string;
+}
+
+interface Resend2FAResponse {
+    message: string;
+    error?: string;
+}
 
 const Login = () => {
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext);
-    const [player1Data, setPlayer1Data] = useState({
+    const { setUser } = useContext(AuthContext) as AuthContextType;
+
+    const [player1Data, setPlayer1Data] = useState<Player1Data>({
         username: "",
         password: "",
         guestMode: false
     });
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [needs2FA, setNeeds2FA] = useState(false);
     const [twoFACode, setTwoFACode] = useState("");
     const [userId, setUserId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const tempTokenRef = useRef<string | null>(null);
 
     function clearTextBox() {
-        const username = document.getElementById("username") as HTMLInputElement;
-        const password = document.getElementById("password") as HTMLInputElement;
-    
-        username.value = "";
-        password.value = "";
-        username.disabled = true;
-        password.disabled = true;
+        const username = document.getElementById("username") as HTMLInputElement | null;
+        const password = document.getElementById("password") as HTMLInputElement | null;
+        if (username) {
+            username.value = "";
+            username.disabled = true;
+        }
+        if (password) {
+            password.value = "";
+            password.disabled = true;
+        }
     }
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
-        const username = document.getElementById("username") as HTMLInputElement;
-        const password = document.getElementById("password") as HTMLInputElement;
-    
+        const username = document.getElementById("username") as HTMLInputElement | null;
+        const password = document.getElementById("password") as HTMLInputElement | null;
+
         if (checked) {
             clearTextBox();
         } else {
-            username.disabled = false;
-            password.disabled = false;
+            if (username) username.disabled = false;
+            if (password) password.disabled = false;
         }
-    
+
         setPlayer1Data({
             ...player1Data,
             [name]: type === "checkbox" ? checked : value
@@ -49,124 +93,183 @@ const Login = () => {
     const handle2FAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTwoFACode(e.target.value);
     };
-    
-    const handleSubmit = async (e: React.FormEvent, playerData: typeof player1Data) => {
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setIsSubmitting(true);
         setError(null);
-
+    
         try {
-            if (needs2FA && twoFACode && userId) {
-                const verifyResponse = await axios.post("/api/verify-2fa", {
-                    userId: userId,
-                    code: twoFACode,
-                    tempToken: sessionStorage.getItem('temp2FAToken')
-                }, {
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
-                    }
-                });
-
-                return handleLoginSuccess(verifyResponse.data, verifyResponse.headers, playerData);
+            if (player1Data.guestMode) {
+                setUser({ id: 'guest', username: 'Invitado' });
+                navigate('/');
+                return;
             }
-
-            const response = await axios.post("/api/login", playerData, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'application/json'
+    
+            if (needs2FA && twoFACode && userId !== null) {
+                if (twoFACode.length !== 6) {
+                    setError("El código 2FA debe tener 6 dígitos.");
+                    setIsSubmitting(false);
+                    return;
                 }
+    
+                if (!tempTokenRef.current) {
+                    setError("Error de autenticación, por favor inicie sesión nuevamente.");
+                    setIsSubmitting(false);
+                    return;
+                }
+    
+                console.log("Enviando verificación 2FA con:", {
+                    code: twoFACode,
+                    tempToken: tempTokenRef.current.substring(0, 10) + "..."
+                });
+    
+                const response = await axios.post("/api/verify-2fa", 
+                    {
+                        code: twoFACode,
+                        tempToken: tempTokenRef.current
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${tempTokenRef.current}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+    
+                console.log("Respuesta de verify-2fa:", {
+                    status: response.status,
+                    data: response.data
+                });
+    
+                setTwoFACode("");
+                return handleLoginSuccess(response.data);
+            }
+    
+            const response = await axios.post("/api/login", player1Data);
+            console.log("Respuesta de login:", {
+                status: response.status,
+                data: response.data
             });
-
-            if (response.data?.requires2FA) {
+    
+            if (response.data.requires2FA) {
                 setNeeds2FA(true);
                 setUserId(response.data.userId);
-                sessionStorage.setItem('temp2FAToken', response.data.tempToken);
+                tempTokenRef.current = response.data.tempToken;
                 setIsSubmitting(false);
                 return;
             }
-
-            handleLoginSuccess(response.data, response.headers, playerData);
+    
+            handleLoginSuccess(response.data);
         } catch (error: any) {
-            console.error("Error detallado:", error);
             setIsSubmitting(false);
+            setTwoFACode("");
             
-            if (error.response?.data?.error === 'Código 2FA inválido') {
-                setError('Código incorrecto. Por favor intenta nuevamente.');
+            let errorMessage = 'Error inesperado en la autenticación';
+            if (error.response) {
+                console.error("Error response:", error.response.data);
+                errorMessage = error.response.data?.error || 
+                              error.response.data?.message || 
+                              error.response.statusText;
+            } else if (error.request) {
+                errorMessage = "No se recibió respuesta del servidor";
             } else {
-                alert("Error al iniciar sesión: " + 
-                    (error.response?.data?.error || error.response?.statusText || "Error de conexión"));
+                errorMessage = error.message;
             }
+            
+            setError(errorMessage);
+            console.error("Error completo:", error);
         }
     };
-
-    const handleLoginSuccess = (responseData: any, headers: any, playerData: typeof player1Data) => {
-        sessionStorage.setItem('accessToken', responseData.accessToken);
+    
+    const handleLoginSuccess = (responseData: {
+        accessToken: string;
+        refreshToken?: string;
+        user?: { id: number; username: string };
+        userId?: number;
+    }) => {
+        tempTokenRef.current = null;
+        localStorage.setItem("accessToken", responseData.accessToken);
         
-        const setCookieHeader = headers['set-cookie'];
-        if (setCookieHeader) {}
-
-        axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
-        
-        const userData = {
-            userid: responseData.user.id,
-            username: playerData.username
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
-
+        if (responseData.refreshToken) {
+            localStorage.setItem("refreshToken", responseData.refreshToken);
+        }
+    
+        setUser({
+            id: (responseData.user?.id || responseData.userId)?.toString() || '',
+            username: responseData.user?.username || player1Data.username
+        });
+    
         navigate("/");
     };
 
-    const handleTokenRefresh = async () => {
+    const handleTokenRefresh = async (): Promise<boolean> => {
         try {
             const refreshToken = document.cookie
                 .split('; ')
                 .find(row => row.startsWith('refreshToken='))
                 ?.split('=')[1];
 
-            const response = await axios.post('/api/refresh-token', { refreshToken });
-            sessionStorage.setItem('accessToken', response.data.accessToken);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
+            if (!refreshToken) {
+                navigate('/login');
+                return false;
+            }
+
+            const response: AxiosResponse<{ accessToken: string }> = await axios.post('/api/refresh-token', { refreshToken });
+            localStorage.setItem('accessToken', response.data.accessToken);
             return true;
-        } catch (error) {
-            sessionStorage.removeItem('accessToken');
+        } catch {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
             document.cookie = 'refreshToken=; Max-Age=0';
             navigate('/login');
             return false;
         }
     };
 
-    axios.interceptors.response.use(
-        response => response,
-        async error => {
-            if (error.response?.status === 401 && error.config && !error.config._retry) {
-                error.config._retry = true;
-                const refreshed = await handleTokenRefresh();
-                if (refreshed) {
-                    return axios(error.config);
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            response => response,
+            async error => {
+                if (error.config && error.response?.status === 401 && !error.config.url.includes('/api/verify-2fa') && !error.config.url.includes('/api/refresh-token')) {
+                    const refreshed = await handleTokenRefresh();
+                    if (refreshed) return axios(error.config);
                 }
+                return Promise.reject(error);
             }
-            return Promise.reject(error);
-        }
-    );
+        );
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, [navigate]);
 
     const handleResend2FACode = async () => {
         try {
-            await axios.post("/api/resend-2fa", {
+            if (!player1Data.username) {
+                alert("Por favor ingresa tu nombre de usuario para reenviar el código.");
+                return;
+            }
+
+            const response: AxiosResponse<Resend2FAResponse> = await axios.post("/api/resend-2fa", {
                 username: player1Data.username
             });
-            alert("Nuevo código 2FA enviado");
-        } catch (error) {
-            alert("Error al reenviar el código");
+            alert(response.data.message || "Nuevo código 2FA enviado");
+        } catch (error: unknown) {
+            let errorMessage = "Error al reenviar el código";
+            if (axios.isAxiosError(error)) {
+                errorMessage = error.response?.data?.error || error.message || errorMessage;
+            } else if (error instanceof Error) {
+                errorMessage = error.message || errorMessage;
+            }
+            alert(errorMessage);
         }
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 space-x-10">
             <form
-                onSubmit={(e) => handleSubmit(e, player1Data)}
+                onSubmit={handleSubmit}
                 className="bg-gray-900 p-8 shadow-xl rounded-lg w-96 space-y-4"
             >
                 <h2 className="text-3xl font-bold mb-4 text-center text-white">
@@ -184,6 +287,7 @@ const Login = () => {
                             placeholder="Username"
                             value={player1Data.username}
                             onChange={handleChange}
+                            autoFocus
                             className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                             disabled={player1Data.guestMode}
                         />
@@ -218,6 +322,7 @@ const Login = () => {
                             placeholder="Código 2FA"
                             value={twoFACode}
                             onChange={handle2FAChange}
+                            autoFocus
                             className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                         <button
@@ -235,8 +340,8 @@ const Login = () => {
                     className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? "Procesando..." : 
-                     needs2FA ? "Verificar" : "Ready!"}
+                    {isSubmitting ? "Procesando..." :
+                        needs2FA ? "Verificar" : "Ready!"}
                 </button>
 
                 {!needs2FA && (
@@ -247,17 +352,6 @@ const Login = () => {
                         </Link>
                     </p>
                 )}
-                <div className="mt-4">
-                  <div className="relative flex items-center">
-                    <div className="flex-grow border-t border-gray-600"></div>
-                    <span className="flex-shrink mx-4 text-gray-300">o</span>
-                    <div className="flex-grow border-t border-gray-600"></div>
-                  </div>
-                  
-                  <div className="mt-4 flex justify-center">
-                    <GoogleAuthButton />
-                  </div>
-                </div>
             </form>
         </div>
     );

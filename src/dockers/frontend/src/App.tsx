@@ -8,7 +8,7 @@ import Login from "./Login";
 
 // Definición de la interfaz User
 interface User {
-  userid: string;
+  id: string; // Cambio a id
   username: string;
 }
 
