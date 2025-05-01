@@ -84,8 +84,8 @@ const Pong = () => {
             return;
         }
 
-        const player1 = { x: 0, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
-        const player2 = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
+        const player1 = { x: 0, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0, canHit: true };
+        const player2 = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0, canHit: true };
         const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 4, color: "white" };
 
         const draw = () => {
@@ -112,20 +112,25 @@ const Pong = () => {
         const moveBall = () => {
             ball.x += ball.dx;
             ball.y += ball.dy;
+            console.log('ball dx:', ball.dx, 'ball dy:', ball.dy);
 
             if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
                 ball.dy = -ball.dy;
                 ball.speed += 0.075;
             }
 
-            if (ball.x - ball.radius < player1.x + player1.width && ball.y > player1.y && ball.y < player1.y + player1.height) {
+            if (player1.canHit && ball.x - ball.radius < player1.x + player1.width && ball.y > player1.y && ball.y < player1.y + player1.height) {
                 ball.dx = -ball.dx;
                 ball.speed += 0.2;
+                player1.canHit = false;
+                player2.canHit = true;
             }
 
-            if (ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + player2.height) {
+            if (player2.canHit && ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + player2.height) {
                 ball.dx = -ball.dx;
                 ball.speed += 0.2;
+                player2.canHit = false;
+                player1.canHit = true;
             }
 
             if (ball.x - ball.radius < 0) {
