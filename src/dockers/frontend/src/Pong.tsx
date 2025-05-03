@@ -13,12 +13,17 @@ interface GameHistory {
 }
 
 const Pong = () => {
-    const [player1Score, setPlayer1Score] = useState(0);
-    const [player2Score, setPlayer2Score] = useState(0);
+    var [player1Score, setPlayer1Score] = useState(0);
+    var [player2Score, setPlayer2Score] = useState(0);
+
    // const [gameHistory, setGameHistory] = useState([]);
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
     const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
-    
+
+    const getP1Points = player1Score;
+
+    const getP2Points =  player2Score
+
     const sendResultsToDB = async (p1Score: string, p2Score: string) => {
         try {
             // Obtener el usuario actual del localStorage
@@ -65,11 +70,12 @@ const Pong = () => {
     };
 
     useEffect(() => {
+        console.log('Player1: ', player1Score, 'Player2', player2Score)
         if (player1Score === 3 || player2Score === 3) {
-            sendResultsToDB(player1Score, player2Score);
+            sendResultsToDB(player1Score.toString(), player2Score.toString());
             fetchGameHistory();
-            setPlayer1Score(0);
-            setPlayer2Score(0);
+            setPlayer1Score(0)
+            setPlayer2Score(0)
         }
     }, [player1Score, player2Score]);
 
@@ -134,10 +140,10 @@ const Pong = () => {
             }
 
             if (ball.x - ball.radius < 0) {
-                setPlayer2Score(prevScore => prevScore + 1);
+                setPlayer2Score(player1Score => player1Score + 1)
                 resetBall();
             } else if (ball.x + ball.radius > canvas.width) {
-                setPlayer1Score(prevScore => prevScore + 1);
+                setPlayer1Score(player2Score => player2Score + 1)
                 resetBall();
             }
         };
@@ -148,6 +154,8 @@ const Pong = () => {
             ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
             ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
             ball.speed = 4;
+            player2.canHit = true;
+            player1.canHit = true;
         };
 
         const keyDownHandler = (e: KeyboardEvent) => {
@@ -240,8 +248,8 @@ const Pong = () => {
                 height="400"
             >
             </canvas><br></br>
-            <label id="player1id">Player 1: </label><label id="points_1">0</label>
-            <label id="player2id">Player 2: </label><label id="points_2">0</label>
+            <label id="player1id">Player 1: </label><label id="points_1">{ getP1Points }</label>
+            <label id="player2id">Player 2: </label><label id="points_2">{ getP2Points }</label>
         </div>
     );
 };
