@@ -118,7 +118,7 @@ const Pong = () => {
         const moveBall = () => {
             ball.x += ball.dx;
             ball.y += ball.dy;
-            console.log('ball dx:', ball.dx, 'ball dy:', ball.dy);
+            //console.log('ball dx:', ball.dx, 'ball dy:', ball.dy);
 
             if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
                 ball.dy = -ball.dy;

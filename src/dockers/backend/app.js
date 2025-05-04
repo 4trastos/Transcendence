@@ -15,6 +15,7 @@ const vault = require("node-vault")({
 });
 const userRoutes = require('./routes/userRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const { request } = require('http');
 
 const app = fastify({
     logger: true,
@@ -131,6 +132,27 @@ app.get("/api/secret", async (request, reply) => {
             error: "Error al obtener secretos",
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+});
+
+app.get("/api/userData/:id", async(request, reply) => {
+    const { id } = request.params;
+
+    if (!id) {
+        return reply.status(400).send({ error: 'Falta el id del username' });
+    }
+
+    try {
+        const userData = await db.get('SELECT * FROM users WHERE username = ?', [username.trim()]);
+
+        if (!userData) {
+            return reply.status(404).send({ error: 'Usuario no encontrado' });
+        }
+
+        return reply.send(userData);
+    } catch (error) {
+        console.error('Error al obtener datos del usuario:', error);
+        return reply.status(500).send({ error: 'Error del servidor' });
     }
 });
 

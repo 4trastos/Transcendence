@@ -103,6 +103,7 @@ const Login = () => {
         try {
             if (player1Data.guestMode) {
                 setUser({ id: 'guest', username: 'Invitado' });
+                localStorage.setItem('userId', 'guest')
                 navigate('/');
                 return;
             }
@@ -162,6 +163,7 @@ const Login = () => {
             }
     
             handleLoginSuccess(response.data);
+            localStorage.setItem('userId', player1Data.username)
         } catch (error: any) {
             setIsSubmitting(false);
             setTwoFACode("");
@@ -200,7 +202,7 @@ const Login = () => {
             id: (responseData.user?.id || responseData.userId)?.toString() || '',
             username: responseData.user?.username || player1Data.username
         });
-    
+
         navigate("/");
     };
 

@@ -5,6 +5,7 @@ import Pong from "./Pong";
 import Profile from "./Profile";
 import Register from "./Register";
 import Login from "./Login";
+import Uploader from "./UploadFile"
 
 // Definición de la interfaz User
 interface User {
@@ -101,6 +102,7 @@ const App = () => {
               <Route path="/registro" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/uploader" element={<Uploader/>}/>
             </Routes>
           </div>
         </div>
