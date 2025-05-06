@@ -32,7 +32,6 @@ services:
     environment:
       - VAULT_ADDR=http://0.0.0.0:8200
       - TZ=Europe/Madrid
-    #  - VAULT_TOKEN="${ROOT_TOKEN}"
     env_file:
       - .env
     networks:
@@ -60,6 +59,31 @@ services:
       - frontend
       - security
     restart: always
+  
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter
+    container_name: nginx-exporter
+    command:
+      - '-nginx.scrape-uri=http://php:8080/nginx_status'
+    ports:
+      - "9113:9113"
+    networks:
+      - transcendence
+    depends_on:
+      - php
+  
+  php-fpm-exporter:
+    image: hipages/php-fpm_exporter:latest
+    container_name: php-fpm-exporter
+    environment:
+      - PHP_FPM_SCRAPE_URI=tcp://php-nginx:9001/status
+    ports:
+      - "9253:9253"
+    depends_on:
+      - php
+    networks:
+      - transcendence
+
 
   frontend:   # Frontend (TypeScript + Tailwind)
     build: dockers/frontend/.
@@ -109,9 +133,6 @@ services:
       - VAULT_CACERT=/etc/vault/tls/ca.crt
       - VAULT_ROLE_ID_FILE=/vault/data/role_id.txt
       - VAULT_SECRET_ID_FILE=/vault/data/secret_id.txt
-    #user: "1001:1001"
-    #cap_add:
-    #  - IPC_LOCK
     volumes:
       - zap_data:/zap/wrk          # Contiene todo el workspace de ZAP
       - zap_reports:/zap/reports    # Reportes de ZAP
@@ -130,51 +151,73 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false  # Desactivar seguridad para desarrollo local
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g    # Ajustar memoria según sistema
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.transport.ssl.enabled=true
     volumes:
       - es_data:/usr/share/elasticsearch/data
+      - es_secrets:/usr/share/elasticsearch/secrets
+      - es_certs:/usr/share/elasticsearch/config/certs
     ports:
       - "9200:9200"
     networks:
       - transcendence
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   logstash:
     build: ./dockers/management/logstash
     image: logstash:8.12.0
     container_name: logstash
-    volumes:
-      - ls_data:/usr/share/logstash/pipeline  # Configuración de pipelines
-      - ls_data:/usr/share/logstash/config      # Configuración adicional
+    restart: on-failure
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - ELASTIC_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+    volumes:
+      - ls_config:/usr/share/logstash/config
+      - ls_pipeline:/usr/share/logstash/pipeline
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+    ports:
+      - "5000:5000"
+      - "9600:9600"
     depends_on:
       - elasticsearch
     networks:
       - transcendence
-    restart: unless-stopped
 
   kibana:
     build: ./dockers/management/kibana
     image: kibana:8.12.0
     container_name: kibana
+    restart: on-failure
+    volumes:
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
     networks:
       - transcendence
-    restart: unless-stopped
 
+  
   prometheus:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
     user: "nobody"  # Asegurar que corre como usuario no privilegiado
+    cap_add:
+      - CAP_NET_RAW
     volumes:
       - prometheus_data:/prometheus
       - ./dockers/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - vault_data:/vault/data
+      - tls_volume:/etc/vault/tls:ro
     ports:
       - "9090:9090"
     networks:
@@ -188,8 +231,8 @@ services:
     user: "472"  # Usuario grafana por defecto (UID 472)
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
-      - ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      #- ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      #- ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     depends_on:
@@ -207,8 +250,6 @@ services:
       - MYNETWORKS=172.16.0.0/16
       - DISABLE_AUTH=true
       - DISABLE_TLS=true
-    #  - WEB_PORT=1080
-    #  - SMTP_PORT=1025
     networks:
       - transcendence
     ports:
@@ -312,6 +353,7 @@ volumes:
        type: none
        device: "$HOME/goinfre/data/vault"
        o: bind
+       #o: bind,uid=65534,gid=65534,mode=0777
   
   tls_volume:
     driver: local
@@ -319,20 +361,6 @@ volumes:
       type: none
       o: bind
       device: "$HOME/goinfre/data/vault"
-
-  es_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: "$HOME/goinfre/data/elasticsearch"
-  
-  ls_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: "$HOME/goinfre/data/logstash"
-      o: bind
   
   grafana_data:
     driver: local
@@ -362,3 +390,37 @@ volumes:
       device: "$HOME/goinfre/data/mail-state"
       o: bind
   
+  es_secrets:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/es_secrets"
+      o: bind
+  
+  es_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/elasticsearch"
+  
+  es_certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/es_certs"
+  
+  ls_config:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/ls_config"
+      o: bind
+  
+  ls_pipeline:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/ls_pipeline"
+      o: bind

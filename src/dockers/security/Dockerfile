@@ -8,12 +8,12 @@ USER root
 ENV MOZ_HEADLESS=1
 
 # Crear usuario y grupo vault
-RUN groupadd -r vault && \
-    useradd -r -g vault vault
+#RUN groupadd -r vault && \
+#    useradd -r -g vault vault
 
 # Crear usuario y grupo vault si no existen
-#RUN getent group vault || groupadd -r vault && \
-#    getent passwd vault || useradd -r -g vault vault
+RUN getent group vault || groupadd -r vault && \
+    getent passwd vault || useradd -r -g vault vault
 
 # Crear directorios necesarios
 RUN mkdir -p /zap/wrk/ && \
@@ -57,11 +57,14 @@ RUN mkdir -p /etc/vault/policies
 
 # Copiar archivos de configuración
 COPY vault/policy.hcl /etc/vault/policy.hcl
+COPY vault/prometheus.hcl /etc/vault/prometheus.hcl
 COPY vault/configure_vault.sh /etc/vault/configure_vault.sh
 
 # Permisos adicionales
 RUN chmod 644 /etc/vault/policy.hcl && \
     chmod 750 /etc/vault/configure_vault.sh
+
+RUN chmod 644 /etc/vault/prometheus.hcl
 
 # =============================================
 # Verificación Automática (Healthcheck)

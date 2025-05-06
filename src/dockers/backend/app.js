@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('@fastify/cors');
 const helmet = require('@fastify/helmet');
 const crypto = require('crypto');
+const Prometheus = require('prom-client');
 const rateLimit = require('@fastify/rate-limit');
 const fastifySession = require('@fastify/session');
 const fastifyCookie = require('@fastify/cookie');
@@ -23,6 +24,14 @@ const app = fastify({
 });
 
 const port = process.env.PORT || 3000;
+
+const collectDefaultMetrics = Prometheus.collectDefaultMetrics;
+collectDefaultMetrics({ timeout: 5000 });
+
+app.get('/metrics', async (req, res) => {
+    res.header('Content-Type', Prometheus.register.contentType);
+    res.send(await Prometheus.register.metrics());
+  });
 
 // Configuración de seguridad mejorada
 app.register(rateLimit, {

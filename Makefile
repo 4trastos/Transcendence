@@ -79,6 +79,11 @@ clean:
 	rm -rf $(HOME)/goinfre/data/prometheus/*
 	rm -rf $(HOME)/goinfre/data/mail/*
 	rm -rf $(HOME)/goinfre/data/mail-state/*
+	rm -rf $(HOME)/goinfre/data/es_secrets/*
+	rm -rf $(HOME)/goinfre/data/es_data/*
+	rm -rf $(HOME)/goinfre/data/es_certs/*
+	rm -rf $(HOME)/goinfre/data/ls_config/*
+	rm -rf $(HOME)/goinfre/data/ls_pipeline/*
 	rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
@@ -102,6 +107,11 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/prometheus
 	@mkdir -p $(HOME)/goinfre/data/mail
 	@mkdir -p $(HOME)/goinfre/data/mail-state
+	@mkdir -p $(HOME)/goinfre/data/es_secrets
+	@mkdir -p $(HOME)/goinfre/data/es_data
+	@mkdir -p $(HOME)/goinfre/data/es_certs
+	@mkdir -p $(HOME)/goinfre/data/ls_config
+	@mkdir -p $(HOME)/goinfre/data/ls_pipeline
 
 re: down all
 
@@ -159,4 +169,7 @@ verify: grant_permissions
 email: grant_permissions
 	@./script/email_report.sh
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email
+elastic-password:
+	@docker exec elasticsearch cat /usr/share/elasticsearch/secrets/elastic_password
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password

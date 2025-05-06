@@ -1,20 +1,23 @@
-# dockers/management/elasticsearch/Dockerfile
 FROM docker.elastic.co/elasticsearch/elasticsearch:8.12.0
 
-# Cambia a root temporalmente para configuraciones
 USER root
 
-# Copia la configuración
+# Instalar jq para parsear JSON en el entrypoint
+RUN apt-get update && apt-get install -y netcat jq && rm -rf /var/lib/apt/lists/*
+
+# Crear directorios necesarios
+RUN mkdir -p /usr/share/elasticsearch/secrets && \
+    chown -R elasticsearch:root /usr/share/elasticsearch/secrets && \
+    chmod 775 /usr/share/elasticsearch/secrets
+
+# Copiar configuración básica
 COPY config/elasticsearch.yml /usr/share/elasticsearch/config/
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copia el entrypoint a una ubicación editable
-COPY entrypoint.sh /tmp/entrypoint.sh
-RUN chmod +x /tmp/entrypoint.sh && \
-    mv /tmp/entrypoint.sh /usr/local/bin/
-
-# Vuelve al usuario elasticsearch
 USER elasticsearch
 
-VOLUME ["/usr/share/elasticsearch/data"]
+VOLUME ["/usr/share/elasticsearch/data", "/usr/share/elasticsearch/secrets"]
 EXPOSE 9200 9300
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

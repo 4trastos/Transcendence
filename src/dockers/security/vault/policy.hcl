@@ -48,7 +48,7 @@ path "sys/policies/acl/transcendence" {
 
 # Monitorización
 path "sys/metrics" {
-  capabilities = ["read"]
+  capabilities = ["read", "list"]
 }
 
 path "secret/data/transcendence/api_keys" {
