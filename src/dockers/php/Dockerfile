@@ -1,5 +1,5 @@
 # Etapa 1: Compilar ModSecurity-nginx
-FROM ubuntu:latest AS modsecurity_builder
+FROM debian:12 AS modsecurity_builder
 
 # Instalar dependencias de compilación
 RUN apt-get update && apt-get install -y \
@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     nginx \
     wget \
+    libmodsecurity-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Verificar la versión de nginx instalada
