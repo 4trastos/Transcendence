@@ -13,17 +13,12 @@ interface GameHistory {
 }
 
 const Pong = () => {
-    var [player1Score, setPlayer1Score] = useState(0);
-    var [player2Score, setPlayer2Score] = useState(0);
-
+    const [player1Score, setPlayer1Score] = useState(0);
+    const [player2Score, setPlayer2Score] = useState(0);
    // const [gameHistory, setGameHistory] = useState([]);
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
     const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
-
-    const getP1Points = player1Score;
-
-    const getP2Points =  player2Score
-
+    
     const sendResultsToDB = async (p1Score: string, p2Score: string) => {
         try {
             // Obtener el usuario actual del localStorage
@@ -70,12 +65,11 @@ const Pong = () => {
     };
 
     useEffect(() => {
-        console.log('Player1: ', player1Score, 'Player2', player2Score)
         if (player1Score === 3 || player2Score === 3) {
-            sendResultsToDB(player1Score.toString(), player2Score.toString());
+            sendResultsToDB(player1Score, player2Score);
             fetchGameHistory();
-            setPlayer1Score(0)
-            setPlayer2Score(0)
+            setPlayer1Score(0);
+            setPlayer2Score(0);
         }
     }, [player1Score, player2Score]);
 
@@ -90,8 +84,8 @@ const Pong = () => {
             return;
         }
 
-        const player1 = { x: 0, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0, canHit: true };
-        const player2 = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0, canHit: true };
+        const player1 = { x: 0, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
+        const player2 = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
         const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 4, color: "white" };
 
         const draw = () => {
@@ -118,32 +112,27 @@ const Pong = () => {
         const moveBall = () => {
             ball.x += ball.dx;
             ball.y += ball.dy;
-            //console.log('ball dx:', ball.dx, 'ball dy:', ball.dy);
 
             if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
                 ball.dy = -ball.dy;
                 ball.speed += 0.075;
             }
 
-            if (player1.canHit && ball.x - ball.radius < player1.x + player1.width && ball.y > player1.y && ball.y < player1.y + player1.height) {
+            if (ball.x - ball.radius < player1.x + player1.width && ball.y > player1.y && ball.y < player1.y + player1.height) {
                 ball.dx = -ball.dx;
                 ball.speed += 0.2;
-                player1.canHit = false;
-                player2.canHit = true;
             }
 
-            if (player2.canHit && ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + player2.height) {
+            if (ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + player2.height) {
                 ball.dx = -ball.dx;
                 ball.speed += 0.2;
-                player2.canHit = false;
-                player1.canHit = true;
             }
 
             if (ball.x - ball.radius < 0) {
-                setPlayer2Score(player1Score => player1Score + 1)
+                setPlayer2Score(prevScore => prevScore + 1);
                 resetBall();
             } else if (ball.x + ball.radius > canvas.width) {
-                setPlayer1Score(player2Score => player2Score + 1)
+                setPlayer1Score(prevScore => prevScore + 1);
                 resetBall();
             }
         };
@@ -154,8 +143,6 @@ const Pong = () => {
             ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
             ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
             ball.speed = 4;
-            player2.canHit = true;
-            player1.canHit = true;
         };
 
         const keyDownHandler = (e: KeyboardEvent) => {
@@ -248,8 +235,8 @@ const Pong = () => {
                 height="400"
             >
             </canvas><br></br>
-            <label id="player1id">Player 1: </label><label id="points_1">{ getP1Points }</label>
-            <label id="player2id">Player 2: </label><label id="points_2">{ getP2Points }</label>
+            <label id="player1id">Player 1: </label><label id="points_1">0</label>
+            <label id="player2id">Player 2: </label><label id="points_2">0</label>
         </div>
     );
 };

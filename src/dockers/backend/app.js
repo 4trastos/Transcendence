@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('@fastify/cors');
 const helmet = require('@fastify/helmet');
 const crypto = require('crypto');
+const Prometheus = require('prom-client');
 const rateLimit = require('@fastify/rate-limit');
 const fastifySession = require('@fastify/session');
 const fastifyCookie = require('@fastify/cookie');
@@ -15,7 +16,6 @@ const vault = require("node-vault")({
 });
 const userRoutes = require('./routes/userRoutes');
 const gameRoutes = require('./routes/gameRoutes');
-const { request } = require('http');
 
 const app = fastify({
     logger: true,
@@ -24,6 +24,14 @@ const app = fastify({
 });
 
 const port = process.env.PORT || 3000;
+
+const collectDefaultMetrics = Prometheus.collectDefaultMetrics;
+collectDefaultMetrics({ timeout: 5000 });
+
+app.get('/metrics', async (req, res) => {
+    res.header('Content-Type', Prometheus.register.contentType);
+    res.send(await Prometheus.register.metrics());
+  });
 
 // Configuración de seguridad mejorada
 app.register(rateLimit, {
@@ -132,27 +140,6 @@ app.get("/api/secret", async (request, reply) => {
             error: "Error al obtener secretos",
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
-    }
-});
-
-app.get("/api/userData/:id", async(request, reply) => {
-    const { id } = request.params;
-
-    if (!id) {
-        return reply.status(400).send({ error: 'Falta el id del username' });
-    }
-
-    try {
-        const userData = await db.get('SELECT * FROM users WHERE username = ?', [username.trim()]);
-
-        if (!userData) {
-            return reply.status(404).send({ error: 'Usuario no encontrado' });
-        }
-
-        return reply.send(userData);
-    } catch (error) {
-        console.error('Error al obtener datos del usuario:', error);
-        return reply.status(500).send({ error: 'Error del servidor' });
     }
 });
 

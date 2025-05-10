@@ -60,7 +60,7 @@ update-ca-certificates --fresh
 chmod 644 /etc/ssl/certs/*.pem
 
 # Exportar variables críticas para Vault
-export VAULT_ADDR='https://0.0.0.0:8200'
+export VAULT_ADDR='https://security:8200'
 export VAULT_CACERT='/etc/vault/tls/ca.crt'
 
 # 5. Preparar certificados para otros servicios
@@ -132,6 +132,8 @@ configure_vault() {
     
     # 2. Crear políticas
     vault policy write transcendence /etc/vault/policy.hcl
+    echo "Configurando política para Prometheus..."
+    vault policy write prometheus /etc/vault/prometheus.hcl
     
     # 3. Crear secretos iniciales
     vault kv put secret/transcendence/database \
@@ -172,7 +174,21 @@ configure_vault() {
     echo "$UI_TOKEN" > /vault/data/ui_token.txt
     chmod 644 /vault/data/ui_token.txt
 
-    # 7. Configurar autenticación userpass (existente)
+    # 7. Crear token para Prometheus y guardarlo
+    echo "Generando token para Prometheus..."
+    mkdir -p /vault/data/prometheus
+    #PROMETHEUS_TOKEN=$(vault token create -policy=prometheus -ttl=24h -renewable=true -field=token)
+    #echo "$PROMETHEUS_TOKEN" > /vault/data/prometheus/token.txt
+    #chmod 644 /vault/data/prometheus/token.txt
+    if vault token create -policy=prometheus -ttl=24h -renewable=true -format=json > /tmp/prom_token.json; then
+    jq -r .auth.client_token /tmp/prom_token.json > /vault/data/prometheus/token.txt
+    chmod 644 /vault/data/prometheus/token.txt
+    else
+        echo "❌ Error al crear token para Prometheus"
+        exit 1
+    fi
+
+    # 8. Configurar autenticación userpass (existente)
     vault auth enable userpass
     vault write auth/userpass/users/transcendence-admin \
         password="$(openssl rand -base64 12)" \

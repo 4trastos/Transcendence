@@ -9,6 +9,7 @@ RUN mkdir -p /prometheus/scripts && \
 
 # Cambiar a root temporalmente para copiar el entrypoint
 USER root
+
 COPY entrypoint.sh /prometheus/scripts/entrypoint.sh
 RUN chmod +x /prometheus/scripts/entrypoint.sh
 USER nobody

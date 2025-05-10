@@ -1,16 +1,4 @@
 cluster.name: "transcendence-cluster"
 network.host: 0.0.0.0
 discovery.type: single-node
-xpack.security.enabled: false
-
-# --- NUEVO ----
-
-#path.data: /usr/share/elasticsearch/data
-#path.logs: /usr/share/elasticsearch/logs
-
-# Configuración de memoria
-#ES_JAVA_OPTS: -Xms1g -Xmx1g
-
-# Configuración de logs
-#logger.org.elasticsearch: info
-#logger.org.apache.http: warn
+xpack.security.enabled: true

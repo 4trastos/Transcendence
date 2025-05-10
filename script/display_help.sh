@@ -41,7 +41,7 @@ term_width=$(tput cols)
 
 
 # Calcular padding vertical (espacio arriba)
-help_lines=18 # Número de líneas de ayuda
+help_lines=19 # Número de líneas de ayuda
 padding=$(( (term_height - help_lines - 7) / 2 )) # 7 líneas del título
 
 # Añadir espacios vacíos para centrar verticalmente
@@ -84,6 +84,9 @@ display_menu_item "13" "make security" "Ejecuta escaneos de seguridad completos"
 display_menu_item "14" "make token" "Muestra credenciales de Vault" "$GREEN"
 display_menu_item "15" "make verify user=<user>" "Verifica la cuenta de un usuario" "$GREEN"
 display_menu_item "16" "make jwt" "Generador/validador de tokens JWT" "$GREEN"
+display_menu_item "17" "make 2fa" "Verifica que 2FA está funcionando y sincronizado con Google Authenticator" "$GREEN"
+display_menu_item "19" "make email" "Verifica que el servicio de email está implementado y es funcional" "$GREEN"
+display_menu_item "20" "make elastic-password" "Muestra el password para poder acceder a Elasticsearch" "$GREEN"
 
 center_text " "
 
