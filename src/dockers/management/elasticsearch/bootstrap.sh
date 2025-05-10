@@ -19,9 +19,9 @@ echo "Elasticsearch autenticado, generando token para Kibana..."
 curl -s -k -X POST https://localhost:9200/_security/service/elastic/kibana/_credential/token \
     --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
     -u elastic:$(cat /usr/share/elasticsearch/secrets/elastic_password) \
-    -o /usr/share/elasticsearch/secrets/kibana_token.json
+    -o /usr/share/elasticsearch/secrets/kibana_token
 
 echo "Token generado:"
-cat /usr/share/elasticsearch/secrets/kibana_token.json
+cat /usr/share/elasticsearch/secrets/kibana_token
 
 wait

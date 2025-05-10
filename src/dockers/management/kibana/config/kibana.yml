@@ -1,15 +1,25 @@
 server.host: "0.0.0.0"
+server.port: 5601
 server.name: "kibana-transcendence"
-elasticsearch.hosts: ["https://elasticsearch:9200"]
-elasticsearch.ssl.certificateAuthorities: [ "/usr/share/elasticsearch/config/certs/ca/ca.crt" ]
-elasticsearch.serviceAccountTokenFile: "/usr/share/elasticsearch/secrets/kibana_token"
-elasticsearch.requestTimeout: 120000
+server.shutdownTimeout: "5s"
 
+# Elasticsearch Configuration
+elasticsearch.hosts: ["https://elasticsearch:9200"]
+elasticsearch.ssl.certificateAuthorities: ["/usr/share/elasticsearch/config/certs/ca/ca.crt"]
+elasticsearch.ssl.verificationMode: certificate
+elasticsearch.requestTimeout: 120000
+elasticsearch.pingTimeout: 30000
+elasticsearch.healthCheck.delay: 60000
+
+# Security Configuration
 xpack.security.encryptionKey: "32byteslongencryptionkeyabcd1234"
 xpack.encryptedSavedObjects.encryptionKey: "32byteslongencryptionkeyefgh5678"
 xpack.reporting.encryptionKey: "32byteslongencryptionkeyijkl9012"
 xpack.security.session.idleTimeout: "1h"
 xpack.security.session.lifespan: "30d"
 
-monitoring.ui.container.elasticsearch.enabled: true
-elasticsearch.healthCheck.delay: 30000
+# Disabled Features
+xpack.observabilityAIAssistant.enabled: false
+xpack.observability.enabled: false
+xpack.apm.ui.enabled: false
+xpack.fleet.enabled: false

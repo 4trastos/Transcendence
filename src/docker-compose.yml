@@ -149,6 +149,7 @@ services:
     build: ./dockers/management/elasticsearch
     image: elasticsearch:8.12.0
     container_name: elasticsearch
+    hostname: elasticsearch
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
@@ -180,7 +181,7 @@ services:
     volumes:
       - ls_config:/usr/share/logstash/config
       - ls_pipeline:/usr/share/logstash/pipeline
-      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "5000:5000"
@@ -196,7 +197,7 @@ services:
     container_name: kibana
     restart: on-failure
     volumes:
-      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "5601:5601"
