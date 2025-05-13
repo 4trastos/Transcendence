@@ -3,7 +3,8 @@ FROM docker.elastic.co/kibana/kibana:8.12.0
 USER root
 
 RUN apt-get update && \
-    apt-get install -y jq curl gettext-base && \
+    apt-get install -y jq curl gettext-base python3 python3-pip && \
+    pip3 install pyyaml && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /usr/share/kibana/{logs,data,config} && \

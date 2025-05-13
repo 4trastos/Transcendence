@@ -95,17 +95,37 @@ echo "🛡 Preparando configuración dinámica..."
   echo "discovery.type: single-node"
   echo "xpack.security.enabled: true"
   echo "xpack.security.authc.api_key.enabled: true"
+  echo "xpack.security.authc.token.timeout: 60s"
+  
+  # Configuración SSL mejorada
   echo "xpack.security.transport.ssl.enabled: true"
   echo "xpack.security.transport.ssl.verification_mode: certificate"
-  echo "xpack.security.transport.ssl.key: certs/elasticsearch/elasticsearch.key"
-  echo "xpack.security.transport.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
-  echo "xpack.security.transport.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.transport.ssl.key: $CA_CERT_DIR/elasticsearch/elasticsearch.key"
+  echo "xpack.security.transport.ssl.certificate: $CA_CERT_DIR/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.transport.ssl.certificate_authorities: [ \"$CA_CERT_DIR/ca/ca.crt\" ]"
+  
   echo "xpack.security.http.ssl.enabled: true"
-  echo "xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key"
-  echo "xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
-  echo "xpack.security.http.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.http.ssl.key: $CA_CERT_DIR/elasticsearch/elasticsearch.key"
+  echo "xpack.security.http.ssl.certificate: $CA_CERT_DIR/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.http.ssl.certificate_authorities: [ \"$CA_CERT_DIR/ca/ca.crt\" ]"
+  
+  # Optimizaciones de rendimiento
   echo "cluster.routing.allocation.disk.threshold_enabled: false"
+  echo "cluster.routing.allocation.node_initial_primaries_recoveries: 10"
+  echo "cluster.routing.allocation.node_concurrent_recoveries: 5"
+  echo "indices.recovery.max_bytes_per_sec: \"100mb\""
 } > /usr/share/elasticsearch/config/elasticsearch.yml
+
+echo "🔐 Configurando truststore Java..."
+# Importar CA al truststore de Java
+keytool -importcert -noprompt \
+  -keystore /usr/share/elasticsearch/config/certs/truststore.jks \
+  -storepass changeit \
+  -file "$CA_CERT_DIR/ca/ca.crt" \
+  -alias elasticsearch-ca
+
+# Configurar variable de entorno para Java
+export ES_JAVA_OPTS="$ES_JAVA_OPTS -Djavax.net.ssl.trustStore=/usr/share/elasticsearch/config/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
 
 ### 3. Iniciar Elasticsearch con configuración segura
 echo "🌀 Iniciando Elasticsearch con seguridad..."
@@ -146,22 +166,62 @@ else
 fi
 
 ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+TIMEOUT=300
+WAIT_INTERVAL=10 
 
 ### 6. Esperar que el índice .security esté activo
-echo "🔐 Esperando a que el índice .security esté listo..."
-for i in $(seq 1 60); do
-  HEALTH=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200/_cluster/health/.security-7?pretty)
-  STATUS=$(echo "$HEALTH" | jq -r '.status')
-  ACTIVE_SHARDS=$(echo "$HEALTH" | jq -r '.active_primary_shards')
+wait_for_cluster_health() {
+  local start_time=$(date +%s)
   
-  if [ "$STATUS" = "green" ] && [ "$ACTIVE_SHARDS" -ge 1 ]; then
-    echo "✅ Índice .security-7 listo (status: $STATUS, shards: $ACTIVE_SHARDS)"
-    break
-  else
-    echo "⏳ Intento $i/60 - Status: $STATUS, Shards activos: $ACTIVE_SHARDS"
-    sleep 5
-  fi
-done
+  while true; do
+    # Verificar si Elasticsearch responde
+    if ! curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200 >/dev/null; then
+      echo "Elasticsearch no responde, esperando..."
+      sleep $WAIT_INTERVAL
+      continue
+    fi
+
+    # Obtener el estado del clúster
+    local cluster_health=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" "https://localhost:9200/_cluster/health")
+    local status=$(echo "$cluster_health" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+
+    # Verificar que el estado sea 'yellow' o 'green'
+    if [ "$status" == "green" ] || [ "$status" == "yellow" ]; then
+      echo "✅ Elasticsearch está listo (estado: $status)"
+      return 0
+    fi
+
+    # Timeout
+    local current_time=$(date +%s)
+    if (( current_time - start_time > TIMEOUT )); then
+      echo "❌ Timeout: Elasticsearch no alcanzó el estado 'green' o 'yellow' en $TIMEOUT segundos"
+      return 1
+    fi
+
+    echo "⏳ Estado actual: $status, esperando..."
+    sleep $WAIT_INTERVAL
+  done
+}
+
+# Esperar hasta que Elasticsearch esté listo
+wait_for_cluster_health || exit 1
+
+# Ajustar el número de réplicas del índice .security-7 a 0 para evitar problemas con nodos secundarios
+echo "⚙️ Ajustando número de réplicas del índice .security-7 a 0..."
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -k -u "elastic:$ELASTIC_PASSWORD" \
+  -X PUT "https://localhost:9200/.security-7/_settings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "index": {
+      "number_of_replicas": 0
+    }
+  }')
+
+if [ "$RESPONSE" = "200" ]; then
+  echo "✅ Réplicas del índice .security-7 ajustadas correctamente"
+else
+  echo "❌ Error al ajustar réplicas (HTTP $RESPONSE)"
+fi
 
 ### 7. Generar token de kibana
 echo "🔑 Generando token de servicio para Kibana..."
@@ -174,7 +234,7 @@ HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "200" ]; then
-  TOKEN=$(echo "$BODY" | jq -r '.token.value')
+  TOKEN=$(echo "$BODY" | grep -o '"token":{"name":"[^"]*","value":"[^"]*"}' | sed -E 's/.*"value":"([^"]*)".*/\1/')
   echo "Token generado: ${TOKEN:0:10}..."  # Log para depuración
   
   # Verificar directorio

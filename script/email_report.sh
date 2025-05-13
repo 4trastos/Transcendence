@@ -19,7 +19,7 @@ echo "" >> "$ERROR_FILE"
 
 # Función para verificar dependencias
 check_dependencies() {
-  local dependencies=("docker" "ping" "nc" "nslookup" "sed" "grep")
+  local dependencies=("docker" "ping" "nc" "nslookup" "sed" "awk" "grep")
   for cmd in "${dependencies[@]}"; do
     if ! command -v "$cmd" &> /dev/null; then
       echo "Error: $cmd no está instalado" >> "$ERROR_FILE"
@@ -92,7 +92,7 @@ analyze_mailserver_failure() {
   echo "1. Búsqueda de errores críticos:"
   
   if [[ "$output" =~ "permanently deferred" ]]; then
-    local rejection_reason=$(echo "$output" | grep -oP '(?<=SMTP error: ).*' || echo "Razón no especificada")
+    local rejection_reason=$(echo "$output" | sed -n 's/.*SMTP error: \(.*\)/\1/p' || echo "Razón no especificada")
     echo " - ERROR CRÍTICO: Correo rechazado permanentemente"
     echo " - Razón técnica: $rejection_reason"
     
@@ -182,10 +182,10 @@ analyze_mailserver_logs() {
     
     if [[ "$log_output" =~ "permanently deferred" ]]; then
       mailserver_status="failed"
-      local rejection_reason=$(echo "$log_output" | grep -oP '(?<=SMTP error: ).*' || echo "Razón no especificada")
+      local rejection_reason=$(echo "$log_output" | sed -n 's/.*SMTP error: \(.*\)/\1/p' || echo "Razón no especificada")
       
       # Análisis detallado del rechazo
-      local smtp_code=$(echo "$rejection_reason" | grep -oP '^\d{3}')
+      local smtp_code=$(echo "$rejection_reason" | grep -oE '^[0-9]{3}')
       local detailed_analysis=""
       
       case "$smtp_code" in

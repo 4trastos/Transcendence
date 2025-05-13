@@ -69,7 +69,7 @@ ART=(
 "                                                                                                                                                                    " \
 "                                                                                                                                                                    " \
 "                                                           · A project conceived, designed, and executed by: ·                                                      " \
-"                                                        Inés Sainz - Nicolás González De Mendoza - David Gallego                                                    " \
+"                                                               Nicolás González De Mendoza & David Gallego                                                          " \
 "                                                                                                                                                                    " \
 "                                                                            *  Since 2025  *                                                                        " \
 "                                                                                                                                                                    " \
