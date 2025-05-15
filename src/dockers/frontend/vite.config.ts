@@ -12,7 +12,7 @@ export default {
     rollupOptions: {
       input: {
         main: resolve(__dirname, './index.html'),  // Indica que `index.html` es el punto de entrada
-        style: './src/styles.css',  // Añade el archivo CSS generado por Tailwind
+        style: './src/app.css',  // Añade el archivo CSS generado por Tailwind
       },
       output: {
         assetFileNames: 'assets/[name].[ext]' // Configura cómo se deben generar los nombres de los archivos
@@ -20,9 +20,11 @@ export default {
     }
   },
   css: {
-    postcss: './postcss.config.js'  // Configura PostCSS para procesar el CSS correctamente
+    postcss: './postcss.config.js'
   },
-  plugins: [react()],
+  plugins: [
+    react()
+  ],
   resolve: {
     alias: {
       '@': '/src', // Alias para simplificar rutas, opcional

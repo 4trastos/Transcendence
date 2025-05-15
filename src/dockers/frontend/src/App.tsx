@@ -16,20 +16,26 @@ const App: React.FC = () => {
     const navigate = useNavigate();
 
   return (    
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <div className="space-x-4">
-        <div className="w-1/2 flex items-center justify-center bg-blue-100">
-        <button 
-            className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 font-jacquard"
-            onClick={() => navigate('/login')}
-        >
-          Jugar VS
-        </button>
-        </div>
-        <div className="w-1/2 flex items-center justify-center bg-red-100">
-        <button className="px-6 py-3 bg-red-500 text-white rounded hover:bg-red-600 font-jacquard">
-          Jurgar Torneo
-        </button>
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="w-4/5 p-6 bg-gray-600 border-4 border-black">
+        <div className="flex space-x-6">
+          
+          {/* Div Jugar VS */}
+          <div className="flex flex-col items-center justify-center w-1/2 p-4 bg-sky-500 border-4 border-black text-white">
+            <h2 className="mb-4 text-lg">Div del Jugar Vs</h2>
+            <button className="bg-yellow-400 text-black font-semibold px-4 py-2 border-2 border-white">
+              Boton
+            </button>
+          </div>
+
+          {/* Div Jugar Torneo */}
+          <div className="flex flex-col items-center justify-center w-1/2 p-4 bg-red-600 border-4 border-black text-white">
+            <h2 className="mb-4 text-lg">Div del Jugar Torneo</h2>
+            <button className="bg-yellow-400 text-black font-semibold px-4 py-2 border-2 border-white">
+              Boton
+            </button>
+          </div>
+
         </div>
       </div>
     </div>

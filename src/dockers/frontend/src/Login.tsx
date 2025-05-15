@@ -191,17 +191,27 @@ const Login = () => {
     }) => {
         tempTokenRef.current = null;
         localStorage.setItem("accessToken", responseData.accessToken);
-        
+
         if (responseData.refreshToken) {
             localStorage.setItem("refreshToken", responseData.refreshToken);
         }
-    
-        setUser({
+
+        const user = {
             id: (responseData.user?.id || responseData.userId)?.toString() || '',
             username: responseData.user?.username || player1Data.username
-        });
-    
-        navigate("/");
+        };
+
+        if (!localStorage.getItem("user")) {
+            localStorage.setItem("user", JSON.stringify(user));
+            var first = true;
+        } else {
+            localStorage.setItem("user2", JSON.stringify(user));
+            var first = false;
+        }
+
+
+        setUser(user);
+        navigate(first ? "/login" : "/pong");
     };
 
     const handleTokenRefresh = async (): Promise<boolean> => {
@@ -273,7 +283,7 @@ const Login = () => {
                 className="bg-gray-900 p-8 shadow-xl rounded-lg w-96 space-y-4"
             >
                 <h2 className="text-3xl font-bold mb-4 text-center text-white">
-                    {needs2FA ? "Verificación 2FA" : "Get Ready Player1!"}
+                    {needs2FA ? "Verificación 2FA" : !localStorage.getItem("user") ? "Get Ready Player 1" : "Get Ready Player 2"}
                 </h2>
 
                 {error && <p className="text-red-500">{error}</p>}
