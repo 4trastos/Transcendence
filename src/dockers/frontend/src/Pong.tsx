@@ -15,10 +15,12 @@ interface GameHistory {
 const Pong = () => {
     const [player1Score, setPlayer1Score] = useState(0);
     const [player2Score, setPlayer2Score] = useState(0);
-   // const [gameHistory, setGameHistory] = useState([]);
-    const [gameHistory, setGameHistory] = useState<GameHistory[]>([]); // Estado para el historial
-    const [showHistory, setShowHistory] = useState(false); // Estado para mostrar/ocultar historial
-    
+
+    var player1Data = localStorage.getItem('user')
+    player1Data = JSON.parse(player1Data?player1Data:"nada")
+    var player2Data = localStorage.getItem('user')
+    player2Data = JSON.parse(player2Data?player2Data:"nada")
+
     const sendResultsToDB = async (p1Score: string, p2Score: string) => {
         try {
             // Obtener el usuario actual del localStorage
@@ -177,7 +179,7 @@ const Pong = () => {
 
     return (
         <div 
-            className="overflow-auto flex-1 flex items-center justify-center min-h-screen"
+            className="overflow-auto flex items-center justify-center min-h-screen"
             style={{
             backgroundImage: `url(${bgImg})`,
             backgroundSize: 'cover',
@@ -186,57 +188,18 @@ const Pong = () => {
             backgroundAttachment: 'fixed',
             }}
         >
-            <div className="absolute top-4 left-4">
-                <button 
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+            <div className="flex">
+                <canvas 
+                    id="pong" 
+                    width="800" 
+                    height="400"
                 >
-                    {showHistory ? 'Ocultar Historial' : 'Mostrar Historial'}
-                </button>
+                </canvas>
             </div>
-    
-            {showHistory && (
-                <div className="absolute top-20 left-4 bg-gray-800 bg-opacity-90 p-4 rounded-md max-h-96 overflow-y-auto w-64 shadow-xl border border-gray-700">
-                    <h3 className="text-white text-lg font-bold mb-3 text-center">Tus últimos juegos</h3>
-                    {gameHistory.length > 0 ? (
-                        <ul className="text-white space-y-3">
-                            {gameHistory.map((game) => (
-                                <li 
-                                    key={game.id} 
-                                    className={`p-3 rounded-md ${game.winner_id === parseInt(localStorage.getItem("user")?.split(" ")[0]) ? 'bg-green-900 bg-opacity-50' : 'bg-red-900 bg-opacity-50'}`}
-                                >
-                                    <div className="flex justify-between text-sm">
-                                        <span className="font-medium">Fecha:</span>
-                                        <span>{new Date(game.played_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm mt-1">
-                                        <span className="font-medium">Resultado:</span>
-                                        <span className="font-bold">
-                                            {game.score_player1} - {game.score_player2}
-                                        </span>
-                                    </div>
-                                    <div className="text-center mt-2 text-xs">
-                                        {game.winner_id === parseInt(localStorage.getItem("user")?.split(" ")[0]) 
-                                            ? '🏆 Ganaste' 
-                                            : '😢 Perdiste'}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-white text-center py-4">No hay historial de juegos aún</p>
-                    )}
-                </div>
-            )}
-    
-            <canvas 
-                id="pong" 
-                width="800" 
-                height="400"
-            >
-            </canvas><br></br>
-            <label id="player1id">Player 1: </label><label id="points_1">0</label>
-            <label id="player2id">Player 2: </label><label id="points_2">0</label>
+            <div className="flex">
+                <label id="player1id">{ player1Data?.username }</label><label id="points_1">{ player1Score }</label>
+                <label id="player2id">{ player2Data?.username }</label><label id="points_2">{ player2Score }</label>
+            </div>
         </div>
     );
 };

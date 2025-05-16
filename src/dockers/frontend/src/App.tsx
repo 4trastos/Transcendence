@@ -23,7 +23,10 @@ const App: React.FC = () => {
           {/* Div Jugar VS */}
           <div className="flex flex-col items-center justify-center w-1/2 p-4 bg-sky-500 border-4 border-black text-white">
             <h2 className="mb-4 text-lg">Div del Jugar Vs</h2>
-            <button className="bg-yellow-400 text-black font-semibold px-4 py-2 border-2 border-white">
+            <button 
+              className="bg-yellow-400 text-black font-semibold px-4 py-2 border-2 border-white"
+              onClick={ () => navigate('/login') }
+            >
               Boton
             </button>
           </div>
