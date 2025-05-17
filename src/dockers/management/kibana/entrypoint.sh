@@ -93,18 +93,6 @@ fi
 # Reemplazar configuración
 mv "$TEMP_CONFIG" "$KIBANA_CONFIG"
 
-# Crear índices de Kibana
-#echo "🛠 Preparando índices de Kibana..."
-#for index in ".kibana" ".kibana_task_manager"; do
-#  if ! curl -k -s -u "elastic:$ELASTIC_PASSWORD" "https://elasticsearch:9200/_cat/indices/$index" | grep -q "$index"; then
-#    echo "🔄 Creando índice $index..."
-#    curl -k -X PUT "https://elasticsearch:9200/$index" \
-#      -H "Content-Type: application/json" \
-#      -u "elastic:$ELASTIC_PASSWORD" \
-#      -d '{"settings":{"index.number_of_shards":1,"index.number_of_replicas":0}}' || true
-#  fi
-#done
-
 # Iniciar Kibana
 echo "🚀 Iniciando Kibana..."
 exec /usr/share/kibana/bin/kibana

@@ -17,6 +17,9 @@ mkdir -p "$CA_CERT_DIR"
 chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/secrets
 chmod 750 /usr/share/elasticsearch/secrets
 
+chmod 755 /usr/share/elasticsearch/config
+chmod 755 /usr/share/elasticsearch/config/certs
+
 ### 1. Generar certificados TLS primero (versión mejorada)
 if [ ! -f "$CA_CERT_DIR/ca/ca.crt" ]; then
   echo "🔒 Generando certificados TLS..."
@@ -51,33 +54,6 @@ EOF
   chmod -R 750 "$CA_CERT_DIR"
   chown -R elasticsearch:elasticsearch "$CA_CERT_DIR"
 fi
-
-### 1. Generar certificados TLS primero
-#if [ ! -f "$CA_CERT_DIR/ca.zip" ]; then
-#  echo "🔒 Generando certificados TLS..."
-#
-#  cat > "$CA_CERT_DIR/instances.yml" <<EOF
-#instances:
-#  - name: "elasticsearch"
-#    dns:
-#      - "elasticsearch"
-#      - "localhost"
-#    ip:
-#      - "127.0.0.1"
-#      - "$MY_IP"
-#EOF
-
-#  echo "📦 Generando CA..."
-#  bin/elasticsearch-certutil ca --silent --pem -out "$CA_CERT_DIR/ca.zip"
-#  unzip -q "$CA_CERT_DIR/ca.zip" -d "$CA_CERT_DIR"
-
-#  echo "📦 Generando certificados..."
-#  bin/elasticsearch-certutil cert --silent --pem -out "$CA_CERT_DIR/certs.zip" \
-#    --in "$CA_CERT_DIR/instances.yml" \
-#  unzip -q "$CA_CERT_DIR/certs.zip" -d "$CA_CERT_DIR"
-
-#  chmod -R 750 "$CA_CERT_DIR"
-#fi
 
 ### 2. Generar contraseña si no existe
 if [ ! -f "$PASSWORD_FILE" ]; then
@@ -206,21 +182,18 @@ wait_for_cluster_health() {
 # Esperar hasta que Elasticsearch esté listo
 wait_for_cluster_health || exit 1
 
-# Ajustar el número de réplicas del índice .security-7 a 0 para evitar problemas con nodos secundarios
-echo "⚙️ Ajustando número de réplicas del índice .security-7 a 0..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -k -u "elastic:$ELASTIC_PASSWORD" \
-  -X PUT "https://localhost:9200/.security-7/_settings" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "index": {
-      "number_of_replicas": 0
-    }
-  }')
-
-if [ "$RESPONSE" = "200" ]; then
-  echo "✅ Réplicas del índice .security-7 ajustadas correctamente"
+# Ajustar réplicas con manejo de errores mejorado
+echo "⚙️ Ajustando número de réplicas para índices de seguridad..."
+INDICES_RESPONSE=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" "https://localhost:9200/_cat/indices/.security*?h=index")
+if [ -z "$INDICES_RESPONSE" ]; then
+  echo "⚠️ No se encontraron índices de seguridad, omitiendo ajuste de réplicas"
 else
-  echo "❌ Error al ajustar réplicas (HTTP $RESPONSE)"
+  for INDEX in $INDICES_RESPONSE; do
+    echo "🔧 Ajustando réplicas para $INDEX"
+    curl -k -u "elastic:$ELASTIC_PASSWORD" -X PUT "https://localhost:9200/$INDEX/_settings" \
+      -H "Content-Type: application/json" \
+      -d '{"index": {"number_of_replicas": 0}}'
+  done
 fi
 
 ### 7. Generar token de kibana
@@ -297,6 +270,26 @@ if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_securi
       "full_name": "Logstash Writer User"
     }'
 fi
+
+# Asegurar que Prometheus pueda leer los certificados
+if [ -f "$CA_CERT_DIR/ca/ca.crt" ]; then
+  echo "🔐 Configurando permisos para Prometheus..."
+  # Crear enlace simbólico correctamente
+  ln -sf "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+  # Ajustar permisos
+  chmod 644 "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+  chown -R 1000:1000 "$CA_CERT_DIR"  # Usuario de Prometheus
+  echo "✅ Certificados configurados para Prometheus"
+else
+  echo "❌ Error: No se encontró el certificado CA en $CA_CERT_DIR/ca/ca.crt"
+  ls -la "$CA_CERT_DIR/ca/" || true
+fi
+
+# Crear enlace simbólico esperado por Prometheus
+if [ ! -f "$CA_CERT_DIR/ca.crt" ]; then
+  ln -s "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+fi
+
 
 echo "✅ Elasticsearch completamente inicializado"
 wait $ES_PID

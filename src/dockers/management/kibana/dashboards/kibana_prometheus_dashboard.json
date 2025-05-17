@@ -1,0 +1,53 @@
+{
+    "uid": "kibana-prometheus",
+    "title": "Kibana Metrics",
+    "tags": ["kibana", "prometheus"],
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Kibana Uptime",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "kibana_info{version!=\"\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "palette-classic" },
+            "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          },
+          "overrides": []
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "gridPos": { "x": 6, "y": 0, "w": 12, "h": 8 },
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "kibana_heap_size_used_bytes",
+            "legendFormat": "used",
+            "refId": "A"
+          },
+          {
+            "expr": "kibana_heap_size_limit_bytes",
+            "legendFormat": "limit",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "bytes", "label": "Memory", "logBase": 1, "min": 0, "show": true },
+          { "show": false }
+        ]
+      }
+    ]
+  }
+  

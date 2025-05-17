@@ -167,7 +167,6 @@ services:
       - transcendence
     healthcheck:
       test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
-      #test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || grep -q '\"status\":\"yellow\"'"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -188,8 +187,23 @@ services:
     ports:
       - "5000:5000"
       - "9600:9600"
+      - "8082:8082"
     depends_on:
       - elasticsearch
+    networks:
+      - transcendence
+  
+  logstash-exporter:
+    build: ./dockers/management/logstash-exporter
+    container_name: logstash-exporter
+    restart: unless-stopped
+    depends_on:
+      - logstash
+    environment:
+      - LOGSTASH_URL=https://logstash:9600/_node/stats
+      - VERIFY_SSL=false
+    ports:
+      - "9811:9811"
     networks:
       - transcendence
 
@@ -208,19 +222,42 @@ services:
     networks:
       - transcendence
 
+  kibana-exporter:
+    build: ./dockers/management/kibana-exporter
+    container_name: kibana-exporter
+    environment:
+      - KIBANA_HOST=http://kibana:5601
+      - KIBANA_USERNAME=elastic
+      - KIBANA_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - INSECURE_SKIP_VERIFY=true
+    volumes:
+      - es_secrets:/usr/share/elasticsearch/secrets
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+    ports:
+      - "9201:9201"
+    depends_on:
+      - kibana
+    networks:
+      - transcendence
   
   prometheus:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
-    user: "nobody"  # Asegurar que corre como usuario no privilegiado
+    user: "nobody"
+    #user: "65534:65534"
     cap_add:
       - CAP_NET_RAW
     volumes:
       - prometheus_data:/prometheus
       - ./dockers/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - vault_data:/vault/data
-      - tls_volume:/etc/vault/tls:ro
+      - tls_volume:/etc/vault/tls
+      - es_data:/usr/share/elasticsearch/data
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+    environment:
+      - UID=65534
     ports:
       - "9090:9090"
     networks:
@@ -234,8 +271,6 @@ services:
     user: "472"  # Usuario grafana por defecto (UID 472)
     volumes:
       - grafana_data:/var/lib/grafana
-      #- ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
-      #- ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     depends_on:

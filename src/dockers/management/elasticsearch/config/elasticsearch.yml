@@ -3,6 +3,17 @@ network.host: 0.0.0.0
 discovery.type: single-node
 xpack.security.enabled: true
 
+xpack.monitoring.collection.enabled: true
+xpack.monitoring.exporters:
+  prometheus_exporter:
+    type: prometheus
+    auth:
+      username: "elastic"
+      password: "/usr/share/elasticsearch/secrets/elastic_password"
+    ssl:
+      certificate_authorities: [ "certs/ca/ca.crt" ]
+      verification_mode: certificate
+
 xpack.security.http.ssl.enabled: true
 xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key
 xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt
