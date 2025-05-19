@@ -11,13 +11,12 @@ server.ssl.redirectHttpFromPort: 8080  # (opcional) redirige HTTP a HTTPS
 # Elasticsearch Configuration
 elasticsearch.hosts: ["https://elasticsearch:9200"]
 elasticsearch.username: "elastic"
-#elasticsearch.password: ["/usr/share/elasticsearch/secrets/elastic_password"]
+elasticsearch.password: ["/usr/share/elasticsearch/secrets/elastic_password"]
 elasticsearch.ssl.certificateAuthorities: ["/usr/share/elasticsearch/config/certs/ca/ca.crt"]
 elasticsearch.ssl.verificationMode: certificate
 elasticsearch.requestTimeout: 120000
 elasticsearch.pingTimeout: 30000
 elasticsearch.healthCheck.delay: 60000
-
 
 # Security Configuration
 xpack.security.encryptionKey: "32byteslongencryptionkeyabcd1234"

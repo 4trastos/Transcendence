@@ -241,18 +241,18 @@ fi
 
 LOGSTASH_PWD=$(cat "$LOGSTASH_PASSWORD_FILE")
 
-### 9. Crea el rol logstash_writer si no existe
+### 9. Crea el rol logstash_writer si no existe (VERSIÓN CORREGIDA)
 if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_security/role/logstash_writer" | grep -q '"found":true'; then
   echo "🔐 Creando rol logstash_writer..."
   curl -k -X PUT "https://localhost:9200/_security/role/logstash_writer" \
     -H "Content-Type: application/json" \
     -u "elastic:${ELASTIC_PASSWORD}" \
     -d '{
-      "cluster": ["monitor", "manage_index_templates"],
+      "cluster": ["monitor", "manage_index_templates", "manage_ilm"],
       "indices": [
         {
-          "names": ["logs-*"],
-          "privileges": ["create_index", "write", "create", "delete_index"]
+          "names": ["transcendence-*", "logs-*"],
+          "privileges": ["create_index", "write", "create", "delete_index", "manage", "manage_ilm"]
         }
       ]
     }'

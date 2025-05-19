@@ -93,6 +93,47 @@ fi
 # Reemplazar configuración
 mv "$TEMP_CONFIG" "$KIBANA_CONFIG"
 
+#################
+
+# Función para esperar a que Kibana esté listo
+wait_for_kibana() {
+  echo "⏳ Esperando a que Kibana esté listo..."
+  until curl -sSk -u "elastic:$ELASTIC_PASSWORD" "https://localhost:5601/api/status" | grep -q '"state":"green"'; do
+    sleep 5
+  done
+}
+
+# Función para crear el index pattern
+create_index_pattern() {
+  echo "🔄 Creando index pattern..."
+  until curl -sSk -u "elastic:$ELASTIC_PASSWORD" -X POST "https://localhost:5601/api/saved_objects/index-pattern/transcendence-*" \
+    -H "kbn-xsrf: true" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "attributes": {
+        "title": "transcendence-*",
+        "timeFieldName": "@timestamp"
+      }
+    }'; do
+    echo "⚠️ Falló al crear index pattern, reintentando..."
+    sleep 5
+  done
+}
+
+# Función para importar dashboards
+import_dashboard() {
+  echo "📊 Importando dashboards..."
+  until curl -sSk -u "elastic:$ELASTIC_PASSWORD" \
+    -X POST "https://localhost:5601/api/saved_objects/_import?overwrite=true" \
+    -H "kbn-xsrf: true" \
+    --form file=@/usr/share/kibana/dashboards/kibana_dashboards.ndjson; do
+    echo "⚠️ Falló al importar dashboards, reintentando..."
+    sleep 5
+  done
+}
+
+#################
+
 # Iniciar Kibana
 echo "🚀 Iniciando Kibana..."
 exec /usr/share/kibana/bin/kibana
@@ -125,13 +166,13 @@ done
 
 $KIBANA_READY || { echo "❌ Timeout esperando a Kibana"; exit 1; }
 
-# Importación de dashboards opcional
-[ -f "/usr/share/kibana/dashboards/kibana_dashboards.json" ] && {
-  echo "📊 Importando dashboards..."
-  curl -sSk -X POST "https://localhost:5601/api/saved_objects/_import?overwrite=true" \
-    -H "kbn-xsrf: true" \
-    --form file=@/usr/share/kibana/dashboards/kibana_dashboards.json || \
-    echo "⚠️ No se pudo importar dashboards"
-}
+# Esperar a que Kibana esté listo
+wait_for_kibana
+
+# Crear index pattern e importar dashboards
+create_index_pattern
+import_dashboard
+
+echo "✅ Configuración completada"
 
 wait $KPID
