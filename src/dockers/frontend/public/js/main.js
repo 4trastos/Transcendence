@@ -5,6 +5,7 @@ import { GamePage } from './pages/game/GamePage.js';
 import { LogInPage } from './pages/login/login.js';
 import { StatsPage } from './pages/stats/StatsPage.js';
 import { mount } from './utils/component.js';
+import { ProfilePage } from './pages/profile/ProfilePage.js';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 let navbar = null;
@@ -65,10 +66,12 @@ function loadChatContainer(userId, avatarUrl) {
     mount(chatView, '#chat-container');
 }
 function loadProfilePage() {
-    const targetContainer = document.querySelector('#app');
-    while (targetContainer.firstChild) {
-        targetContainer.removeChild(targetContainer.firstChild);
-    }
+    /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
+      while (targetContainer.firstChild) {
+      targetContainer.removeChild(targetContainer.firstChild);
+    }*/
+    const profilePage = new ProfilePage();
+    mount(profilePage, '#app');
 }
 function loadGamePage() {
     /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;

@@ -8,6 +8,7 @@ import { GamePage } from './pages/game/GamePage'
 import { LogInPage } from './pages/login/login';
 import { StatsPage } from './pages/stats/StatsPage';
 import { mount } from './utils/component';
+import { ProfilePage } from './pages/profile/ProfilePage';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
@@ -81,10 +82,12 @@ function loadChatContainer(userId: string, avatarUrl: string) {
 }
 
 function loadProfilePage() {
-  const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
+  /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
 	while (targetContainer.firstChild) {
     targetContainer.removeChild(targetContainer.firstChild);
-  }
+  }*/
+ const profilePage = new ProfilePage();
+ mount(profilePage, '#app');
 }
 function loadGamePage() {
   /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
