@@ -69,7 +69,7 @@ ART=(
 "                                                                                                                                                                    " \
 "                                                                                                                                                                    " \
 "                                                           · A project conceived, designed, and executed by: ·                                                      " \
-"                                                               Nicolás González De Mendoza & David Gallego                                                          " \
+"                                                      Nicolás González De Mendoza & David Gallego & Adrian Herrera                                                  " \
 "                                                                                                                                                                    " \
 "                                                                            *  Since 2025  *                                                                        " \
 "                                                                                                                                                                    " \

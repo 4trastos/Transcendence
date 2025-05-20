@@ -271,10 +271,14 @@ services:
     user: "472"  # Usuario grafana por defecto (UID 472)
     volumes:
       - grafana_data:/var/lib/grafana
+      - es_data:/usr/share/elasticsearch/data
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     depends_on:
       - prometheus
+      - elasticsearch
     networks:
       - transcendence
     restart: unless-stopped

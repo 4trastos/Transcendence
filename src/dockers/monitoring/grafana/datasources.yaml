@@ -6,5 +6,25 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: "POST"
     version: 1
-    editable: true
+    editable: false
+
+  - name: Elasticsearch
+    type: elasticsearch
+    url: https://elasticsearch:9200
+    basicAuth: true
+    basicAuthUser: elastic
+    secureJsonData:
+      basicAuthPassword: __ELASTIC_PASSWORD__ 
+    jsonData:
+      esVersion: 8.0.0
+      timeField: "@timestamp"
+      tlsAuth: true
+      tlsAuthWithCACert: true
+      caCert: "/usr/share/elasticsearch/config/certs/ca/ca.crt"
+      serverName: "elasticsearch"
+      sslSkipVerify: false
+    version: 1

@@ -1,6 +1,5 @@
 FROM grafana/grafana:latest
 
-# 1. Todas las operaciones como root (usuario por defecto)
 USER root
 
 # 2. Crear directorio con permisos adecuados antes de copiar archivos

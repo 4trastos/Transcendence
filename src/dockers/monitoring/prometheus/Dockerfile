@@ -2,6 +2,7 @@ FROM prom/prometheus:latest
 
 # Copiar configuración
 COPY prometheus.yml /etc/prometheus/prometheus.yml
+COPY alert_rules.yml /etc/prometheus/alert_rules.yml
 
 # Crear directorio en /prometheus donde nobody ya tiene permisos
 RUN mkdir -p /prometheus/scripts && \
