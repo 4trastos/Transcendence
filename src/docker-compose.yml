@@ -27,7 +27,6 @@ services:
       - "3000:3000"
     depends_on:
       - sqlite
-      - avalanche
       - security
     environment:
       - VAULT_ADDR=http://0.0.0.0:8200
@@ -101,20 +100,6 @@ services:
     depends_on:
       - backend
 
-  avalanche:      # Blockchain (Avalanche)
-    build: dockers/blockchain/.
-    container_name: blockchain
-    volumes:
-      - blockchain_data:/avalanchego
-      - ./dockers/blockchain/config.json:/avalanchego/config.json
-    ports:
-      - "9650:9650"   # JSON RPC endpoint
-      - "9651:9651"   # P2P port
-    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"]
-    networks:
-      - transcendence
-    restart: unless-stopped
-
   security:
     build: dockers/security/.
     container_name: security
@@ -179,15 +164,15 @@ services:
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
       - ELASTIC_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - XPACK_MONITORING_ENABLED=false 
     volumes:
-      - ls_config:/usr/share/logstash/config
-      - ls_pipeline:/usr/share/logstash/pipeline
       - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs:ro
+      - ls_config:/usr/share/logstash/config
+      - ls_pipeline:/usr/share/logstash/pipeline
     ports:
-      - "5000:5000"
-      - "9600:9600"
-      - "8082:8082"
+      - "5000:5000"   # Entrada Beats
+      - "8082:8082"   # Métricas Prometheus
     depends_on:
       - elasticsearch
     networks:
@@ -298,31 +283,6 @@ services:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
 
-  # Microservicios (Backend Reestructurado)
-
-  auth-service:
-    build: ./dockers/microservices/auth
-    ports:
-      - "3004:3000"
-    networks:
-      - transcendence
-    depends_on:
-      - sqlite
-
-  user-service:
-    build: ./dockers/microservices/users
-    ports:
-      - "3005:3000"
-    networks:
-      - transcendence
-
-  blockchain-service:
-    build: ./dockers/microservices/blockchain
-    ports:
-      - "3006:3000"
-    networks:
-      - transcendence
-
 volumes:
   sqlite_data:
     name: sqlite_data
@@ -346,14 +306,6 @@ volumes:
     driver_opts:
       type: none
       device: "$HOME/goinfre/data/frontend"
-      o: bind
-  
-  blockchain_data:
-    name: blockchain_data
-    driver: local
-    driver_opts:
-      type: none
-      device: "$HOME/goinfre/data/blockchain"
       o: bind
 
   php_data:

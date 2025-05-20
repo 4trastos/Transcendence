@@ -70,7 +70,6 @@ clean:
 	rm -rf $(HOME)/goinfre/data/app/*
 	rm -rf $(HOME)/goinfre/data/php/*
 	rm -rf $(HOME)/goinfre/data/frontend/*
-	rm -rf $(HOME)/goinfre/data/blockchain/*
 	rm -rf $(HOME)/goinfre/data/security/*
 	rm -rf $(HOME)/goinfre/data/vault/*
 	rm -rf $(HOME)/goinfre/data/elasticsearch/*
@@ -98,7 +97,6 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/app
 	@mkdir -p $(HOME)/goinfre/data/php
 	@mkdir -p $(HOME)/goinfre/data/frontend
-	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
 	@mkdir -p $(HOME)/goinfre/data/vault
 	@mkdir -p $(HOME)/goinfre/data/elasticsearch

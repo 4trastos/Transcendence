@@ -92,16 +92,16 @@ echo "🛡 Preparando configuración dinámica..."
   echo "indices.recovery.max_bytes_per_sec: \"100mb\""
 } > /usr/share/elasticsearch/config/elasticsearch.yml
 
-echo "🔐 Configurando truststore Java..."
+#echo "🔐 Configurando truststore Java..."
 # Importar CA al truststore de Java
-keytool -importcert -noprompt \
-  -keystore /usr/share/elasticsearch/config/certs/truststore.jks \
-  -storepass changeit \
-  -file "$CA_CERT_DIR/ca/ca.crt" \
-  -alias elasticsearch-ca
+#keytool -importcert -noprompt \
+#  -keystore /usr/share/elasticsearch/config/certs/truststore.jks \
+#  -storepass changeit \
+#  -file "$CA_CERT_DIR/ca/ca.crt" \
+#  -alias elasticsearch-ca
 
 # Configurar variable de entorno para Java
-export ES_JAVA_OPTS="$ES_JAVA_OPTS -Djavax.net.ssl.trustStore=/usr/share/elasticsearch/config/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
+#export ES_JAVA_OPTS="$ES_JAVA_OPTS -Djavax.net.ssl.trustStore=/usr/share/elasticsearch/config/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
 
 ### 3. Iniciar Elasticsearch con configuración segura
 echo "🌀 Iniciando Elasticsearch con seguridad..."

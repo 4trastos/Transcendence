@@ -30,7 +30,6 @@ center_text() {
 # Estado inicial de los servicios
 services_names=(
   "app (backend)"
-  "blockchain"
   "elasticsearch"
   "frontend"
   "grafana"
