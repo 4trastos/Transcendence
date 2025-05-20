@@ -28,7 +28,7 @@ COPY scripts/ /app/scripts/
 RUN chmod +x /usr/local/bin/init.sh
 
 RUN npm install
-EXPOSE 3001
+EXPOSE 3040
 
 ENTRYPOINT [ "/usr/local/bin/init.sh"]
 # Usa un comando para mantener el contenedor en ejecución, en caso de que necesites interactuar con él

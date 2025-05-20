@@ -1,0 +1,1 @@
+{"version":3,"file":"Message.js","sourceRoot":"","sources":["../../src/data/Message.ts"],"names":[],"mappings":"AAEC,MAAM,CAAC,OAAO,OAAO,OAAO;IAQ5B,YACC,MAAc,EACd,OAEC,EACD,SAAiB;QAEjB,IAAI,CAAC,MAAM,GAAG,MAAM,CAAC;QACrB,IAAI,CAAC,OAAO,GAAG,OAAO,CAAC;QACvB,IAAI,CAAC,SAAS,GAAG,SAAS,CAAC;IAC5B,CAAC;CACD"}

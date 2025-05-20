@@ -1,6 +1,7 @@
 import { fetchUser } from './auth.js';
 import { Navigation } from './components/Navigation/Navigation.js';
 import ChatView from './pages/chat/ChatView.js';
+import { GamePage } from './pages/game/GamePage.js';
 import { LogInPage } from './pages/login/login.js';
 import { StatsPage } from './pages/stats/StatsPage.js';
 import { mount } from './utils/component.js';
@@ -70,10 +71,12 @@ function loadProfilePage() {
     }
 }
 function loadGamePage() {
-    const targetContainer = document.querySelector('#app');
-    while (targetContainer.firstChild) {
-        targetContainer.removeChild(targetContainer.firstChild);
-    }
+    /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
+      while (targetContainer.firstChild) {
+      targetContainer.removeChild(targetContainer.firstChild);
+    }*/
+    const gamePage = new GamePage();
+    mount(gamePage, '#app');
 }
 function loadLoginPage() {
     const headerContainer = document.querySelector('#header');

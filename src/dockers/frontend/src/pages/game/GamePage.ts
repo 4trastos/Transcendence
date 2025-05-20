@@ -1,108 +1,20 @@
 import { Component, ComponentProps } from "../../utils/component";
 
+export class GamePage extends Component {
 
-class SelectOpponentView extends Component {
-  protected props: ComponentProps;
-  constructor(props: ComponentProps) {
-    super(props);
-    this.props = props;
-    this.template = this.renderTemplate();
-  }
-  renderTemplate() {
-    return `
-  <div class="w-full h-full flex items-center justify-center">
-    <div class="w-32 h-32 bg-gray-800 rounded-full flex items-center justify-center text-white text-2xl">
-      Select an opponent
-    </div>
-  </div>`;
-  }
-}
-
-class MatchedView extends Component {
-
-}
-
-class WaitingOpponentView extends Component {
-  protected props: ComponentProps;
-  constructor(props: ComponentProps) {
-    super(props);
-    this.props = props;
-    this.template = this.renderTemplate();
-  }
-  renderTemplate() {
-    return `
-  <div class="w-full h-full flex items-center justify-center">
-    <div class="w-32 h-32 bg-gray-800 rounded-full flex items-center justify-center text-white text-2xl">
-      Waiting for opponent...
-    </div>
-  </div>`;
-}
-} 
-
-class ScoreboardComponent extends Component {
-  protected props: ComponentProps;
-  constructor(props: ComponentProps) {
-    super(props);
-    this.props = props;
-    this.template = this.renderTemplate();
-  }
-
-  renderTemplate() {
-    return `
-  <div id="scoreboard" class="w-32 h-16 bg-gray-800 rounded flex items-center justify-center text-white">
-    <span id="score" class="text-2xl">0 - 0</span>
-  </div>
-  `;
-  }
-}
-
-class Player  {
-
-}
-
-class PaddleComponent extends Component {
-  protected props: ComponentProps;
-  constructor(props: ComponentProps) {
-    super(props);
-    this.props = props;
-    this.template = this.renderTemplate();
-  }
-
-  renderTemplate() {
-    return `
-  <div id="paddle" class="w-4 h-16 bg-blue-500 rounded"></div>
-  `;
-  }
-}
-
-
-class BolletComponent extends Component {
-  protected props: ComponentProps;
-  constructor(props: ComponentProps) {
-  super(props);
-  this.props = props;
-  this.template = this.renderTemplate();
-  }
-
-  renderTemplate() {
-  return `
-  <div id="ball" class="w-4 h-4 bg-red-500 rounded-full"></div>
-  `;
-  }
-}
-
-class PongGameView extends Component {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private player1Score = 0;
   private player2Score = 0;
+  private player1CanHit = true;
+  private player2CanHit = true;
 
   private player1: any;
   private player2: any;
   private ball: any;
 
-  constructor(props: ComponentProps) {
-    super(props);
+  constructor() {
+    super();
     this.template = this.renderTemplate();
   }
 
@@ -134,7 +46,7 @@ class PongGameView extends Component {
 
     this.player1 = { x: 0, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
     this.player2 = { x: this.canvas.width - paddleWidth, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
-    this.ball = { x: this.canvas.width / 2, y: this.canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 4, color: "white" };
+    this.ball = { x: this.canvas.width / 2, y: this.canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 0, color: "white" };
 
     const keyDownHandler = (e: KeyboardEvent) => {
       if (e.key === "w") this.player1.dy = -8;
@@ -167,6 +79,9 @@ class PongGameView extends Component {
     this.ctx.fillStyle = "black";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+    this.ctx.fillStyle = "#EEEEEE";
+    this.ctx.fillRect(this.canvas.width / 2 - 8, 0, 8, this.canvas.height);
+
     this.ctx.fillStyle = this.player1.color;
     this.ctx.fillRect(this.player1.x, this.player1.y, this.player1.width, this.player1.height);
 
@@ -197,16 +112,24 @@ class PongGameView extends Component {
 
     if (
       this.ball.x - this.ball.radius < this.player1.x + this.player1.width &&
-      this.ball.y > this.player1.y && this.ball.y < this.player1.y + this.player1.height
+      this.ball.y > this.player1.y && this.ball.y < this.player1.y + this.player1.height && this.player1CanHit
     ) {
+      this.ball.dy > 0 ? this.ball.dx++ : this.ball.dy--;
+      this.player1.dy > 0 ? this.ball.dx++ : this.player1.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
       this.ball.dx = -this.ball.dx;
+      this.player1CanHit = false;
+      this.player2CanHit = true;
     }
 
     if (
       this.ball.x + this.ball.radius > this.player2.x &&
-      this.ball.y > this.player2.y && this.ball.y < this.player2.y + this.player2.height
+      this.ball.y > this.player2.y && this.ball.y < this.player2.y + this.player2.height && this.player2CanHit
     ) {
+      this.ball.dx > 0 ? this.ball.dx++ : this.ball.dy--;
+      this.player2.dy > 0 ? this.ball.dx++ : this.player2.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
       this.ball.dx = -this.ball.dx;
+      this.player1CanHit = true;
+      this.player2CanHit = false;
     }
 
     // Score
@@ -225,7 +148,9 @@ class PongGameView extends Component {
     this.ball.x = this.canvas!.width / 2;
     this.ball.y = this.canvas!.height / 2;
     this.ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
-    this.ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+    this.ball.dy = 0
+    this.player1CanHit = true;
+    this.player2CanHit = true;
   }
 
   private updateScore() {
@@ -239,33 +164,4 @@ class PongGameView extends Component {
 interface GamePageProps extends ComponentProps {
   userId: string;
   gameId: string;
-}
-
-class GamePage extends Component {
-  private socket: WebSocket | undefined;
-  private userId: string | undefined;
-  private gameId: string | undefined;
-  private gameData: any; // Cambia el tipo según la estructura de tus datos de juego
-  private gameState: any; // Cambia el tipo según la estructura de tus datos de estado del juego
-
-  constructor(userId: string, gameId: string) {
-	super();
-	this.userId = userId;
-	this.gameId = gameId;
-	this.template = this.renderTemplate();
-  }
-
-  renderTemplate() {
-	return `
-	<div class="game-view">
-	</div>
-	`;
-  }
-
-  protected async initEvents(): Promise<void> {
-	if (!this.element) return;
-
-	this.socket = new WebSocket("");
-  }
-
 }

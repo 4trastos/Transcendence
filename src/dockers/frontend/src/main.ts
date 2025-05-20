@@ -4,6 +4,7 @@ import { Navigation } from './components/Navigation/Navigation';
 import { UserJwt } from './data/UserJwt';
 import ChatView from './pages/chat/ChatView';
 import { HomePage } from './pages/home/home';
+import { GamePage } from './pages/game/GamePage'
 import { LogInPage } from './pages/login/login';
 import { StatsPage } from './pages/stats/StatsPage';
 import { mount } from './utils/component';
@@ -86,10 +87,12 @@ function loadProfilePage() {
   }
 }
 function loadGamePage() {
-  const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
+  /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
 	while (targetContainer.firstChild) {
     targetContainer.removeChild(targetContainer.firstChild);
-  }
+  }*/
+  const gamePage = new GamePage();
+  mount(gamePage, '#app');
 }
 
 function loadLoginPage() {

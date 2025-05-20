@@ -58,7 +58,7 @@ export class RankCard extends Card {
             id: "rank-card",
             title: "Rank",
             width: "w-[18rem]",
-            height: "h-[24rem]",
+            height: "h-[23rem]",
         };
         props = { ...defaultProps, ...props };
         const rankCardProps = new RankCardContent({
