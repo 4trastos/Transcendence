@@ -247,7 +247,6 @@ services:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
-    #user: "nobody"
     user: "65534:65534"
     cap_add:
       - CAP_NET_RAW
@@ -276,8 +275,6 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - es_data:/usr/share/elasticsearch/data
-      #- es_secrets:/usr/share/elasticsearch/secrets:ro
-      #- es_certs:/usr/share/elasticsearch/config/certs:ro
       - es_certs:/etc/grafana/elasticsearch-certs:ro
       - es_secrets:/etc/grafana/elasticsearch-secrets:ro 
     ports:
