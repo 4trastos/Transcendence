@@ -156,6 +156,24 @@ services:
       timeout: 5s
       retries: 30
 
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
+    container_name: elasticsearch_exporter
+    ports:
+      - "9114:9114"
+    environment:
+      - ES_URI=https://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - ES_CA=/usr/share/elasticsearch/config/certs/ca/ca.crt
+      - ES_ALL=true
+      - ES_TIMEOUT=30s
+    volumes:
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+    networks:
+      - transcendence
+
   logstash:
     build: ./dockers/management/logstash
     image: logstash:8.12.0
@@ -229,8 +247,8 @@ services:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
-    user: "nobody"
-    #user: "65534:65534"
+    #user: "nobody"
+    user: "65534:65534"
     cap_add:
       - CAP_NET_RAW
     volumes:
@@ -243,6 +261,7 @@ services:
       - es_certs:/usr/share/elasticsearch/config/certs:ro
     environment:
       - UID=65534
+      - GID=65534
     ports:
       - "9090:9090"
     networks:
@@ -257,8 +276,10 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - es_data:/usr/share/elasticsearch/data
-      - es_secrets:/usr/share/elasticsearch/secrets:ro
-      - es_certs:/usr/share/elasticsearch/config/certs:ro
+      #- es_secrets:/usr/share/elasticsearch/secrets:ro
+      #- es_certs:/usr/share/elasticsearch/config/certs:ro
+      - es_certs:/etc/grafana/elasticsearch-certs:ro
+      - es_secrets:/etc/grafana/elasticsearch-secrets:ro 
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     depends_on:

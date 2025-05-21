@@ -3,23 +3,50 @@ network.host: 0.0.0.0
 discovery.type: single-node
 xpack.security.enabled: true
 
+# Configuración de monitoreo para Prometheus
 xpack.monitoring.collection.enabled: true
 xpack.monitoring.exporters:
-  prometheus_exporter:
-    type: prometheus
-    auth:
-      username: "elastic"
-      password: "/usr/share/elasticsearch/secrets/elastic_password"
-    ssl:
-      certificate_authorities: [ "certs/ca/ca.crt" ]
-      verification_mode: certificate
+  type: prometheus
+  host: ["https://elasticsearch:9200"]
 
+# Configuración del endpoint de métricas para Prometheus
+http.host: 0.0.0.0
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-headers: Authorization
+
+# Configuración SSL para HTTP
 xpack.security.http.ssl.enabled: true
-xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key
-xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt
-xpack.security.http.ssl.certificate_authorities: [ "certs/ca/ca.crt" ]
+xpack.security.http.ssl.key: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key
+xpack.security.http.ssl.certificate: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt
+xpack.security.http.ssl.certificate_authorities: [ "/usr/share/elasticsearch/config/certs/ca/ca.crt" ]
 
+# Configuración SSL para transporte
 xpack.security.transport.ssl.enabled: true
-xpack.security.transport.ssl.key: certs/elasticsearch/elasticsearch.key
-xpack.security.transport.ssl.certificate: certs/elasticsearch/elasticsearch.crt
-xpack.security.transport.ssl.certificate_authorities: [ "certs/ca/ca.crt" ]
+xpack.security.transport.ssl.key: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key
+xpack.security.transport.ssl.certificate: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt
+xpack.security.transport.ssl.certificate_authorities: [ "/usr/share/elasticsearch/config/certs/ca/ca.crt" ]
+
+# Configuración específica para Prometheus Exporter
+prometheus:
+  http.enabled: true
+  http.port: 9200
+  exporter.discovery:
+    hosts: ["https://elasticsearch:9200"]
+  exporter.ssl:
+    certificate_authorities: [ "/usr/share/elasticsearch/config/certs/ca/ca.crt" ]
+
+xpack.security.authc.token.enabled: true
+xpack.security.authc.api_key.enabled: true
+
+prometheus.exporters.settings:
+  cluster_settings: true
+  indices: true
+  indices_settings: true
+  jvm: true
+  network: true
+  node: true
+  os: true
+  process: true
+  thread_pool: true
+  transport: true

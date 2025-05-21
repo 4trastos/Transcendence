@@ -18,13 +18,13 @@ datasources:
     basicAuth: true
     basicAuthUser: elastic
     secureJsonData:
-      basicAuthPassword: __ELASTIC_PASSWORD__ 
+      basicAuthPassword: /etc/grafana/elasticsearch-secrets/secrets/elastic_password.crt 
     jsonData:
       esVersion: 8.0.0
       timeField: "@timestamp"
       tlsAuth: true
       tlsAuthWithCACert: true
-      caCert: "/usr/share/elasticsearch/config/certs/ca/ca.crt"
+      caCert: "/etc/grafana/elasticsearch-certs/ca/ca.crt"
       serverName: "elasticsearch"
       sslSkipVerify: false
     version: 1
