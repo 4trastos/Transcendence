@@ -258,6 +258,7 @@ services:
       - es_data:/usr/share/elasticsearch/data
       - es_secrets:/usr/share/elasticsearch/secrets:ro
       - es_certs:/usr/share/elasticsearch/config/certs:ro
+      - es_certs:/etc/prometheus/ssl:ro
     environment:
       - UID=65534
       - GID=65534

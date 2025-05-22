@@ -48,9 +48,14 @@ scrape_configs:
       - targets: ['kibana-exporter:9201']  # Apuntar al exporter, no directamente a Kibana
 
   - job_name: 'prometheus'
-    scheme: http
     static_configs:
       - targets: ['localhost:9090']
+    scheme: https
+    tls_config:
+      ca_file: "/etc/prometheus/certs/ca.crt"
+      cert_file: "/etc/prometheus/certs/prometheus.crt"
+      key_file: "/etc/prometheus/certs/prometheus.key"
+      insecure_skip_verify: true
   
   - job_name: 'grafana'
     metrics_path: /metrics

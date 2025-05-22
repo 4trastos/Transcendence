@@ -4,10 +4,14 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: https://prometheus:9090
     isDefault: true
     jsonData:
       timeInterval: "15s"
       httpMethod: "POST"
+    secureJsonData:
+      tlsCACert: "/etc/grafana/elasticsearch-certs/ca/ca.crt"
+      tlsClientCert: "/etc/grafana/elasticsearch-certs/elasticsearch/elasticsearch.crt"
+      tlsClientKey: "/etc/grafana/elasticsearch-certs/elasticsearch/elasticsearch.key"
     version: 1
     editable: false

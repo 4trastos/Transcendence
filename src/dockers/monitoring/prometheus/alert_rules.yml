@@ -18,3 +18,12 @@ groups:
     annotations:
       summary: "Servicio caído: {{ $labels.job }}"
       description: "El servicio {{ $labels.job }} en {{ $labels.instance }} está inactivo"
+
+  - alert: LowMemory
+    expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Baja memoria disponible en {{ $labels.instance }}"
+      description: "Sólo queda {{ printf \"%.2f\" $value }} de memoria disponible"
