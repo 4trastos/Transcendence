@@ -21,10 +21,14 @@ RUN curl -LO https://github.com/prometheus/prometheus/releases/download/v${PROM_
     ln -s /opt/prometheus/promtool /usr/local/bin/promtool && \
     rm prometheus-${PROM_VERSION}.linux-amd64.tar.gz
 
-# Crear estructura de directorios
+# Crear estructura de directorios Y generar certificados automáticamente
 RUN mkdir -p /etc/prometheus/ssl /prometheus /data && \
+    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+      -keyout /etc/prometheus/ssl/prometheus.key -out /etc/prometheus/ssl/prometheus.crt \
+      -subj "/CN=prometheus" && \
     chown -R nobody:nogroup /etc/prometheus /prometheus /data && \
-    chmod -R 750 /etc/prometheus /data
+    chmod -R 750 /etc/prometheus /data && \
+    chmod 600 /etc/prometheus/ssl/prometheus.key
 
 # Copiar archivos de configuración y scripts
 COPY prometheus.yml /etc/prometheus/prometheus.yml

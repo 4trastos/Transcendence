@@ -28,18 +28,38 @@ if [ ! -f "$TLS_CA" ]; then
     -keyout "$CERT_DIR/ca.key" -out "$TLS_CA" \
     -subj "/CN=Prometheus-CA"
 
-  # Crear CSR para Prometheus
-  openssl req -new -newkey rsa:4096 -nodes \
-    -keyout "$TLS_KEY" -out "$CERT_DIR/prometheus.csr" \
-    -subj "/CN=prometheus" \
-    -addext "subjectAltName = DNS:prometheus,IP:$MY_IP,IP:127.0.0.1"
+  # Crear archivo temporal de configuración para incluir SAN (Subject Alternative Name)
+  cat > "$CERT_DIR/openssl.cnf" <<EOF
+  [ req ]
+  distinguished_name = req_distinguished_name
+  req_extensions = v3_req
+  prompt = no
 
-  # Firmar el certificado
+  [ req_distinguished_name ]
+  CN = prometheus
+
+  [ v3_req ]
+  subjectAltName = @alt_names
+
+  [ alt_names ]
+  DNS.1 = prometheus
+  IP.1 = 127.0.0.1
+  IP.2 = $MY_IP
+EOF
+
+  # Crear CSR usando SAN correctamente
+  openssl req -new -nodes -newkey rsa:4096 \
+    -keyout "$TLS_KEY" -out "$CERT_DIR/prometheus.csr" \
+    -config "$CERT_DIR/openssl.cnf"
+
+  # Firmar el certificado con la extensión SAN
   openssl x509 -req -in "$CERT_DIR/prometheus.csr" \
     -CA "$TLS_CA" -CAkey "$CERT_DIR/ca.key" -CAcreateserial \
-    -out "$TLS_CRT" -days 3650 -sha256
+    -out "$TLS_CRT" -days 3650 -sha256 \
+    -extensions v3_req -extfile "$CERT_DIR/openssl.cnf"
 
-  # Ajustar permisos
+  # Limpiar y ajustar permisos
+  rm "$CERT_DIR/openssl.cnf"
   chmod 600 "$TLS_KEY" "$CERT_DIR/ca.key"
   chmod 644 "$TLS_CRT" "$TLS_CA"
 fi

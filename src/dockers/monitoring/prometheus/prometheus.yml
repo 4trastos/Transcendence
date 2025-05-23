@@ -59,7 +59,10 @@ scrape_configs:
   
   - job_name: 'grafana'
     metrics_path: /metrics
-    scheme: http
+    scheme: https
+    tls_config:
+      ca_file: /etc/prometheus/certs/ca.crt
+      insecure_skip_verify: true
     basic_auth:
       username: admin
       password: admin

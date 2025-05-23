@@ -256,9 +256,9 @@ services:
       - vault_data:/vault/data
       - tls_volume:/etc/vault/tls
       - es_data:/usr/share/elasticsearch/data
-      - es_secrets:/usr/share/elasticsearch/secrets:ro
-      - es_certs:/usr/share/elasticsearch/config/certs:ro
-      - es_certs:/etc/prometheus/ssl:ro
+      - es_secrets:/usr/share/elasticsearch/secrets
+      - es_certs:/usr/share/elasticsearch/config/certs
+      - es_certs:/etc/prometheus/ssl
     environment:
       - UID=65534
       - GID=65534
@@ -276,10 +276,14 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - es_data:/usr/share/elasticsearch/data
-      - es_certs:/etc/grafana/elasticsearch-certs:ro
-      - es_secrets:/etc/grafana/elasticsearch-secrets:ro 
+      - es_certs:/etc/grafana/elasticsearch-certs
+      - es_secrets:/etc/grafana/elasticsearch-secrets
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
+    environment:
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
+      - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
     depends_on:
       - prometheus
       - elasticsearch
