@@ -4,6 +4,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
+<<<<<<< HEAD
     url: https://prometheus:9090
     isDefault: true
     jsonData:
@@ -15,3 +16,9 @@ datasources:
       tlsClientKey: "/etc/grafana/elasticsearch-certs/elasticsearch/elasticsearch.key"
     version: 1
     editable: false
+=======
+    url: http://prometheus:9090
+    isDefault: true
+    version: 1
+    editable: true
+>>>>>>> integration

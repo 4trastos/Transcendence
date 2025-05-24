@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+<<<<<<< HEAD
 # Generar certificados si no existen
 if [ ! -f "/etc/grafana/ssl/grafana.crt" ] || [ ! -f "/etc/grafana/ssl/grafana.key" ]; then
   echo "Generando certificados SSL autofirmados..."
@@ -15,9 +16,17 @@ fi
 
 # Esperar a Prometheus (opcional)
 until curl -k -s https://prometheus:9090/-/ready; do
+=======
+# Esperar a que Prometheus esté listo
+until curl -s http://prometheus:9090/-/ready; do
+>>>>>>> integration
   echo "Esperando a que Prometheus esté listo..."
   sleep 1
 done
 
+<<<<<<< HEAD
 # Iniciar Grafana con HTTPS
+=======
+# Iniciar Grafana
+>>>>>>> integration
 exec /run.sh

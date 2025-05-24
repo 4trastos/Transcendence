@@ -1,4 +1,8 @@
 # Etapa 1: Compilar ModSecurity-nginx
+<<<<<<< HEAD
+=======
+#FROM ubuntu:latest AS modsecurity_builder
+>>>>>>> integration
 FROM debian:12 AS modsecurity_builder
 
 # Instalar dependencias de compilación

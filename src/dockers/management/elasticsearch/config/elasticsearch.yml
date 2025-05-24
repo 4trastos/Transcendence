@@ -1,6 +1,7 @@
 cluster.name: "transcendence-cluster"
 network.host: 0.0.0.0
 discovery.type: single-node
+<<<<<<< HEAD
 xpack.security.enabled: true
 
 # Configuración de monitoreo para Prometheus
@@ -50,3 +51,6 @@ prometheus.exporters.settings:
   process: true
   thread_pool: true
   transport: true
+=======
+xpack.security.enabled: true
+>>>>>>> integration

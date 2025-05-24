@@ -1,2 +1,7 @@
 .DS_Store
+<<<<<<< HEAD
 bg.png:Zone.Identifier
+=======
+
+src/dockers/frontend/node_modules/*
+>>>>>>> integration
