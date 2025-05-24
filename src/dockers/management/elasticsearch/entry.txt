@@ -1,0 +1,369 @@
+#!/bin/sh
+set -e
+
+echo "🚀 [START] Inicializando Elasticsearch..."
+
+PASSWORD_FILE="/usr/share/elasticsearch/secrets/elastic_password"
+CA_CERT_DIR="/usr/share/elasticsearch/config/certs"
+KIBANA_TOKEN_PATH="/usr/share/elasticsearch/secrets/kibana_token"
+LOGSTASH_PASSWORD_FILE="/usr/share/elasticsearch/secrets/logstash_internal_password"
+
+MY_IP=$(hostname -i | awk '{print $1}')
+
+# Configurar permisos
+mkdir -p $(dirname "$PASSWORD_FILE")
+mkdir -p $(dirname "$KIBANA_TOKEN_PATH")
+mkdir -p "$CA_CERT_DIR"
+chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/secrets
+chmod 750 /usr/share/elasticsearch/secrets
+
+### 1. Generar certificados TLS primero
+if [ ! -f "$CA_CERT_DIR/ca.zip" ]; then
+  echo "🔒 Generando certificados TLS..."
+
+  cat > "$CA_CERT_DIR/instances.yml" <<EOF
+instances:
+  - name: "elasticsearch"
+    dns:
+      - "elasticsearch"
+      - "localhost"
+    ip:
+      - "127.0.0.1"
+      - "$MY_IP"
+EOF
+
+  echo "📦 Generando CA..."
+  bin/elasticsearch-certutil ca --silent --pem -out "$CA_CERT_DIR/ca.zip"
+  unzip -q "$CA_CERT_DIR/ca.zip" -d "$CA_CERT_DIR"
+
+  echo "📦 Generando certificados..."
+  bin/elasticsearch-certutil cert --silent --pem -out "$CA_CERT_DIR/certs.zip" \
+    --in "$CA_CERT_DIR/instances.yml" \
+    --ca-cert "$CA_CERT_DIR/ca/ca.crt" --ca-key "$CA_CERT_DIR/ca/ca.key"
+  unzip -q "$CA_CERT_DIR/certs.zip" -d "$CA_CERT_DIR"
+
+  chmod -R 750 "$CA_CERT_DIR"
+fi
+
+### 2. Generar contraseña si no existe
+if [ ! -f "$PASSWORD_FILE" ]; then
+  echo "🔑 Generando contraseña inicial..."
+  ELASTIC_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+  echo "$ELASTIC_PASSWORD" > "$PASSWORD_FILE"
+  chmod 600 "$PASSWORD_FILE"
+fi
+
+### 3. Configuración dinámica (versión simplificada)
+echo "🛡 Preparando configuración dinámica..."
+{
+  echo "cluster.name: \"transcendence-cluster\""
+  echo "network.host: 0.0.0.0"
+  echo "discovery.type: single-node"
+  echo "xpack.security.enabled: true"
+  echo "xpack.security.authc.api_key.enabled: true"
+  echo "xpack.security.transport.ssl.enabled: true"
+  echo "xpack.security.transport.ssl.verification_mode: certificate"
+  echo "xpack.security.transport.ssl.key: certs/elasticsearch/elasticsearch.key"
+  echo "xpack.security.transport.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.transport.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.http.ssl.enabled: true"
+  echo "xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key"
+  echo "xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.http.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "cluster.routing.allocation.disk.threshold_enabled: false"
+} > /usr/share/elasticsearch/config/elasticsearch.yml
+
+### 3. Iniciar Elasticsearch con configuración segura
+echo "🌀 Iniciando Elasticsearch con seguridad..."
+export ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+exec /usr/local/bin/docker-entrypoint.sh &
+ES_PID=$!
+
+### 4. Esperar Elasticsearch esté completamente disponible
+echo "⏳ Esperando a que Elasticsearch esté disponible..."
+for i in $(seq 1 60); do  # Aumentado a 60 intentos
+  if curl -s -k -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_cluster/health | grep -q '"status":"green"' || grep -q '"status":"yellow"'; then
+    echo "✅ Elasticsearch está disponible"
+    break
+  else
+    echo "🔄 Intento $i/60 - Esperando..."
+    sleep 5
+  fi
+done
+
+### 5. Verificar credenciales
+echo "🔐 Verificando credenciales..."
+RESPONSE=$(curl -k -s -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_security/_authenticate)
+echo "Respuesta de autenticación: $RESPONSE"
+if echo "$RESPONSE" | grep -q '"username":"elastic"'; then
+  echo "✅ Autenticación correcta"
+else
+  echo "⚠️ Autenticación fallida"
+  # Aquí debería restablecer la contraseña si es necesario
+  NEW_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+  #if bin/elasticsearch-reset-password --batch --user elastic -u "https://localhost:9200" --insecure -b "$NEW_PASSWORD"; then
+  if bin/elasticsearch-reset-password --batch --user elastic --url "https://localhost:9200" --batch "$NEW_PASSWORD"; then
+    echo "$NEW_PASSWORD" > "$PASSWORD_FILE"
+    chmod 600 "$PASSWORD_FILE"
+    echo "✅ Nueva contraseña generada"
+  else
+    echo "❌ Error al resetear contraseña"
+    exit 1
+  fi
+fi
+
+ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+
+### 6. Esperar que el índice .security esté activo
+echo "🔐 Esperando a que el índice .security esté listo..."
+for i in $(seq 1 60); do
+  HEALTH=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200/_cluster/health/.security-7?pretty)
+  STATUS=$(echo "$HEALTH" | jq -r '.status')
+  ACTIVE_SHARDS=$(echo "$HEALTH" | jq -r '.active_primary_shards')
+  
+  if [ "$STATUS" = "green" ] && [ "$ACTIVE_SHARDS" -ge 1 ]; then
+    echo "✅ Índice .security-7 listo (status: $STATUS, shards: $ACTIVE_SHARDS)"
+    break
+  else
+    echo "⏳ Intento $i/60 - Status: $STATUS, Shards activos: $ACTIVE_SHARDS"
+    sleep 5
+  fi
+done
+
+### 7. Generar token de kibana
+echo "🔑 Generando token de servicio para Kibana..."
+RESPONSE=$(curl -k -s -u "elastic:$ELASTIC_PASSWORD" \
+  -X POST "https://localhost:9200/_security/service/elastic/kibana/credential/token" \
+  -H "Content-Type: application/json" \
+  -w '\n%{http_code}')
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | head -n-1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+  TOKEN=$(echo "$BODY" | jq -r '.token.value')
+  echo "$TOKEN" > "$KIBANA_TOKEN_PATH"
+  chmod 600 "$KIBANA_TOKEN_PATH"
+  echo "✅ Token de servicio creado con éxito: ${TOKEN:0:10}..."
+else
+  echo "❌ Error al crear token. Código HTTP: $HTTP_CODE"
+  echo "Respuesta: $BODY"
+  exit 1
+fi
+
+### 8. logstash_writer
+if [ ! -f "$LOGSTASH_PASSWORD_FILE" ]; then
+  LOGSTASH_PWD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+  echo "$LOGSTASH_PWD" > "$LOGSTASH_PASSWORD_FILE"
+  chmod 640 "$LOGSTASH_PASSWORD_FILE"
+fi
+
+LOGSTASH_PWD=$(cat "$LOGSTASH_PASSWORD_FILE")
+
+### 9. Crea el rol logstash_writer si no existe
+if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_security/role/logstash_writer" | grep -q '"found":true'; then
+  echo "🔐 Creando rol logstash_writer..."
+  curl -k -X PUT "https://localhost:9200/_security/role/logstash_writer" \
+    -H "Content-Type: application/json" \
+    -u "elastic:${ELASTIC_PASSWORD}" \
+    -d '{
+      "cluster": ["monitor", "manage_index_templates"],
+      "indices": [
+        {
+          "names": ["logs-*"],
+          "privileges": ["create_index", "write", "create", "delete_index"]
+        }
+      ]
+    }'
+fi
+
+### 10. Crea el usuaio
+if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_security/user/logstash_writer" | grep -q '"found":true'; then
+  echo "🔐 Creando usuario logstash_writer..."
+  curl -k -X POST "https://localhost:9200/_security/user/logstash_writer" \
+    -H "Content-Type: application/json" \
+    -u "elastic:${ELASTIC_PASSWORD}" \
+    -d '{
+      "password": "'"$LOGSTASH_PWD"'",
+      "roles": ["logstash_writer"],
+      "full_name": "Logstash Writer User"
+    }'
+fi
+
+echo "✅ Elasticsearch completamente inicializado"
+wait $ES_PID
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#!/bin/sh
+set -e
+
+echo "🚀 [START] Inicializando Elasticsearch..."
+
+PASSWORD_FILE="/usr/share/elasticsearch/secrets/elastic_password"
+CA_CERT_DIR="/usr/share/elasticsearch/config/certs"
+KIBANA_TOKEN_PATH="/usr/share/elasticsearch/secrets/kibana_token"
+MY_IP=$(hostname -i | awk '{print $1}')
+
+# Configurar permisos
+mkdir -p $(dirname "$PASSWORD_FILE")
+mkdir -p "$CA_CERT_DIR"
+chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/secrets
+chmod 750 /usr/share/elasticsearch/secrets
+
+### 1. Generar certificados TLS primero
+if [ ! -f "$CA_CERT_DIR/ca.zip" ]; then
+  echo "🔒 Generando certificados TLS..."
+
+  cat > "$CA_CERT_DIR/instances.yml" <<EOF
+instances:
+  - name: "elasticsearch"
+    dns:
+      - "elasticsearch"
+      - "localhost"
+    ip:
+      - "127.0.0.1"
+      - "$MY_IP"
+EOF
+
+  echo "📦 Generando CA..."
+  bin/elasticsearch-certutil ca --silent --pem -out "$CA_CERT_DIR/ca.zip"
+  unzip -q "$CA_CERT_DIR/ca.zip" -d "$CA_CERT_DIR"
+
+  echo "📦 Generando certificados..."
+  bin/elasticsearch-certutil cert --silent --pem -out "$CA_CERT_DIR/certs.zip" \
+    --in "$CA_CERT_DIR/instances.yml" \
+    --ca-cert "$CA_CERT_DIR/ca/ca.crt" --ca-key "$CA_CERT_DIR/ca/ca.key"
+  unzip -q "$CA_CERT_DIR/certs.zip" -d "$CA_CERT_DIR"
+
+  chmod -R 750 "$CA_CERT_DIR"
+fi
+
+### 2. Generar contraseña si no existe
+if [ ! -f "$PASSWORD_FILE" ]; then
+  echo "🔑 Generando contraseña inicial..."
+  ELASTIC_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+  echo "$ELASTIC_PASSWORD" > "$PASSWORD_FILE"
+  chmod 600 "$PASSWORD_FILE"
+fi
+
+### 3. Configuración dinámica (versión simplificada)
+echo "🛡 Preparando configuración dinámica..."
+{
+  echo "cluster.name: \"transcendence-cluster\""
+  echo "network.host: 0.0.0.0"
+  echo "discovery.type: single-node"
+  echo "xpack.security.enabled: true"
+  echo "xpack.security.authc.api_key.enabled: true"
+  echo "xpack.security.transport.ssl.enabled: true"
+  echo "xpack.security.transport.ssl.verification_mode: certificate"
+  echo "xpack.security.transport.ssl.key: certs/elasticsearch/elasticsearch.key"
+  echo "xpack.security.transport.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.transport.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.http.ssl.enabled: true"
+  echo "xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key"
+  echo "xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.http.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "cluster.routing.allocation.disk.threshold_enabled: false"
+} > /usr/share/elasticsearch/config/elasticsearch.yml
+
+### 3. Iniciar Elasticsearch con configuración segura
+echo "🌀 Iniciando Elasticsearch con seguridad..."
+export ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+exec /usr/local/bin/docker-entrypoint.sh &
+ES_PID=$!
+
+### 4. Esperar Elasticsearch esté completamente disponible
+echo "⏳ Esperando a que Elasticsearch esté disponible..."
+for i in $(seq 1 60); do  # Aumentado a 60 intentos
+  if curl -s -k -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_cluster/health | grep -q '"status":"green"' || grep -q '"status":"yellow"'; then
+    echo "✅ Elasticsearch está disponible"
+    break
+  else
+    echo "🔄 Intento $i/60 - Esperando..."
+    sleep 5
+  fi
+done
+
+### 5. Verificar credenciales
+echo "🔐 Verificando credenciales..."
+RESPONSE=$(curl -k -s -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_security/_authenticate)
+echo "Respuesta de autenticación: $RESPONSE"
+if echo "$RESPONSE" | grep -q '"username":"elastic"'; then
+  echo "✅ Autenticación correcta"
+else
+  echo "⚠️ Autenticación fallida"
+  # Aquí debería restablecer la contraseña si es necesario
+  NEW_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+  #if bin/elasticsearch-reset-password --batch --user elastic -u "https://localhost:9200" --insecure -b "$NEW_PASSWORD"; then
+  if bin/elasticsearch-reset-password --batch --user elastic --url "https://localhost:9200" --batch "$NEW_PASSWORD"; then
+    echo "$NEW_PASSWORD" > "$PASSWORD_FILE"
+    chmod 600 "$PASSWORD_FILE"
+    echo "✅ Nueva contraseña generada"
+  else
+    echo "❌ Error al resetear contraseña"
+    exit 1
+  fi
+fi
+
+ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+
+### 6. Esperar que el índice .security esté activo
+echo "🔐 Esperando a que el índice .security esté listo..."
+for i in $(seq 1 60); do
+  HEALTH=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200/_cluster/health/.security-7?pretty)
+  STATUS=$(echo "$HEALTH" | jq -r '.status')
+  ACTIVE_SHARDS=$(echo "$HEALTH" | jq -r '.active_primary_shards')
+  
+  if [ "$STATUS" = "green" ] && [ "$ACTIVE_SHARDS" -ge 1 ]; then
+    echo "✅ Índice .security-7 listo (status: $STATUS, shards: $ACTIVE_SHARDS)"
+    break
+  else
+    echo "⏳ Intento $i/60 - Status: $STATUS, Shards activos: $ACTIVE_SHARDS"
+    sleep 5
+  fi
+done
+
+### 7. Generar token
+echo "🔑 Generando token de servicio para Kibana..."
+RESPONSE=$(curl -k -s -u "elastic:$ELASTIC_PASSWORD" \
+  -X POST "https://localhost:9200/_security/service/elastic/kibana/credential/token" \
+  -H "Content-Type: application/json" \
+  -w '\n%{http_code}')
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | head -n-1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+  TOKEN=$(echo "$BODY" | jq -r '.token.value')
+  echo "$TOKEN" > "$KIBANA_TOKEN_PATH"
+  chmod 600 "$KIBANA_TOKEN_PATH"
+  echo "✅ Token de servicio creado con éxito: ${TOKEN:0:10}..."
+else
+  echo "❌ Error al crear token. Código HTTP: $HTTP_CODE"
+  echo "Respuesta: $BODY"
+  exit 1
+fi
+
+echo "✅ Elasticsearch completamente inicializado"
+wait $ES_PID

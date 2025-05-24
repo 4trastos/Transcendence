@@ -306,6 +306,24 @@ services:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
 
+  # Microservicios (Backend Reestructurado)
+
+  auth-service:
+    build: ./dockers/microservices/auth
+    ports:
+      - "3004:3000"
+    networks:
+      - transcendence
+    depends_on:
+      - sqlite
+
+  user-service:
+    build: ./dockers/microservices/users
+    ports:
+      - "3005:3000"
+    networks:
+      - transcendence
+
 volumes:
   sqlite_data:
     name: sqlite_data

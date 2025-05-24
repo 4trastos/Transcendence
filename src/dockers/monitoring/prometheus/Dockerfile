@@ -34,7 +34,7 @@ RUN mkdir -p /etc/prometheus/ssl /prometheus /data && \
 COPY prometheus.yml /etc/prometheus/prometheus.yml
 COPY alert_rules.yml /etc/prometheus/alert_rules.yml
 COPY web-config.yml /etc/prometheus/web-config.yml
-COPY entrypoint.sh /prometheus/scripts/entrypoint.sh
+COPY entrypoint.sh /prometheus/scripts/
 
 # Asignar permisos
 RUN chmod +x /prometheus/scripts/entrypoint.sh
