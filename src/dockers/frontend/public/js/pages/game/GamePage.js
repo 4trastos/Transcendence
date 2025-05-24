@@ -12,17 +12,37 @@ export class GamePage extends Component {
     }
     renderTemplate() {
         return `
-      <div 
-        class="overflow-auto flex items-center justify-center min-h-screen" 
-        <div class="flex">
-          <canvas id="pong" width="800" height="400"></canvas>
-        </div>
-        <div class="flex space-x-4 text-white text-lg mt-4">
-          <label id="player1id">Player 1</label><label id="points_1">0</label>
-          <label id="player2id">Player 2</label><label id="points_2">0</label>
+<div class="w-screen h-screen my-12 xl:my-0 flex flex-col justify-center items-center">
+  <div id="game" class="bg-[#11162F] shadow-black shadow-xl relative overflow-hidden z-50">
+    <div class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
+      <!-- Encabezado -->
+      <div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
+        <div> 
+          <h2 class="text-white text-sm font-ligth">Mensajes</h2>
         </div>
       </div>
+      <div class="relative overflow-auto flex items-center justify-center">
+        <!-- Canvas -->
+        <canvas id="pong" width="800" height="400" class="z-0"></canvas>
+      </div>
+      <div class="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b rounded-l from-[#E615F2] to-[#1ADEF9]"></div>
+      <div class="absolute inset-y-0 right-0 w-[5px] bg-gradient-to-b rounded-r from-[#E615F2] to-[#1ADEF9]"></div>
+
+    </div>
+  </div>
+</div>
     `;
+    }
+    drawPaddle(paddle) {
+        if (!this.ctx || !this.canvas)
+            return;
+        const ctx = this.ctx;
+        // Crear un gradiente lineal desde arriba hacia abajo de la paleta
+        const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
+        gradient.addColorStop(0, '#E615F2'); // Color arriba
+        gradient.addColorStop(1, '#1ADEF9'); // Color abajo
+        ctx.fillStyle = gradient;
+        ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     }
     async initEvents() {
         this.canvas = this.element?.querySelector("#pong");
@@ -64,14 +84,12 @@ export class GamePage extends Component {
     draw() {
         if (!this.ctx || !this.canvas)
             return;
-        this.ctx.fillStyle = "black";
+        this.ctx.fillStyle = "#11162F";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.fillStyle = "#EEEEEE";
         this.ctx.fillRect(this.canvas.width / 2 - 8, 0, 8, this.canvas.height);
-        this.ctx.fillStyle = this.player1.color;
-        this.ctx.fillRect(this.player1.x, this.player1.y, this.player1.width, this.player1.height);
-        this.ctx.fillStyle = this.player2.color;
-        this.ctx.fillRect(this.player2.x, this.player2.y, this.player2.width, this.player2.height);
+        this.drawPaddle(this.player1);
+        this.drawPaddle(this.player2);
         this.ctx.fillStyle = this.ball.color;
         this.ctx.beginPath();
         this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, 2 * Math.PI);
