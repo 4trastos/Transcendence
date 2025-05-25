@@ -13,7 +13,6 @@ class State {
 }
 
 class GameState  {
-	private state: State;
 	constructor() {
 	}
 }

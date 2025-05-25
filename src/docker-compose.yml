@@ -85,15 +85,12 @@ services:
 
 
   frontend:   # Frontend (TypeScript + Tailwind)
-    build: dockers/frontend/.
+    build:
+      context: ./dockers/frontend/
+      dockerfile: Dockerfile
     container_name: frontend
-    image: node:18-alpine
-    volumes:
-      - frontend_data:/usr/src/app      # Volumen para el código fuente
-      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
-    command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
-      - "3001:3001"
+      - "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped

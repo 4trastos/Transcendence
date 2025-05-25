@@ -7,16 +7,16 @@ export class ProfilePage extends Component {
     super();
     this.template = `
         <div class="w-full h-full my-12 flex flex-col justify-center items-center">
-			<div id="profile" class="flex flex-col w-full h-full space-y-6">
-			    <!-- Carga los datos del profile: fdp, username, email... -->
+            <div id="profile" class="flex flex-col w-full h-full space-y-6">
+                <!-- Carga los datos del profile: fdp, username, email... -->
                 <div id="div-img" class="flex"></div>
                 <div id="div-username" class="flex">
                 </div>
                 <hr class="border-white border-t-3 h-1 w-3/4 ml-0 sm:w-2/3 md:w-1/2 lg:w-1/3"/>
                 <div id="div-detail"></div>
-		    </div>		
-		</div>
-		`;
+            </div>		
+        </div>
+        `;
     }
 
     protected async initEvents(): Promise<void> {
