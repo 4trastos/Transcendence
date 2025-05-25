@@ -95,4 +95,4 @@ RUN chmod +x /zap/wrk/*.sh
 
 EXPOSE 8081 8200
 
-ENTRYPOINT ["/zap/wrk/entrypoint.sh"]
+CMD ["bash","/zap/wrk/entrypoint.sh"]

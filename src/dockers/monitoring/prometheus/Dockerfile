@@ -42,4 +42,4 @@ RUN chmod +x /prometheus/scripts/entrypoint.sh
 USER nobody
 
 EXPOSE 9090
-ENTRYPOINT ["/prometheus/scripts/entrypoint.sh"]
+CMD ["sh","/prometheus/scripts/entrypoint.sh"]

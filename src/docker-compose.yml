@@ -5,7 +5,9 @@ networks:
 
 services:
   sqlite:   # Base de datos (SQLite)
-    build: dockers/sqlite/.
+    build:
+      context: ./dockers/sqlite/
+      dockerfile: Dockerfile
     container_name: sqlite
     image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
@@ -98,7 +100,9 @@ services:
       - backend
 
   security:
-    build: dockers/security/.
+    build:
+      context: ./dockers/frontend/
+      dockerfile: Dockerfile
     container_name: security
     image: softwaresecurityproject/zap-stable
     ports:
@@ -120,7 +124,6 @@ services:
       - zap_reports:/zap/reports    # Reportes de ZAP
       - vault_data:/vault/data      # Datos persistentes de Vault
       - tls_volume:/etc/vault/tls   # Certificados TLS (única ubicación)
-    entrypoint: ["/zap/wrk/entrypoint.sh"]
     networks:
       transcendence:
         aliases:
