@@ -17,4 +17,4 @@ RUN chmod +x /var/lib/sqlite/init_db.sh
 WORKDIR /var/lib/sqlite
 
 # Ejecuta el script al iniciar el contenedor
-ENTRYPOINT ["/var/lib/sqlite/init_db.sh"]
+CMD ["sh","/var/lib/sqlite/init_db.sh"]

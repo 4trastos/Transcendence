@@ -9,7 +9,6 @@ services:
       context: ./dockers/sqlite/
       dockerfile: Dockerfile
     container_name: sqlite
-    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
     volumes:
       - sqlite_data:/var/lib/sqlite
     networks:
@@ -132,7 +131,6 @@ services:
 
   elasticsearch:
     build: ./dockers/management/elasticsearch
-    image: elasticsearch:8.12.0
     container_name: elasticsearch
     hostname: elasticsearch
     environment:
@@ -305,24 +303,6 @@ services:
     ports:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
-
-  # Microservicios (Backend Reestructurado)
-
-  auth-service:
-    build: ./dockers/microservices/auth
-    ports:
-      - "3004:3000"
-    networks:
-      - transcendence
-    depends_on:
-      - sqlite
-
-  user-service:
-    build: ./dockers/microservices/users
-    ports:
-      - "3005:3000"
-    networks:
-      - transcendence
 
 volumes:
   sqlite_data:

@@ -101,7 +101,7 @@ ES_PID=$!
 ### 4. Esperar Elasticsearch esté completamente disponible
 echo "⏳ Esperando a que Elasticsearch esté disponible..."
 for i in $(seq 1 60); do  # Aumentado a 60 intentos
-  if curl -s -k -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_cluster/health | grep -q '"status":"green"' || grep -q '"status":"yellow"'; then
+  if curl -s -k -u "elastic:$(cat $PASSWORD_FILE)" https://localhost:9200/_cluster/health | grep -qE '"status":"(green|yellow)"'; then
     echo "✅ Elasticsearch está disponible"
     break
   else
