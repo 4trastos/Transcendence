@@ -7,7 +7,7 @@ export class ProfilePage extends Component {
     super();
     this.template = `
         <div class="w-full h-full my-12 flex flex-col justify-center items-center">
-            <div id="profile" class="flex flex-col w-full h-full space-y-6">
+            <div id="profile" class="flex flex-col w-fit h-fit space-y-6">
                 <!-- Carga los datos del profile: fdp, username, email... -->
                 <div id="div-img" class="flex"></div>
                 <div id="div-username" class="flex">
@@ -31,7 +31,7 @@ export class ProfilePage extends Component {
             const divDetail = this.element.querySelector("#div-detail") as HTMLElement
 
             const src = '/images/pfp.jpg'
-            const img = new ProfileImage({src});
+            const img = new ProfileImage({src, size:4});
             divImg.appendChild(img.render());
 
             const username = new Label({id: 'username', content: 'Xxx_ManoloGamer69_xxX'})

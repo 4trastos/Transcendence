@@ -2,14 +2,14 @@ import { Component, ComponentProps, mount } from "../../utils/component";
 import { GameData, GameStarter } from "./GameSate";
 
 export class GamePage extends Component {
-
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private player1Score = 0;
   private player2Score = 0;
   private player1CanHit = true;
   private player2CanHit = true;
-
+  private status: string = "";
+  private gameState: GameStarter;
   private player1: any;
   private player2: any;
   private ball: any;
@@ -17,6 +17,14 @@ export class GamePage extends Component {
   constructor() {
     super();
     this.template = this.renderTemplate();
+    this.gameState = new GameStarter({
+      onComplete: (data: GameData) => {
+        this.resetScore();
+        //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
+        console.log("Datos del juego completos: INICIAMOS");
+        this.status = "started";
+      }
+    });
   }
 
   renderTemplate() {
@@ -94,17 +102,13 @@ export class GamePage extends Component {
 
   private buildState() {
     if (!this.element) return;
-    const game = new GameStarter( {
-      onComplete: (data: GameData) => {
-        console.log("Datos del juego completos:", data);
-      }
-    });
+
     this.element?.getElementsByClassName
     const stateGame = this.element?.querySelector(
           "#state-game-container"
         ) as HTMLElement;
 
-    stateGame.appendChild(game.render());
+    stateGame.appendChild(this.gameState.render());
   }
   protected drawPaddle(paddle:any) {
       if (!this.ctx || !this.canvas) return;
@@ -197,11 +201,31 @@ export class GamePage extends Component {
     this.player2CanHit = true;
   }
 
+  private resetScore(){
+    const p1 = this.element?.querySelector("#points_1");
+    const p2 = this.element?.querySelector("#points_2");
+    if (p1)
+      p1.textContent = String(0);
+    if (p2)
+      p2.textContent = String(0);
+    this.player1Score = 0;
+    this.player2Score = 0;
+    return;
+
+  }
   private updateScore() {
     const p1 = this.element?.querySelector("#points_1");
     const p2 = this.element?.querySelector("#points_2");
-    if (p1) p1.textContent = String(this.player1Score);
-    if (p2) p2.textContent = String(this.player2Score);
+    if (this.status==='started' && (this.player1Score >= 3 || this.player1Score >= 3)) {
+      this.resetScore();
+      this.gameState.setStatus('finished');
+      this.status = 'finished';
+      return;
+    }
+    if (p1)
+      p1.textContent = String(this.player1Score);
+    if (p2)
+      p2.textContent = String(this.player2Score);
   }
 }
 
