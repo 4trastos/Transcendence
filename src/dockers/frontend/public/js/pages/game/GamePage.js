@@ -1,4 +1,5 @@
 import { Component } from "../../utils/component.js";
+import { GameStarter } from "./GameSate.js";
 export class GamePage extends Component {
     constructor() {
         super();
@@ -8,41 +9,48 @@ export class GamePage extends Component {
         this.player2Score = 0;
         this.player1CanHit = true;
         this.player2CanHit = true;
+        this.status = "";
         this.template = this.renderTemplate();
+        this.gameState = new GameStarter({
+            onComplete: (data) => {
+                this.resetScore();
+                //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
+                console.log("Datos del juego completos: INICIAMOS");
+                this.status = "started";
+            }
+        });
     }
     renderTemplate() {
         return `
 <div class="w-screen h-screen my-12 xl:my-0 flex flex-col justify-center items-center">
-  <div id="game" class="bg-[#11162F] shadow-black shadow-xl relative overflow-hidden z-50">
-    <div class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
-      <!-- Encabezado -->
-      <div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
-        <div> 
-          <h2 class="text-white text-sm font-ligth">Mensajes</h2>
-        </div>
-      </div>
-      <div class="relative overflow-auto flex items-center justify-center">
-        <!-- Canvas -->
-        <canvas id="pong" width="800" height="400" class="z-0"></canvas>
-      </div>
-      <div class="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b rounded-l from-[#E615F2] to-[#1ADEF9]"></div>
-      <div class="absolute inset-y-0 right-0 w-[5px] bg-gradient-to-b rounded-r from-[#E615F2] to-[#1ADEF9]"></div>
+  <div id="game" class="bg-[#11162F] shadow-[0_0_20px_rgba(0,0,0,0.3)]  shadow-xl relative overflow-hidden z-50">
 
-    </div>
+    <div class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
+        <!-- Encabezado -->
+        <div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
+          <div class="flex flex-row items-center gap-4" > 
+          <h2 id="player_1" class="pointer-events-none text-white text-sm font-semibold">Player 1</h2>
+          <h2 id="points_1" class="pointer-events-none text-white text-sm font-bold">0</h2>
+          <hr id="divider" class="h-4 border-xl border-white border-opacity-15" />
+
+            <h2 id="player_2" class="pointer-events-none text-white text-sm font-semibold">Player 2</h2>
+            <h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
+          </div>
+        </div>
+        <div class="relative overflow-auto flex items-center justify-center">
+          <!-- Canvas -->
+          <canvas id="pong" width="800" height="400" class="z-0"></canvas>
+        </div>
+        <div class="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b rounded-l from-[#E615F2] to-[#1ADEF9]"></div>
+        <div class="absolute inset-y-0 right-0 w-[5px] bg-gradient-to-b rounded-r from-[#E615F2] to-[#1ADEF9]"></div>
+
+      </div>
+
+      <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
+      </div>
   </div>
 </div>
     `;
-    }
-    drawPaddle(paddle) {
-        if (!this.ctx || !this.canvas)
-            return;
-        const ctx = this.ctx;
-        // Crear un gradiente lineal desde arriba hacia abajo de la paleta
-        const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
-        gradient.addColorStop(0, '#E615F2'); // Color arriba
-        gradient.addColorStop(1, '#1ADEF9'); // Color abajo
-        ctx.fillStyle = gradient;
-        ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     }
     async initEvents() {
         this.canvas = this.element?.querySelector("#pong");
@@ -80,6 +88,25 @@ export class GamePage extends Component {
             requestAnimationFrame(gameLoop);
         };
         gameLoop();
+        this.buildState();
+    }
+    buildState() {
+        if (!this.element)
+            return;
+        this.element?.getElementsByClassName;
+        const stateGame = this.element?.querySelector("#state-game-container");
+        stateGame.appendChild(this.gameState.render());
+    }
+    drawPaddle(paddle) {
+        if (!this.ctx || !this.canvas)
+            return;
+        const ctx = this.ctx;
+        // Crear un gradiente lineal desde arriba hacia abajo de la paleta
+        const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
+        gradient.addColorStop(0, '#E615F2'); // Color arriba
+        gradient.addColorStop(1, '#1ADEF9'); // Color abajo
+        ctx.fillStyle = gradient;
+        ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     }
     draw() {
         if (!this.ctx || !this.canvas)
@@ -143,9 +170,26 @@ export class GamePage extends Component {
         this.player1CanHit = true;
         this.player2CanHit = true;
     }
+    resetScore() {
+        const p1 = this.element?.querySelector("#points_1");
+        const p2 = this.element?.querySelector("#points_2");
+        if (p1)
+            p1.textContent = String(0);
+        if (p2)
+            p2.textContent = String(0);
+        this.player1Score = 0;
+        this.player2Score = 0;
+        return;
+    }
     updateScore() {
         const p1 = this.element?.querySelector("#points_1");
         const p2 = this.element?.querySelector("#points_2");
+        if (this.status === 'started' && (this.player1Score >= 3 || this.player1Score >= 3)) {
+            this.resetScore();
+            this.gameState.setStatus('finished');
+            this.status = 'finished';
+            return;
+        }
         if (p1)
             p1.textContent = String(this.player1Score);
         if (p2)

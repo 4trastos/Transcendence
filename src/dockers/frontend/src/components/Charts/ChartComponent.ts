@@ -34,7 +34,7 @@ export class ChartComponent extends Component {
 
   renderTemplate() {
 	return `
-	<div id="${this.props.id}" class="backdrop-blur-3xl bg-opacity-15 bg-[#1D1F2B] w-[38rem] h-[22rem] border border-white border-opacity-15 rounded-2xl shadow-lg flex flex-col overflow-hidden xl:col-span-1 justify-center items-center">
+	<div id="${this.props.id}" class="backdrop-3xl bg-opacity-15 bg-[#1D1F2B] w-[38rem] h-[22rem] border border-white border-opacity-15 px-5 rounded-2xl shadow-lg flex flex-col overflow-hidden xl:col-span-1 justify-center items-center">
 		<!-- Header del chat -->	
 		<div id="${this.props.id}-header" class="relative flex justify-center items-center space-x-2 px-4 py-2 text-center text-white text-sm">
 		Games won per day

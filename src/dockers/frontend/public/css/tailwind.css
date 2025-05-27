@@ -779,6 +779,10 @@ video {
   height: 12rem;
 }
 
+.h-\[2\.5rem\] {
+  height: 2.5rem;
+}
+
 .h-\[22rem\] {
   height: 22rem;
 }
@@ -844,8 +848,16 @@ video {
   width: 1.75rem;
 }
 
+.w-\[10rem\] {
+  width: 10rem;
+}
+
 .w-\[18rem\] {
   width: 18rem;
+}
+
+.w-\[2rem\] {
+  width: 2rem;
 }
 
 .w-\[38rem\] {
@@ -854,6 +866,10 @@ video {
 
 .w-\[5px\] {
   width: 5px;
+}
+
+.w-\[8rem\] {
+  width: 8rem;
 }
 
 .w-fit {
@@ -1199,6 +1215,14 @@ video {
   --tw-bg-opacity: 0.05;
 }
 
+.bg-\[linear-gradient\(45deg\2c _\#E615F2\2c _\#1ADEF9\)\] {
+  background-image: linear-gradient(45deg, #E615F2, #1ADEF9);
+}
+
+.bg-\[linear-gradient\(45deg\2c _\#E615F24d\2c _\#1ADEF94d\)\] {
+  background-image: linear-gradient(45deg, #E615F24d, #1ADEF94d);
+}
+
 .bg-gradient-to-b {
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
 }
@@ -1222,6 +1246,10 @@ video {
      object-fit: cover;
 }
 
+.p-1 {
+  padding: 0.25rem;
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -1236,6 +1264,15 @@ video {
 
 .p-6 {
   padding: 1.5rem;
+}
+
+.p-\[1px\] {
+  padding: 1px;
+}
+
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .px-2 {
@@ -1256,6 +1293,11 @@ video {
 .px-6 {
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+.px-\[5px\] {
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .py-2 {
@@ -1383,8 +1425,24 @@ video {
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
+.text-white\/30 {
+  color: rgb(255 255 255 / 0.3);
+}
+
 .underline {
   text-decoration-line: underline;
+}
+
+.shadow-\[0_0_20px_rgba\(0\2c 0\2c 0\2c 0\.3\)\] {
+  --tw-shadow: 0 0 20px rgba(0,0,0,0.3);
+  --tw-shadow-colored: 0 0 20px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.shadow-\[0_0_20px_rgba\(0\2c 0\2c 0\2c 0\.5\)\] {
+  --tw-shadow: 0 0 20px rgba(0,0,0,0.5);
+  --tw-shadow-colored: 0 0 20px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
 .shadow-lg {
@@ -1471,6 +1529,10 @@ video {
 
 .hover\:bg-white\/10:hover {
   background-color: rgb(255 255 255 / 0.1);
+}
+
+.hover\:bg-white\/30:hover {
+  background-color: rgb(255 255 255 / 0.3);
 }
 
 .hover\:bg-opacity-5:hover {
