@@ -558,13 +558,14 @@ class HandleTournamentState implements GameState {
     this.context.onChange(()=>{
       const matchData:MatchData = this.context.getMatchData();
       if (matchData.status === 'finished') {
-        console.log("Players: ", this.players);
+        console.log("Players: , Winner", this.players, matchData.winner);
         if (matchData.winner) {
-          this.nextPlayers?.push(matchData.winner);
+          if (!this.nextPlayers) this.nextPlayers = new Array(matchData.winner);
+          else this.nextPlayers?.push(matchData.winner);
           this.context.addWinner(matchData.winner, this.round);
         }
         this.players = this.players?.filter(item=>!matchData.players?.includes(item));
-        console.log("Filter-Players: ", matchData.players, this.players);
+        console.log("Filter-Players: ",matchData.players,this.players,", nextPlayers", this.nextPlayers);
         this.container.innerHTML = '';
         const resultGame = new ResultGameComponent({
           name: matchData.winner!,
@@ -591,7 +592,7 @@ class HandleTournamentState implements GameState {
       this.round++;
     }
     else if ((!this.players || this.players.length <= 1)) {
-      //TODO: Ya finalizo el Juego, que hacemos? reiniciamos?
+      //TODO: Ya finalizo el Juego, Debemos pasar a una pantalla de Informacion de Final
       //TODO: Crear un Componente que diga, volver a Jugar, y que haga un CallBack para reiniciar
       console.log("Finalizamos el Torneo", this.players);
       this.context.setState(new ChooseGameTypeState(this.context));
@@ -608,7 +609,6 @@ class HandleTournamentState implements GameState {
           status:'started',
           players: [fisrt ,second], // Dos jugadores aleatorios
         });
-        this.container.innerHTML= '';
         this.context.completeGameSetup();
       }
     });
@@ -713,8 +713,20 @@ class ResultGameComponent extends Component {
     if (!this.element) return;
 
     const btnContinue = this.element.querySelector('#btn-continue');
-    btnContinue?.addEventListener('click', ()=>this.props.onContinue());
+    btnContinue?.addEventListener('click', ()=>{
+      this.props.onContinue();
+      this.destroy();
 
+    });
   }
 
+  protected destroy() {
+    if (this.element && this.element.parentNode) {
+      this.element.parentNode.removeChild(this.element);
+    }
+
+    if (typeof this.props.onDestroy === 'function') {
+      this.props.onContinue();
+    }
+  }
 }

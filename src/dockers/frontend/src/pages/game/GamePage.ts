@@ -20,6 +20,13 @@ export class GamePage extends Component {
     this.gameState = new GameStarter({
       onComplete: (data: MatchData) => {
         this.matchData = data;
+        const p1 = this.element?.querySelector("#player_1");
+        const p2 = this.element?.querySelector("#player_2");
+        if (p1)
+          p1.textContent = data.players? data.players[0] : "";
+        if (p2)
+          p2.textContent = data.players? data.players[1] : "";
+
         this.resetScore();
         //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
         console.log("Datos del juego completos: INICIAMOS");
