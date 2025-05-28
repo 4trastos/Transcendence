@@ -11,7 +11,7 @@
 		"dev:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/tailwind.css --watch",
 		"dev:ts": "tsc --watch && node scripts/copy-dist.js",
 		"dev:server": "nodemon server.js",
-		"dev": "concurrently \"npm run dev:css\" \"npm run dev:ts\" \"npm run build\" \"npm run dev:server\"",
+		"dev": "concurrently \"npm run dev:css\" \"npm run dev:ts\" \"npm run build:ts\" \"npm run dev:server\"",
 		"start": "node server.js"
 	},
 	"dependencies": {
