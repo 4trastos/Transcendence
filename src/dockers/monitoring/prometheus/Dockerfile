@@ -1,20 +1,13 @@
-<<<<<<< HEAD
 FROM debian:bullseye-slim
 
-# Instalar dependencias necesarias
+# Instalar dependencias
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl \
-        ca-certificates \
-        openssl \
-        tar \
-        gzip && \
+        curl ca-certificates openssl && \
     rm -rf /var/lib/apt/lists/*
 
-# Definir versión de Prometheus
+# Instalar Prometheus
 ENV PROM_VERSION=2.52.0
-
-# Descargar y extraer Prometheus
 RUN curl -LO https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz && \
     tar -xzf prometheus-${PROM_VERSION}.linux-amd64.tar.gz && \
     mv prometheus-${PROM_VERSION}.linux-amd64 /opt/prometheus && \
@@ -22,48 +15,17 @@ RUN curl -LO https://github.com/prometheus/prometheus/releases/download/v${PROM_
     ln -s /opt/prometheus/promtool /usr/local/bin/promtool && \
     rm prometheus-${PROM_VERSION}.linux-amd64.tar.gz
 
-# Crear estructura de directorios Y generar certificados automáticamente
-RUN mkdir -p /etc/prometheus/ssl /prometheus /data && \
-    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-      -keyout /etc/prometheus/ssl/prometheus.key -out /etc/prometheus/ssl/prometheus.crt \
-      -subj "/CN=prometheus" && \
-    chown -R nobody:nogroup /etc/prometheus /prometheus /data && \
-    chmod -R 750 /etc/prometheus /data && \
-    chmod 600 /etc/prometheus/ssl/prometheus.key
+# Crear estructura de directorios
+RUN mkdir -p /etc/prometheus/certs /prometheus/data && \
+    chown -R nobody:nogroup /etc/prometheus /prometheus && \
+    chmod -R 750 /etc/prometheus/certs && \
+    chmod 755 /prometheus/data
 
-# Copiar archivos de configuración y scripts
-COPY prometheus.yml /etc/prometheus/prometheus.yml
-COPY alert_rules.yml /etc/prometheus/alert_rules.yml
-COPY web-config.yml /etc/prometheus/web-config.yml
+# Copiar archivos de configuración
+COPY prometheus.yml alert_rules.yml web-config.yml /etc/prometheus/
 COPY entrypoint.sh /prometheus/scripts/entrypoint.sh
-
-# Asignar permisos
 RUN chmod +x /prometheus/scripts/entrypoint.sh
 
 USER nobody
-
 EXPOSE 9090
 ENTRYPOINT ["/prometheus/scripts/entrypoint.sh"]
-=======
-FROM prom/prometheus:latest
-
-# Copiar configuración
-COPY prometheus.yml /etc/prometheus/prometheus.yml
-
-# Crear directorio en /prometheus donde nobody ya tiene permisos
-RUN mkdir -p /prometheus/scripts && \
-    chown nobody:nobody /prometheus/scripts
-
-# Cambiar a root temporalmente para copiar el entrypoint
-USER root
-
-COPY entrypoint.sh /prometheus/scripts/entrypoint.sh
-RUN chmod +x /prometheus/scripts/entrypoint.sh
-USER nobody
-
-# Puerto expuesto
-EXPOSE 9090
-
-# Punto de entrada
-ENTRYPOINT ["/prometheus/scripts/entrypoint.sh"]
->>>>>>> integration
