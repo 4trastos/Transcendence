@@ -1,4 +1,5 @@
 dist/
+
 src/dockers/frontend/public/js/*
 src/dockers/frontend/public/css/*
 src/dockers/chat-service/node_modules/.package-lock.json
