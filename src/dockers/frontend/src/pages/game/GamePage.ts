@@ -1,5 +1,5 @@
 import { Component, ComponentProps, mount } from "../../utils/component";
-import { GameData, GameStarter } from "./GameSate";
+import { GameData, GameStarter, MatchData } from "./GameSate";
 
 export class GamePage extends Component {
   private canvas: HTMLCanvasElement | null = null;
@@ -8,21 +8,21 @@ export class GamePage extends Component {
   private player2Score = 0;
   private player1CanHit = true;
   private player2CanHit = true;
-  private status: string = "";
   private gameState: GameStarter;
   private player1: any;
   private player2: any;
   private ball: any;
+  private matchData?: MatchData;
 
   constructor() {
     super();
     this.template = this.renderTemplate();
     this.gameState = new GameStarter({
-      onComplete: (data: GameData) => {
+      onComplete: (data: MatchData) => {
+        this.matchData = data;
         this.resetScore();
         //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
         console.log("Datos del juego completos: INICIAMOS");
-        this.status = "started";
       }
     });
   }
@@ -110,6 +110,7 @@ export class GamePage extends Component {
 
     stateGame.appendChild(this.gameState.render());
   }
+
   protected drawPaddle(paddle:any) {
       if (!this.ctx || !this.canvas) return;
 
@@ -214,12 +215,20 @@ export class GamePage extends Component {
 
   }
   private updateScore() {
+    if (!this.matchData) return;
     const p1 = this.element?.querySelector("#points_1");
     const p2 = this.element?.querySelector("#points_2");
-    if (this.status==='started' && (this.player1Score >= 3 || this.player1Score >= 3)) {
+    if (this.matchData.status==='started' && (this.player2Score >= 3 || this.player1Score >= 3) && this.matchData.players) {
+      let winnerName;
+      if (this.player1Score >= 3)
+        this.matchData.winner = this.matchData.players[0];
+      else if (this.player2Score >= 3)
+        this.matchData.winner = this.matchData.players[1];
+
+      this.matchData.status = "finished";
       this.resetScore();
-      this.gameState.setStatus('finished');
-      this.status = 'finished';
+      this.gameState.setMatchData(this.matchData);
+      console.log("Juego finalizado");
       return;
     }
     if (p1)

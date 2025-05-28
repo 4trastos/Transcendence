@@ -2,21 +2,38 @@ import { Component,ComponentProps } from "../../utils/component"
 
 
 type Observer = ()=>void;
-function reactive<T extends object>(obj: T): [T, (observer: Observer) => void] {
+function reactive<T extends object>(obj: T): [T, {
+  subscribe: (observer: Observer) => void,
+  clearObservers:()=>void,
+  pause: () => void;
+  resume: () => void;
+  }] {
   const observers = new Set<Observer>();
+  let paused = false;
 
   const proxy = new Proxy(obj, {
     set(target, prop, value) {
       const changed = target[prop as keyof T] !== value;
       target[prop as keyof T] = value;
-      if (changed){
+      if (changed && !paused){
         observers.forEach(cb => cb());
       }
       return true;
     }
   });
   const subscribe = (fn: Observer) => observers.add(fn);
-  return [proxy, subscribe];
+  const clearObservers = () =>{
+    observers.clear();
+  }
+       
+
+  return [proxy, {
+    subscribe,
+    clearObservers,
+    pause: () => { paused = true; },
+     resume: () => { paused = false; },
+    }
+  ];
 }
 
 
@@ -30,22 +47,37 @@ export interface GameState {
 }
 export interface GameData {
   gameType?: string;
+  winners?:{winner:string, round:number}[];
   playersCount?: number;
   players?: string[];
   status?: string;
 }
 
+export interface MatchData {
+  players?: string[];
+  status?: string;
+  winner?: string;
+}
+
 export class GameStarter extends Component {
   private state: GameState;//Utilizo Proxy para que se quede escuchando un evento, que es el de ganador o no
   private _subscribe: (cb:()=>void) => void;
+  private _clearObservers: () => void;
+  private _pause: ()=>void;
+  private _resume: ()=>void;
 
   protected gameData: GameData;
+  protected matchData: MatchData;
 
   constructor(props: GameStarterProps) {
     super(props);
-    const [reactiveData, subscribe] = reactive({players: []});
+    const [reactiveData, {subscribe, clearObservers, pause, resume}] = reactive({players: []});
     this._subscribe = subscribe;
-    this.gameData = reactiveData;
+    this._clearObservers = clearObservers;
+    this.matchData = reactiveData;
+    this._resume = resume;
+    this._pause = pause;
+    this.gameData = {players:[]};
     this.state = new ChooseGameTypeState(this);
   }
 
@@ -56,8 +88,11 @@ export class GameStarter extends Component {
   public onChange(cb:()=> void) {
     this._subscribe(cb);
   }
+
   public setState(state: GameState) {
     this.state = state;
+    console.log("Me desuscribo");
+    this._clearObservers();
     this.update();
   }
 
@@ -71,25 +106,36 @@ export class GameStarter extends Component {
 
   public setPlayersCount(count: number) {
     this.gameData.playersCount = count;
-    this.gameData.players = new Array(count).fill('');
+    this.gameData.players = new Array(count)
+      .fill('')
+      .map((_, i) => `Player ${i + 1}`);
+
   }
 
-  public setStatus(status: string) {
-    this.gameData.status = status;
+  public setMatchData(matchData: MatchData) {
+    this._pause();
+    this.matchData.status = matchData.status;
+    this.matchData.winner = matchData.winner;
+    this._resume();
+    this.matchData.players = matchData.players;
   }
-  public setPlayer(index: number, name: string) {
+  public addWinner(winner: string, round: number){
+    this.gameData.winners?.push({winner:winner, round:round});
+  }
+  public setPlayer(index:number, name: string) {
     if (this.gameData.players) {
       this.gameData.players[index] = name;
     }
   }
-
+  public getMatchData(): MatchData {
+    return this.matchData;
+  }
   public getGameData(): GameData {
     return this.gameData;
   }
   public completeGameSetup() {
     if (this.props.onComplete) {
-    
-      this.props.onComplete(this.gameData);
+      this.props.onComplete(this.matchData);
     }
   }
   // Lógica principal para renderizar el estado actual
@@ -133,8 +179,6 @@ class ChooseGameTypeState implements GameState {
 
   next(): void {}
 }
-
-
 
 class SelectPlayersState implements GameState {
   constructor(private context: GameStarter) {}
@@ -184,8 +228,6 @@ interface LoginPlayerProps extends ComponentProps {
   onError: (err:any) => void;
   onLoading?: (loading:boolean) => void;
 }
-
-
 
 class LoginPlayerComponent extends Component{
   protected props: LoginPlayerProps;
@@ -425,7 +467,7 @@ class LoginPlayersState implements GameState {
     const nPlayers = this.context.getGameData().playersCount || 0;
     this.playersComponent = new PlayersComponent({
       onCompleted(data:any[]){
-        context.setState(new StartTournamentState(context));
+        context.setState(new HandleTournamentState(context));
       },
       onSelected(idx) {
 
@@ -464,11 +506,12 @@ class LoginPlayersState implements GameState {
 
   const loginComponent = container.querySelector('#game-login-player')
   const loginPlayeComponent = new LoginPlayerComponent({
-    onComplete:() =>{
+    onComplete:(data:any) =>{
     this.current++;
       if (this.current > this.totalPlayers) {
-        this.context.setState(new StartTournamentState(this.context));
+        this.context.setState(new HandleTournamentState(this.context));
       } else {
+        this.context.setPlayer(this.current, data.name);
         this.playersComponent.updateCurrent(null);
       }
     },
@@ -489,29 +532,189 @@ class LoginPlayersState implements GameState {
 }
 
 
+
+
+
 /**
  * 1.  debo mostrar quien compite y su grafica, dos estados el inicio de la competicion
  * 2. debo mostrar el final de la competicion
  */
-class StartTournamentState implements GameState {
+class HandleTournamentState implements GameState {
+  protected container;
+  private round = 0;
+  protected players?: string[];
+  protected nextPlayers?: string[];// lOS GANADORES DEL SIGUIENTE ROUND
   constructor(private context: GameStarter) {
-    context.onChange(()=>{
-      if (context.getGameData().status === 'finished')
-        this.launchTournamentFinished();
-    });
+    this.container = document.createElement("div");
+    this.players = this.context.getGameData().players;
   }
 
-  launchTournamentFinished() {
-    console.log(this.context.getGameData().status);
-    //TODO: Mostrar una imagen de quien gano
-  }
+
+
   render(): HTMLElement {
-    const container = document.createElement("div");
-    container.innerHTML = ``;
+    this.container.id = "tournament-state";
+    this.displayTournamentState();
+    console.log("Me subscribo");
+    this.context.onChange(()=>{
+      const matchData:MatchData = this.context.getMatchData();
+      if (matchData.status === 'finished') {
+        console.log("Players: ", this.players);
+        if (matchData.winner) {
+          this.nextPlayers?.push(matchData.winner);
+          this.context.addWinner(matchData.winner, this.round);
+        }
+        this.players = this.players?.filter(item=>!matchData.players?.includes(item));
+        console.log("Filter-Players: ", matchData.players, this.players);
+        this.container.innerHTML = '';
+        const resultGame = new ResultGameComponent({
+          name: matchData.winner!,
+          players: this.context.getGameData().players,
+          winners: this.context.getGameData().winners,
+          onContinue: () => {
+            this.displayTournamentState();
+          }
+        });
+        this.container.appendChild(resultGame.render());
+      }
+    });
+    return this.container;
+  }
+  getTwoRandomStrings(arr: string[]): [string, string] {
 
-    this.context.completeGameSetup();
-    return container;
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return [shuffled[0], shuffled[1]];
+  }
+  displayTournamentState() {
+    if ((this.nextPlayers && this.nextPlayers.length > 1 )){
+      this.players = this.nextPlayers;
+      this.nextPlayers = undefined;
+      this.round++;
+    }
+    else if ((!this.players || this.players.length <= 1)) {
+      //TODO: Ya finalizo el Juego, que hacemos? reiniciamos?
+      //TODO: Crear un Componente que diga, volver a Jugar, y que haga un CallBack para reiniciar
+      console.log("Finalizamos el Torneo", this.players);
+      this.context.setState(new ChooseGameTypeState(this.context));
+      return;
+    }
+
+    const [fisrt, second] = this.getTwoRandomStrings(this.players)!;
+    console.log(fisrt, second, this.players);
+
+    const matchGame = new MatchGameComponent({
+      players:[fisrt, second],
+      onDestroy: ()=>{
+        this.context.setMatchData({
+          status:'started',
+          players: [fisrt ,second], // Dos jugadores aleatorios
+        });
+        this.container.innerHTML= '';
+        this.context.completeGameSetup();
+      }
+    });
+    this.container.appendChild(matchGame.render());
+  }
+  next(): void {
+  }
+}
+
+interface MatchGameComponentProps extends ComponentProps {
+  onDestroy: ()=>void;
+  players: [string, string];
+}
+
+class MatchGameComponent extends Component {
+  protected props: MatchGameComponentProps;
+
+  constructor(props:MatchGameComponentProps){
+    super();
+    this.props = props;
+    this.template = this.renderTemplate();
+  };
+
+  renderTemplate() {
+    return `
+    <div class="flex items-center justify-center px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+      <div class="flex flex-col space-y-2 bg-[#11162F] p-6 text-white justify-center items-center text-center">
+        <h2>MATCH</h2>
+        <div class="flex justify-center items-center bg-[#11162F] space-x-2 flex flex-row justify-center items-center">
+            <div class="flex justify-center items-center bg-[#1ADEF9] p-1 w-[10rem] h-[2.5rem] rounded-xl"> 
+              <label>${this.props.players[0]}</label>
+            </div>
+            <label>Vs</label>
+            <div class="flex justify-center items-center bg-[#E615F2] p-1 w-[10rem] h-[2.5rem] rounded-xl"> 
+              <label>${this.props.players[1]}</label>
+            </div>
+        </div>
+        
+      </div>
+      </div>
+    `;
+  };
+
+  protected initEvents() {
+    if (!this.element) return;
+
+
+    setTimeout(() => {
+        this.destroy();
+    }, 5000);
   }
 
-  next(): void {}
+  protected destroy() {
+    if (this.element && this.element.parentNode) {
+      this.element.parentNode.removeChild(this.element);
+    }
+
+    if (typeof this.props.onDestroy === 'function') {
+      this.props.onDestroy();
+    }
+  }
+
+}
+
+interface ResultGameComponentProps extends ComponentProps {
+  onContinue: ()=>void;
+  name:string;
+  players: string[] | undefined,
+  winners: any[] | undefined,
+}
+class ResultGameComponent extends Component {
+  protected props: ResultGameComponentProps;
+
+  constructor(props:ResultGameComponentProps){
+    super();
+    this.props = props;
+    this.template = this.renderTemplate();
+  };
+
+  renderTemplate() {
+    return `
+    <div class="flex items-center justify-center px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+      <div class="flex flex-col space-y-2 bg-[#11162F] p-6 text-white justify-center items-center text-center">
+        <h2 >¡WINNER! ${this.props.name}</h2>
+
+        <div class=" space-x-2 flex flex-row justify-center items-center">
+          <div class="p-[1px] rounded-full bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]">
+            <div class="bg-[#11162F] w-[8rem] h-full rounded-full">PUNTOS: 30</div>
+          </div>
+        </div>
+
+        <div class="p-[1px]  rounded-full bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]">
+            <button id="btn-continue" class="bg-[#11162F] w-[8rem] h-full rounded-full hover:bg-white/30">CONTINUAR</button>
+        </div>
+
+      </div>
+    </div>
+    `;
+  };
+
+  protected initEvents() {
+    if (!this.element) return;
+
+    const btnContinue = this.element.querySelector('#btn-continue');
+    btnContinue?.addEventListener('click', ()=>this.props.onContinue());
+
+  }
+
 }
