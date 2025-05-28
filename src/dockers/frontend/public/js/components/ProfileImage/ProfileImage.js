@@ -11,7 +11,7 @@ export class ProfileImage extends Component {
       <img 
         src="${this.props.src}" 
         alt="${this.props.alt || 'Image'}" 
-        style="width: ${size}px; height: ${size}px;"
+        style="width: ${size}rem; height: ${size}rem;"
         class="rounded-full object-cover ${this.props.className || ''}"
       />
     `;

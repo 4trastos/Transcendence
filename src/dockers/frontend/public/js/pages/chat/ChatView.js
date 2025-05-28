@@ -15,7 +15,7 @@ export default class ChatView extends Component {
         return `
 	<div class="fixed bottom-4 right-4 flex flex-row items-end gap-2 z-50">
 	<!-- Cards de chat (máximo 3, horizontal) -->
-		<div id="chats-floating" class="flex gap-2 items-end bottom-4 max-w-[calc(100vw-2rem)]  overflow-x-auto"></div>
+		<div id="chats-floating" class="flex gap-2 items-end bottom-4 max-w-[calc(100vw-2rem)] overflow-x-auto"></div>
 		<div id="contacts-floating" >
 		</div>
 	</div>
