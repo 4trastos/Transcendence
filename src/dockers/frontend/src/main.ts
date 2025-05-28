@@ -9,7 +9,7 @@ import { LogInPage } from './pages/login/login';
 import { StatsPage } from './pages/stats/StatsPage';
 import { mount } from './utils/component';
 import { ProfilePage } from './pages/profile/ProfilePage';
-import { GameStarter } from './pages/game/GameSate';
+import { GameStarter } from './pages/game/state/GameSate';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 

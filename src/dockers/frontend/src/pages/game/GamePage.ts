@@ -1,5 +1,5 @@
 import { Component, ComponentProps, mount } from "../../utils/component";
-import { GameData, GameStarter, MatchData } from "./GameSate";
+import { GameData, GameStarter, MatchData } from "./state/GameSate";
 
 export class GamePage extends Component {
   private canvas: HTMLCanvasElement | null = null;
@@ -28,6 +28,8 @@ export class GamePage extends Component {
           p2.textContent = data.players? data.players[1] : "";
 
         this.resetScore();
+        this.gameLoop();
+        this.toggleDisplay();
         //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
         console.log("Datos del juego completos: INICIAMOS");
       }
@@ -38,8 +40,10 @@ export class GamePage extends Component {
     return `
 <div class="w-screen h-screen my-12 xl:my-0 flex flex-col justify-center items-center">
   <div id="game" class="bg-[#11162F] shadow-[0_0_20px_rgba(0,0,0,0.3)]  shadow-xl relative overflow-hidden z-50">
-
-    <div class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
+      </div>
+        <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
+      </div>
+    <div id="game-table"  class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
         <!-- Encabezado -->
         <div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
           <div class="flex flex-row items-center gap-4" > 
@@ -51,18 +55,18 @@ export class GamePage extends Component {
             <h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
           </div>
         </div>
+
         <div class="relative overflow-auto flex items-center justify-center">
           <!-- Canvas -->
           <canvas id="pong" width="800" height="400" class="z-0"></canvas>
         </div>
+
         <div class="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b rounded-l from-[#E615F2] to-[#1ADEF9]"></div>
         <div class="absolute inset-y-0 right-0 w-[5px] bg-gradient-to-b rounded-r from-[#E615F2] to-[#1ADEF9]"></div>
 
-      </div>
+    </div>
+  
 
-      <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
-      </div>
-  </div>
 </div>
     `;
   }
@@ -96,16 +100,23 @@ export class GamePage extends Component {
     document.addEventListener("keydown", keyDownHandler);
     document.addEventListener("keyup", keyUpHandler);
 
-    const gameLoop = () => {
+
+    this.buildState();
+    this.toggleDisplay();
+
+  }
+  toggleDisplay() {
+    if (!this.element) return;
+    const element = this.element?.querySelector('#game-table');
+    if (!element) return;
+    element.classList.toggle("hidden");
+  }
+   gameLoop() {
       this.movePaddles();
       this.draw();
       this.moveBall();
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(this.gameLoop);
     };
-
-    gameLoop();
-    this.buildState();
-  }
 
   private buildState() {
     if (!this.element) return;
@@ -226,7 +237,6 @@ export class GamePage extends Component {
     const p1 = this.element?.querySelector("#points_1");
     const p2 = this.element?.querySelector("#points_2");
     if (this.matchData.status==='started' && (this.player2Score >= 3 || this.player1Score >= 3) && this.matchData.players) {
-      let winnerName;
       if (this.player1Score >= 3)
         this.matchData.winner = this.matchData.players[0];
       else if (this.player2Score >= 3)
@@ -236,6 +246,8 @@ export class GamePage extends Component {
       this.resetScore();
       this.gameState.setMatchData(this.matchData);
       console.log("Juego finalizado");
+      this.toggleDisplay();
+
       return;
     }
     if (p1)
