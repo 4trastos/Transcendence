@@ -1,0 +1,68 @@
+classDiagram
+    %% Clase que representa un usuario
+    class Game {
+        +int id
+        %% Puede ser "Torneo", "1vs1" o otro tipo
+        +String gameType
+        %% Esto es el ID del usario ganador
+        +String winnerId
+        %%En DB debe ser solo 2 Jugadores
+        +String player1
+        +String player2
+        +int round
+        %% identificador único de torneo solo para diferenciar
+        +String tournamentId
+        +int points
+        +int level
+        +String status
+        +Date updatedAt
+        +Date createdAt
+    }
+
+    class User {
+      +int id
+      +String name
+    }
+
+    Game --> "0..*" User : players
+    Game --> User : winner
+
+
+    %% ----------- GAME DTOs -----------
+
+    class CreateGameDTO {
+        +String gameType
+        +int player1Id
+        +int player2Id
+        +int round
+        +String tournamentId
+        +int points
+        +int level
+        +String status
+    }
+
+    class UpdateGameDTO {
+        +int winnerId
+        +int round
+        +int points
+        +int level
+        +String status
+    }
+
+    class GameResponseDTO {
+        +int id
+        +String gameType
+        +int player1Id
+        +int player2Id
+        +int winnerId
+        +int round
+        +String tournamentId
+        +int points
+        +int level
+        +String status
+        +Date updatedAt
+        +Date createdAt
+    }
+
+    %% ----------- Relaciones -----------
+

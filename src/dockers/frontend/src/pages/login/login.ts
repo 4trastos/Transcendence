@@ -9,7 +9,7 @@ export class LogInPage extends Component {
 <div class="flex items-center justify-center min-h-screen ">
   <div 
     id="glow-box"
-    class="relative backdrop-blur-2xl bg-opacity-15 bg-[#1D1F2B] rounded-2xl shadow-xl pb-6 border border-gray-700/30 w-fit h-fit max-w-md transition-all duration-300"
+    class="relative backdrop-blur-2xl 15 bg-[#1D1F2B] rounded-2xl shadow-xl pb-6 border border-gray-700/30 w-fit h-fit max-w-md transition-all duration-300"
     style="--x: 50%; --y: 50%;"
   >
     <!-- Glow Effect Layer -->
@@ -43,7 +43,7 @@ export class LogInPage extends Component {
         </svg>
       </div>
       <input type="text" name="username" placeholder="Username"
-        class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
+        class="bg-black bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
         required />
     </div>
   </div>
@@ -58,7 +58,7 @@ export class LogInPage extends Component {
         </svg>
       </div>
       <input type="password" name="password" placeholder="Password"
-        class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
+        class="bg-black bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
         required />
     </div>
   </div>

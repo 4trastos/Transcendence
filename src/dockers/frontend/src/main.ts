@@ -21,13 +21,11 @@ async function handleRoute() {
   
   const hash = window.location.hash;
   const env = await fetch('/env').then(res => res.json());
-  if (env.env === 'production') {
-    user = await fetchUser();
-    console.log('user', user);
-    if (!user && hash !== '#login') {
-      loadLoginPage();
-      return;
-    }
+  user = await fetchUser();
+  console.log('user', user);
+  if (!user) {
+    loadLoginPage();
+    return;
   }
 
   const chatContainer: HTMLElement = document.querySelector('#chat-container') as HTMLElement;
