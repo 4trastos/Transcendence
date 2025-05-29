@@ -79,7 +79,10 @@ export default class FloatingChatListComponent extends Component{
 
   renderTemplate() {
 	return `
-<div id="contacts" class="backdrop-blur-3xl bg-opacity-15 shadow-black shadow-xl bg-[#1D1F2B] bottom-4 right-4 w-[18rem] h-[33rem] border border-white border-opacity-15 rounded-2xl  flex flex-col overflow-hidden z-50">
+
+<div class="rounded-lg h-fit w-fit px-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+
+<div id="contacts" class=" shadow-black shadow-xl bg-[#11162F] bottom-4 right-4 w-[18rem] h-[33rem] rounded-lg  flex flex-col overflow-hidden z-50">
   <!-- Encabezado -->
   <div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
 		<div> 
@@ -104,6 +107,7 @@ export default class FloatingChatListComponent extends Component{
   <!-- Lista de mensajes -->
   <div id="contacts-content" class="items-center px-5 pb-3"> 
   <div id="chat-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10">
+</div>
 </div>
 </div>
 	`;

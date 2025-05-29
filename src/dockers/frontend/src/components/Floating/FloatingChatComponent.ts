@@ -2,6 +2,7 @@ import Message from "../../data/Message";
 import { Component, ComponentProps } from "../../utils/component";
 
 interface MessageComponentProps extends ComponentProps {
+  id?:string;
   text: string;
   lastUpdate?: string;
   currentUser?: boolean;
@@ -25,8 +26,7 @@ class MessageComponent extends Component {
 		<div class="flex flex-col items-end" >
 			<div class="flex items-end gap-2">
 				<!-- Burbuja de mensaje -->
-				<div class="bg-gray-600 text-white text-xs rounded-t-lg rounded-bl-lg px-4 py-2  max-w-xs">
-				${this.props.text}
+				<div id="message-text-${this.props.id}" class="bg-gray-600 text-white text-xs rounded-t-lg rounded-bl-lg px-4 py-2  max-w-xs">
 				</div>
 				<!-- Avatar -->
 				<img src="${this.props.avatar}" class="w-7 h-7 rounded-full" />
@@ -45,8 +45,7 @@ class MessageComponent extends Component {
 				<!-- Avatar -->
 				<img src="${this.props.avatar}" class="w-7 h-7 rounded-full" />
 				<!-- Burbuja de mensaje -->
-				<div class="bg-gray-700 text-white text-xs rounded-t-lg rounded-br-lg px-4 py-2 max-w-xs">
-				${this.props.text}
+				<div id="message-text-${this.props.id}" class="bg-gray-700 text-white text-xs rounded-t-lg rounded-br-lg px-4 py-2 max-w-xs">
 				</div>
 			</div>
 			<span class="text-xs text-gray-400 ml-10">16:45</span>
@@ -54,6 +53,14 @@ class MessageComponent extends Component {
 	</div>
   `;
     }
+  }
+
+  protected initEvents(): void {
+      if(!this.element) return;
+
+      const messageText = this.element.querySelector(`#message-text-${this.props.id}`);
+      if (!messageText) return;
+      messageText.textContent= this.props.text;
   }
 }
 
@@ -88,7 +95,7 @@ export class FloatingChatComponent extends Component {
 
   updateStatus() {
 	const statusElement = this.element?.querySelector(
-        `#${this.props.id}-status`
+        `#status-${this.props.id}`
       ) as HTMLDivElement;
 	  let nActive = 0;
 	  this.props.onlineUser?.forEach((status: boolean, userId: string) => {
@@ -103,17 +110,19 @@ export class FloatingChatComponent extends Component {
 
   renderTemplate() {
     return `
-	<div id="${this.props.id}" class=" backdrop-3xl bg-opacity-15 bg-[#1D1F2B] bottom-4 right-4 px-5 w-[18rem] h-[22rem]  border border-white border-opacity-15 rounded-2xl shadow-lg flex flex-col overflow-hidden z-50">
+
+    <div class="rounded-lg h-fit w-fit px-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+	<div id="${this.props.id}" class=" backdrop-3xl bg-[#11162F] bottom-4 right-4 px-5 w-[18rem] h-[22rem]  rounded-lg shadow-lg flex flex-col overflow-hidden z-50">
 	<!-- Header del chat -->	
 	<div id="${this.props.id}-header" class="relative flex items-center space-x-2 px-4 py-2  text-white">
 		<div id="${this.props.id}-avatar">
 			<!-- Aquí puedes poner una imagen o ícono -->
-			<img src="${this.props.chatAvatar}" alt="Avatar" class="w-7 h-7 rounded-full" />
+			<img src="${this.props.chatAvatar}" alt="Avatar" class="w-7 h-7 rounded-lg" />
 		</div>
 		
 		<div>
-			<div id="${this.props.id}-name" class="text-sm font-ligth">${this.props.title}</div>
-			<div id="${this.props.id}-status" class="text-gray-400 text-xs"> En línea</div>
+			<div id="title-${this.props.id}" class="text-sm font-ligth"></div>
+			<div id="status-${this.props.id}" class="text-gray-400 text-xs"> En línea</div>
 			
 		</div>
 
@@ -154,6 +163,7 @@ export class FloatingChatComponent extends Component {
 </form>
 
 	</div>
+  </div>
 	`;
   }
 
@@ -205,7 +215,21 @@ export class FloatingChatComponent extends Component {
         this.props.onExit();
       });
 
-    const header = this.element?.querySelector(
+      this.headerFill();
+      this.headerClic();
+  }
+
+
+  headerFill(){
+   const title = this.element?.querySelector(
+      `#title-${this.props.id}`
+    ) as HTMLElement;
+    if (!title) return;
+     title.textContent =  this.props.title;
+  }
+
+  headerClic() {
+   const header = this.element?.querySelector(
       `#${this.props.id}-header`
     ) as HTMLElement;
     if (!header) return;
@@ -228,4 +252,7 @@ export class FloatingChatComponent extends Component {
         ?.classList.toggle("hidden");
     });
   }
+
+
+
 }

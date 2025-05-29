@@ -28,7 +28,7 @@ export class GamePage extends Component {
           p2.textContent = data.players? data.players[1] : "";
 
         this.resetScore();
-        this.gameLoop();
+        //this.gameLoop();
         this.toggleDisplay();
         //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
         console.log("Datos del juego completos: INICIAMOS");
@@ -43,29 +43,29 @@ export class GamePage extends Component {
       </div>
         <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
       </div>
-    <div id="game-table"  class="backdrop-[#11162F]  bottom-4 right-4 w-fit h-[30rem]  flex flex-col overflow-hidden">
+
+    <div id="game-table"  class=" w-fit h-fit  flex flex-col overflow-hidden    px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
         <!-- Encabezado -->
-        <div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
-          <div class="flex flex-row items-center gap-4" > 
-          <h2 id="player_1" class="pointer-events-none text-white text-sm font-semibold">Player 1</h2>
-          <h2 id="points_1" class="pointer-events-none text-white text-sm font-bold">0</h2>
-          <hr id="divider" class="h-4 border-xl border-white border-opacity-15" />
+        <div class ="bg-[#11162F] w-fit rounded items-center justify-center">
 
-            <h2 id="player_2" class="pointer-events-none text-white text-sm font-semibold">Player 2</h2>
-            <h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
+          <div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
+            <div class="flex flex-row items-center gap-4" > 
+            <h2 id="player_1" class="pointer-events-none text-white text-sm font-semibold">Player 1</h2>
+            <h2 id="points_1" class="pointer-events-none text-white text-sm font-bold">0</h2>
+            <hr id="divider" class="h-4 border-xl border-white border-opacity-15" />
+
+              <h2 id="player_2" class="pointer-events-none text-white text-sm font-semibold">Player 2</h2>
+              <h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
+            </div>
           </div>
-        </div>
 
-        <div class="relative overflow-auto flex items-center justify-center">
           <!-- Canvas -->
-          <canvas id="pong" width="800" height="400" class="z-0"></canvas>
+          <div class="relative overflow-auto flex items-center justify-center">
+            <canvas id="pong" width="800" height="400" class="z-0"></canvas>
+          </div>
+
         </div>
-
-        <div class="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b rounded-l from-[#E615F2] to-[#1ADEF9]"></div>
-        <div class="absolute inset-y-0 right-0 w-[5px] bg-gradient-to-b rounded-r from-[#E615F2] to-[#1ADEF9]"></div>
-
     </div>
-  
 
 </div>
     `;
@@ -100,10 +100,15 @@ export class GamePage extends Component {
     document.addEventListener("keydown", keyDownHandler);
     document.addEventListener("keyup", keyUpHandler);
 
-
+   const gameLoop= () =>{
+      this.movePaddles();
+      this.draw();
+      this.moveBall();
+      requestAnimationFrame(gameLoop);
+  }
     this.buildState();
-    this.toggleDisplay();
-
+    gameLoop();
+  this.toggleDisplay();
   }
   toggleDisplay() {
     if (!this.element) return;
@@ -111,14 +116,9 @@ export class GamePage extends Component {
     if (!element) return;
     element.classList.toggle("hidden");
   }
-   gameLoop() {
-      this.movePaddles();
-      this.draw();
-      this.moveBall();
-      requestAnimationFrame(this.gameLoop);
-    };
 
-  private buildState() {
+
+  buildState() {
     if (!this.element) return;
 
     this.element?.getElementsByClassName
@@ -142,7 +142,7 @@ export class GamePage extends Component {
     ctx.fillStyle = gradient;
     ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
   }
-  private draw() {
+  draw() {
     if (!this.ctx || !this.canvas) return;
 
     this.ctx.fillStyle = "#11162F";
@@ -161,7 +161,7 @@ export class GamePage extends Component {
     this.ctx.fill();
   }
 
-  private movePaddles() {
+  movePaddles() {
     this.player1.y += this.player1.dy;
     this.player2.y += this.player2.dy;
 
@@ -169,7 +169,7 @@ export class GamePage extends Component {
     this.player2.y = Math.max(0, Math.min(this.canvas!.height - this.player2.height, this.player2.y));
   }
 
-  private moveBall() {
+  moveBall() {
     this.ball.x += this.ball.dx;
     this.ball.y += this.ball.dy;
 
@@ -211,7 +211,7 @@ export class GamePage extends Component {
     }
   }
 
-  private resetBall() {
+  resetBall() {
     this.ball.x = this.canvas!.width / 2;
     this.ball.y = this.canvas!.height / 2;
     this.ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
@@ -220,7 +220,7 @@ export class GamePage extends Component {
     this.player2CanHit = true;
   }
 
-  private resetScore(){
+  resetScore(){
     const p1 = this.element?.querySelector("#points_1");
     const p2 = this.element?.querySelector("#points_2");
     if (p1)
@@ -232,7 +232,7 @@ export class GamePage extends Component {
     return;
 
   }
-  private updateScore() {
+  updateScore() {
     if (!this.matchData) return;
     const p1 = this.element?.querySelector("#points_1");
     const p2 = this.element?.querySelector("#points_2");
