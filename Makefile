@@ -76,6 +76,7 @@ clean:
 	rm -rf $(HOME)/goinfre/data/logstash/*
 	rm -rf $(HOME)/goinfre/data/grafana/*
 	rm -rf $(HOME)/goinfre/data/prometheus/*
+	rm -rf $(HOME)/goinfre/data/prometheus_query_log/*
 	rm -rf $(HOME)/goinfre/data/mail/*
 	rm -rf $(HOME)/goinfre/data/mail-state/*
 	rm -rf $(HOME)/goinfre/data/es_secrets/*
@@ -103,6 +104,7 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/logstash
 	@mkdir -p $(HOME)/goinfre/data/grafana
 	@mkdir -p $(HOME)/goinfre/data/prometheus
+	@mkdir -p $(HOME)/goinfre/data/prometheus_query_log
 	@mkdir -p $(HOME)/goinfre/data/mail
 	@mkdir -p $(HOME)/goinfre/data/mail-state
 	@mkdir -p $(HOME)/goinfre/data/es_secrets
@@ -137,7 +139,6 @@ logs_service:
 
 scan:
 	@docker exec -it security /zap/wrk/zap_scan.sh
-
 
 security:
 	@echo "Ejecutando pruebas de seguridad..."

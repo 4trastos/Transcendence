@@ -1,14 +1,13 @@
 #!/bin/sh
 set -e
 
-<<<<<<< HEAD
 # Variables esenciales
 LOGSTASH_PASSWORD_FILE="/usr/share/elasticsearch/secrets/logstash_internal_password"
 ELASTIC_PASSWORD_FILE="/usr/share/elasticsearch/secrets/elastic_password"
 MAX_WAIT=300
 WAIT_INTERVAL=5
 
-# Función de espera optimizada
+# Función mejorada de espera con verificación de Elasticsearch
 wait_for_resource() {
     local resource=$1
     local description=$2
@@ -16,74 +15,67 @@ wait_for_resource() {
     
     echo "⏳ Esperando $description..."
     until [ -f "$resource" ] || [ $current_wait -ge $MAX_WAIT ]; do
+        # Verificar también si Elasticsearch está disponible
+        if [ -f "$ELASTIC_PASSWORD_FILE" ] && curl -s -k "https://elasticsearch:9200" -u "elastic:$(cat $ELASTIC_PASSWORD_FILE)" >/dev/null; then
+            echo "✅ Elasticsearch está disponible pero $description no existe aún"
+        fi
         sleep $WAIT_INTERVAL
         current_wait=$((current_wait + WAIT_INTERVAL))
+        echo "🔄 Esperando... ($current_wait/$MAX_WAIT segundos)"
     done
     
-    [ $current_wait -ge $MAX_WAIT ] && { echo "❌ Timeout esperando $description"; exit 1; }
+    if [ $current_wait -ge $MAX_WAIT ]; then
+        echo "❌ Timeout esperando $description"
+        echo "Contenido de /usr/share/elasticsearch/secrets:"
+        ls -la /usr/share/elasticsearch/secrets || true
+        exit 1
+    fi
+    echo "✅ $description encontrado"
 }
 
 # Esperar recursos necesarios
 wait_for_resource "$ELASTIC_PASSWORD_FILE" "contraseña de Elasticsearch"
 wait_for_resource "$LOGSTASH_PASSWORD_FILE" "contraseña de Logstash"
 
-# Configurar usuario logstash_writer (con reintentos)
+# Configurar usuario logstash_writer (con reintentos mejorados)
 LOGSTASH_PASSWORD=$(cat "$LOGSTASH_PASSWORD_FILE")
 ELASTIC_PASSWORD=$(cat "$ELASTIC_PASSWORD_FILE")
 
 echo "🔐 Configurando usuario para Logstash..."
-for i in {1..5}; do
+for i in {1..10}; do
     if curl -s -k -u "elastic:$ELASTIC_PASSWORD" -X POST \
-       "https://elasticsearch:9200/_security/user/logstash_writer" \
+       "https://elasticsearch:9200/_security/user/logstash_writer/_password" \
        -H "Content-Type: application/json" \
-       -d '{"password": "'"$LOGSTASH_PASSWORD"'", "roles": ["logstash_writer"]}' >/dev/null; then
+       -d '{"password": "'"$LOGSTASH_PASSWORD"'"}' >/dev/null; then
+        echo "✅ Usuario logstash_writer configurado correctamente"
         break
+    else
+        echo "⚠️ Intento $i/10 fallido, reintentando en 10 segundos..."
+        sleep 10
+        [ $i -eq 10 ] && echo "❌ No se pudo configurar usuario logstash_writer después de 10 intentos" && exit 1
     fi
-    sleep 10
-    [ $i -eq 5 ] && echo "⚠️ No se pudo configurar usuario logstash_writer"
 done
 
-# Actualizar contraseña en configuración
-sed -i "s/password => \".*\"/password => \"$LOGSTASH_PASSWORD\"/" /usr/share/logstash/pipeline/logstash.conf
+# Actualizar contraseña en configuración (si existe el archivo)
+if [ -f "/usr/share/logstash/pipeline/logstash.conf" ]; then
+    sed -i "s/password => \".*\"/password => \"$LOGSTASH_PASSWORD\"/" /usr/share/logstash/pipeline/logstash.conf
+else
+    echo "⚠️ No se encontró logstash.conf, omitiendo actualización de contraseña"
+fi
+
+# Verificar conexión con Elasticsearch antes de iniciar
+echo "🔍 Verificando conexión con Elasticsearch..."
+if curl -s -k -u "logstash_writer:$LOGSTASH_PASSWORD" "https://elasticsearch:9200" >/dev/null; then
+    echo "✅ Conexión exitosa a Elasticsearch"
+else
+    echo "❌ No se pudo conectar a Elasticsearch"
+    exit 1
+fi
 
 # Iniciar Logstash optimizado
+echo "🚀 Iniciando Logstash..."
 exec /usr/share/logstash/bin/logstash \
     --path.settings /usr/share/logstash/config \
     --path.data /usr/share/logstash/data \
     --path.logs /usr/share/logstash/logs \
     "$@"
-=======
-LOGSTASH_PASSWORD_FILE="/usr/share/elasticsearch/secrets/logstash_internal_password"
-
-# Espera a que exista el archivo
-until [ -f "$LOGSTASH_PASSWORD_FILE" ]; do
-  sleep 5
-done
-
-# Reemplaza en logstash.conf
-sed -i "s/password => \".*\"/password => \"$(cat $LOGSTASH_PASSWORD_FILE)\"/" /usr/share/logstash/pipeline/logstash.conf
-
-# Esperar Elasticsearch con credenciales
-echo "⏳ Esperando a Elasticsearch..."
-until [ -f /usr/share/elasticsearch/secrets/elastic_password ] && \
-  curl -s -k -u "elastic:$(cat /usr/share/elasticsearch/secrets/elastic_password)" \
-  https://elasticsearch:9200 >/dev/null; do
-  sleep 5
-done
-
-# Configuración de usuario Logstash
-if ! curl -s -k -u "elastic:$(cat /usr/share/elasticsearch/secrets/elastic_password)" \
-  "https://elasticsearch:9200/_security/user/logstash_writer" | grep -q '"found":true'; then
-  
-  echo "🔐 Configurando usuario para Logstash..."
-  curl -k -u "elastic:$(cat /usr/share/elasticsearch/secrets/elastic_password)" -X POST \
-    "https://elasticsearch:9200/_security/user/logstash_writer" -H "Content-Type: application/json" -d'
-    {
-      "password": "logstash-internal-pwd",
-      "roles": ["logstash_writer"],
-      "full_name": "Logstash Writer User"
-    }'
-fi
-
-exec /usr/share/logstash/bin/logstash "$@"
->>>>>>> integration

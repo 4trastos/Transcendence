@@ -2,11 +2,8 @@
 
 # Configuración segura
 export VAULT_ADDR='https://localhost:8200'
-<<<<<<< HEAD
 export VAULT_ADDR="${VAULT_ADDR:-https://security:8200}"
 
-=======
->>>>>>> integration
 export VAULT_CACERT='/etc/vault/tls/ca.crt'
 
 # Autenticación con AppRole

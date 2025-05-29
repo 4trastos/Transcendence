@@ -2,12 +2,9 @@ http.host: "0.0.0.0"
 path.config: /usr/share/logstash/pipeline
 config.reload.automatic: true
 config.reload.interval: 3s
-<<<<<<< HEAD
 
 monitoring.enabled: false
 monitoring.elasticsearch.hosts: ["https://elasticsearch:9200"]
 monitoring.elasticsearch.username: "logstash_writer"
 monitoring.elasticsearch.password: "/usr/share/elasticsearch/secrets/logstash_internal_password"
 monitoring.elasticsearch.ssl.certificate_authority: "/usr/share/elasticsearch/config/certs/ca/ca.crt"
-=======
->>>>>>> integration

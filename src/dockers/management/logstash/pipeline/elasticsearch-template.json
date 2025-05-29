@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "index_patterns": ["transcendence-*"],
   "priority": 100,
   "template": {
@@ -101,36 +100,8 @@
               "ignore_above": 1024
             }
           }
-=======
-    "index_patterns": ["transcendence-*"],
-    "template": {
-      "settings": {
-        "number_of_shards": 1
-      },
-      "mappings": {
-        "properties": {
-          "@timestamp": { "type": "date" },
-          "message":     { "type": "text" },
-          "log_level":   { "type": "keyword" },
-          "timestamp":   { "type": "date" },
-          "host":        { "type": "keyword" },
-          "type":        { "type": "keyword" },
-          "project":     { "type": "keyword" },
-          "environment": { "type": "keyword" },
-          "status":      { "type": "integer" },
-          "bytes":       { "type": "long" },
-          "request":     { "type": "text" },
-          "referrer":    { "type": "keyword" },
-          "agent":       { "type": "text" },
-          "response":    { "type": "integer" },
-          "path":        { "type": "text" }
->>>>>>> integration
         }
       }
     }
   }
-<<<<<<< HEAD
 }
-=======
-  
->>>>>>> integration

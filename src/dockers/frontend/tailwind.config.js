@@ -1,10 +1,10 @@
 module.exports = {
-	content: [
-	  "./src/**/*.{html,ts}",
-	  "./public/**/*.html"
-	],
-	theme: {
-	  extend: {},
-	},
-	plugins: [],
-  }
+  content: [
+    "./index.html",
+    "./src/**/*.{html,js,ts,jsx,tsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}

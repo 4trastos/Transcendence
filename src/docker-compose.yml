@@ -51,7 +51,7 @@ services:
     ports:
       - "8443:443"
       - "8080:80"
-      - "9001:9001"
+      #- "9001:9001"
     networks:
       - transcendence
     depends_on:
@@ -91,6 +91,8 @@ services:
     volumes:
       - frontend_data:/usr/src/app      # Volumen para el código fuente
       - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
+      - ./frontend/public:/usr/share/nginx/html:ro
+      - ./ssl_certs:/etc/nginx/ssl:ro
     command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
       - "3001:3001"
@@ -137,12 +139,8 @@ services:
     hostname: elasticsearch
     environment:
       - discovery.type=single-node
-<<<<<<< HEAD
       - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - bootstrap.memory_lock=true
-=======
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
->>>>>>> integration
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
       - xpack.security.transport.ssl.enabled=true
@@ -158,7 +156,6 @@ services:
       test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
       interval: 10s
       timeout: 5s
-<<<<<<< HEAD
       retries: 30
 
   elasticsearch-exporter:
@@ -178,9 +175,6 @@ services:
       - es_secrets:/usr/share/elasticsearch/secrets:ro
     networks:
       - transcendence
-=======
-      retries: 10
->>>>>>> integration
 
   logstash:
     build: ./dockers/management/logstash
@@ -190,7 +184,6 @@ services:
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
       - ELASTIC_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
-<<<<<<< HEAD
       - XPACK_MONITORING_ENABLED=false 
     volumes:
       - es_secrets:/usr/share/elasticsearch/secrets
@@ -200,21 +193,10 @@ services:
     ports:
       - "5000:5000"   # Entrada Beats
       - "8082:8082"   # Métricas Prometheus
-=======
-    volumes:
-      - ls_config:/usr/share/logstash/config
-      - ls_pipeline:/usr/share/logstash/pipeline
-      - es_secrets:/usr/share/elasticsearch/secrets
-      - es_certs:/usr/share/elasticsearch/config/certs:ro
-    ports:
-      - "5000:5000"
-      - "9600:9600"
->>>>>>> integration
     depends_on:
       - elasticsearch
     networks:
       - transcendence
-<<<<<<< HEAD
   
   logstash-exporter:
     build: ./dockers/management/logstash-exporter
@@ -229,8 +211,6 @@ services:
       - "9811:9811"
     networks:
       - transcendence
-=======
->>>>>>> integration
 
   kibana:
     build: ./dockers/management/kibana
@@ -247,7 +227,6 @@ services:
     networks:
       - transcendence
 
-<<<<<<< HEAD
   kibana-exporter:
     build: ./dockers/management/kibana-exporter
     container_name: kibana-exporter
@@ -265,25 +244,21 @@ services:
       - kibana
     networks:
       - transcendence
-=======
->>>>>>> integration
   
   prometheus:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
-<<<<<<< HEAD
     user: "65534:65534"
-=======
-    user: "nobody"  # Asegurar que corre como usuario no privilegiado
->>>>>>> integration
     cap_add:
       - CAP_NET_RAW
     volumes:
       - prometheus_data:/prometheus
+      - prometheus_query_log:/data
       - ./dockers/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./dockers/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ./dockers/monitoring/prometheus/web-config.yml:/etc/prometheus/web-config.yml
       - vault_data:/vault/data
-<<<<<<< HEAD
       - tls_volume:/etc/vault/tls
       - es_data:/usr/share/elasticsearch/data
       - es_secrets:/usr/share/elasticsearch/secrets
@@ -292,9 +267,6 @@ services:
     environment:
       - UID=65534
       - GID=65534
-=======
-      - tls_volume:/etc/vault/tls:ro
->>>>>>> integration
     ports:
       - "9090:9090"
     networks:
@@ -308,27 +280,22 @@ services:
     user: "472"  # Usuario grafana por defecto (UID 472)
     volumes:
       - grafana_data:/var/lib/grafana
-<<<<<<< HEAD
+      - prometheus_data:/prometheus/certs:ro
       - es_data:/usr/share/elasticsearch/data
       - es_certs:/etc/grafana/elasticsearch-certs
       - es_secrets:/etc/grafana/elasticsearch-secrets
+      - ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./dockers/monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     environment:
-      - GF_SERVER_PROTOCOL=https
-      - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
-      - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
+    - GF_SERVER_PROTOCOL=https
+    - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
+    - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
+    - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     depends_on:
       - prometheus
       - elasticsearch
-=======
-      #- ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
-      #- ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-    ports:
-      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
-    depends_on:
-      - prometheus
->>>>>>> integration
     networks:
       - transcendence
     restart: unless-stopped
@@ -348,34 +315,6 @@ services:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
 
-<<<<<<< HEAD
-=======
-  # Microservicios (Backend Reestructurado)
-
-  auth-service:
-    build: ./dockers/microservices/auth
-    ports:
-      - "3004:3000"
-    networks:
-      - transcendence
-    depends_on:
-      - sqlite
-
-  user-service:
-    build: ./dockers/microservices/users
-    ports:
-      - "3005:3000"
-    networks:
-      - transcendence
-
-  blockchain-service:
-    build: ./dockers/microservices/blockchain
-    ports:
-      - "3006:3000"
-    networks:
-      - transcendence
-
->>>>>>> integration
 volumes:
   sqlite_data:
     name: sqlite_data
@@ -457,6 +396,13 @@ volumes:
       device: "$HOME/goinfre/data/grafana"
   
   prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/goinfre/data/prometheus"
+
+  prometheus_query_log:
     driver: local
     driver_opts:
       type: none

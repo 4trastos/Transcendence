@@ -1,43 +1,25 @@
-FROM debian:bookworm-slim
+FROM node:18-alpine
 
-# Establece el directorio de trabajo dentro del contenedor
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Instala Node.js, npm y otras dependencias necesarias
-RUN apt-get update && \
-    apt-get install -y \
-    curl \
-    gnupg \
-    lsb-release \
-    ca-certificates && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean
+COPY package*.json ./
 
-<<<<<<< HEAD
 RUN apk add --no-cache tzdata
 ENV TZ=Europe/Madrid
 
 RUN npm install react-dom@18
 RUN npm install serve --save
-=======
-# Copia los archivos de tu proyecto al contenedor
-COPY src/ /app/src/
-COPY public/index.html /app/public/index.html
-COPY public/images/background_90.jpg /app/public/images/background_90.jpg
-COPY /server.js /app/
-COPY /tsconfig.json /app/
-COPY /tailwind.config.js /app/
-COPY /package.json /app/
-COPY /tools/init.sh /usr/local/bin/
-COPY scripts/ /app/scripts/
 
-RUN chmod +x /usr/local/bin/init.sh
->>>>>>> integration
-
+# Instala las dependencias restantes
 RUN npm install
-EXPOSE 3040
 
-ENTRYPOINT [ "/usr/local/bin/init.sh"]
-# Usa un comando para mantener el contenedor en ejecución, en caso de que necesites interactuar con él
-CMD ["npx", "node", "server.js"]
+COPY . .
+
+# Ejecuta la compilación del frontend en modo producción
+RUN npm run build
+
+# Expone el puerto en desarrollo
+EXPOSE 3001
+
+# Comando para servir archivos estáticos en producción
+CMD ["npx", "serve", "-s", "dist", "-p", "3001"]
