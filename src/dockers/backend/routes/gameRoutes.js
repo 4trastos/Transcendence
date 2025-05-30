@@ -1,6 +1,8 @@
 const fastify = require('fastify');
 const fs = require('fs');
+const { request } = require('http');
 const path = require('path');
+const { use } = require('react');
 const sqlite3 = require('sqlite3').verbose();
 
 async function gameRoutes(fastify, options) {
@@ -25,32 +27,156 @@ async function gameRoutes(fastify, options) {
         }
     });
 
-    fastify.post('/gameResult', async(request, reply) => {
-        const {Player1, Player2} = request.body;
+      /*| Método | Ruta               | Descripción                                       |
+        | ------ | ------------------ | --------------------------------------------------|
+        | GET    | /games/:id         | Detalle de las partidas de un jugador (Historico) |*/
+    fastify.get('/game/:id', async (request, reply) =>{
+        const userId = parseInt(request.params.id)
 
-        if (Player1 == "3"){
-            if (request.session.player1){
-                const username = request.session.users[0].username;
-                console.log(`¡${username} ganó el partido con 3 puntos!`);
-
-                return reply.status(200).send({
-                    message: `¡Felicidades ${username}, ganaste el partido!`
-                });
-            }
-        } else {
-            if (request.session.player2) {
-                const username = request.session.users[1].username;
-                console.log(`¡${username} (Jugador 2) ganó el partido con 3 puntos!`);
-                return reply.status(200).send({
-                    message: `¡Felicidades ${username}, ganaste el partido como Jugador 2!`
-                });
-            } else {
-                return reply.status(401).send({
-                    message: "Jugador 2 no tiene sesión activa."
-                });
-            }
+        if (isNaN(userId)){
+            return reply.code(400).send({status: 'error', message: 'ID invalido'})
         }
-    });
+
+        const query = `
+            SELECT * FROM games
+            WHERE winner_id = ? OR loser_id = ?
+            ORDER BY created_at DESC
+        `;
+
+        return new Promise((resolve, reject) => {
+            db.all(query, [userId, userId], (err, rows) => {
+                if (err) {
+                    console.error('Error al consultar la base de datos:', err.message)
+                    reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
+                    return reject(err)
+                }
+
+                reply.code(200).send({status: 'ok', games: rows})
+                resolve()
+            })
+        })
+    })
+
+    /*| Método | Ruta               | Descripción                                       |
+        | ------ | ------------------ | --------------------------------------------------|
+        | POST   | /games             | Crear nueva partida                               |*/
+    fastify.post('/games', async (request, reply) => {
+        const {
+            winner_id,
+            loser_id,
+            tournament = false,
+            score_winner = 0,
+            score_loser = 0,
+            exp_winner = 0,
+            exp_loser = 0,
+            game_duration = null
+        } = request.body
+
+        const query = `
+            INSERT INTO games (
+                winner_id, loser_id, tournament, score_winner,
+                score_loser, exp_winner, exp_loser, game_duration
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `
+
+        return new Promise((resolve, reject) => {
+            db.run(
+                query,
+                [winner_id, loser_id, tournament, score_winner, score_loser, exp_winner, exp_loser, game_duration],
+                function (err) {
+                    if (err) {
+                        console.error('Error al crear partida:', err.message)
+                        reply.code(500).send({ status: 'error', message: 'Error al guardar la partida' })
+                        return reject(err)
+                    }
+                    reply.code(201).send({ status: 'ok', message: 'Partida creada', game_id: this.lastID })
+                    resolve()
+                }
+            )
+        })
+    })
+
+
+    /*| Método | Ruta               | Descripción                                       |
+        | ------ | ------------------ | --------------------------------------------------|
+        | PUT    | /games/:id         | Editar partida (ej: asignar ganador)              |*/
+    fastify.put('/games/:id', async (request, reply) => {
+        const gameId = parseInt(request.params.id)
+        const {
+            winner_id,
+            loser_id,
+            tournament,
+            score_winner,
+            score_loser,
+            exp_winner,
+            exp_loser,
+            game_duration
+        } = request.body
+
+        const query = `
+            UPDATE games
+            SET
+                winner_id = ?,
+                loser_id = ?,
+                tournament = ?,
+                score_winner = ?,
+                score_loser = ?,
+                exp_winner = ?,
+                exp_loser = ?,
+                game_duration = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `
+
+        return new Promise((resolve, reject) => {
+            db.run(
+                query,
+                [winner_id, loser_id, tournament, score_winner, score_loser, exp_winner, exp_loser, game_duration, gameId],
+                function (err) {
+                    if (err) {
+                        console.error('Error al actualizar partida:', err.message)
+                        reply.code(500).send({ status: 'error', message: 'Error al actualizar la partida' })
+                        return reject(err)
+                    }
+
+                    reply.send({ status: 'ok', message: 'Partida actualizada' })
+                    resolve()
+                }
+            )
+        })
+    })
+
+
+    /*| Método | Ruta               | Descripción                                       |
+        | ------ | ------------------ | --------------------------------------------------|
+        | GET    | /users/:id/games   | Partidas en las que participó un usuario          |*/
+    fastify.get('/users/:id/games', async (request, reply) => {
+        const userId = parseInt(request.params.id)
+
+        if (isNaN(userId)) {
+            return reply.code(400).send({ status: 'error', message: 'ID inválido' })
+        }
+
+        const query = `
+            SELECT * FROM games
+            WHERE winner_id = ? OR loser_id = ?
+            ORDER BY created_at DESC
+        `
+
+        return new Promise((resolve, reject) => {
+            db.all(query, [userId, userId], (err, rows) => {
+                if (err) {
+                    console.error('Error al obtener partidas del usuario:', err.message)
+                    reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
+                    return reject(err)
+                }
+
+                reply.send({ status: 'ok', games: rows })
+                resolve()
+            })
+        })
+    })
+
 }
 
 module.exports = gameRoutes;
