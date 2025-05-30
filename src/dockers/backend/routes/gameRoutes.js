@@ -30,7 +30,63 @@ async function gameRoutes(fastify, options) {
       /*| Método | Ruta               | Descripción                                       |
         | ------ | ------------------ | --------------------------------------------------|
         | GET    | /games/:id         | Detalle de las partidas de un jugador (Historico) |*/
-    fastify.get('/game/:id', async (request, reply) =>{
+    fastify.get('/game/:id', {
+        schema: {
+            summary: 'Obtener partidas de un jugador',
+            description: 'Devuelve todas las partidas donde el usuario haya participado como ganador o perdedor',
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer', description: 'ID del usuario' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    description: 'Lista de partidas del jugador',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string', example: 'ok' },
+                        games: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    id: { type: 'integer' },
+                                    winner_id: { type: 'integer' },
+                                    loser_id: { type: 'integer' },
+                                    tournament: { type: 'boolean' },
+                                    score_winner: { type: 'integer' },
+                                    score_loser: { type: 'integer' },
+                                    exp_winner: { type: 'integer' },
+                                    exp_loser: { type: 'integer' },
+                                    game_duration: { type: 'integer' },
+                                    created_at: { type: 'string', format: 'date-time' },
+                                    updated_at: { type: 'string', format: 'date-time', nullable: true }
+                                }
+                            }
+                        }
+                    }
+                },
+                400: {
+                    description: 'ID inválido',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    description: 'Error del servidor',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        message: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, async (request, reply) =>{
         const userId = parseInt(request.params.id)
 
         if (isNaN(userId)){
@@ -60,7 +116,35 @@ async function gameRoutes(fastify, options) {
     /*| Método | Ruta               | Descripción                                       |
         | ------ | ------------------ | --------------------------------------------------|
         | POST   | /games             | Crear nueva partida                               |*/
-    fastify.post('/games', async (request, reply) => {
+    fastify.post('/games', {
+        schema: {
+            summary: 'Crear nueva partida',
+            body: {
+            type: 'object',
+            required: ['winner_id', 'loser_id'],
+            properties: {
+                winner_id: { type: 'integer' },
+                loser_id: { type: 'integer' },
+                tournament: { type: 'boolean' },
+                score_winner: { type: 'integer' },
+                score_loser: { type: 'integer' },
+                exp_winner: { type: 'integer' },
+                exp_loser: { type: 'integer' },
+                game_duration: { type: 'integer' }
+            }
+            },
+            response: {
+            201: {
+                type: 'object',
+                properties: {
+                status: { type: 'string' },
+                message: { type: 'string' },
+                game_id: { type: 'integer' }
+                }
+            }
+            }
+        }
+    },async (request, reply) => {
         const {
             winner_id,
             loser_id,
@@ -100,7 +184,42 @@ async function gameRoutes(fastify, options) {
     /*| Método | Ruta               | Descripción                                       |
         | ------ | ------------------ | --------------------------------------------------|
         | PUT    | /games/:id         | Editar partida (ej: asignar ganador)              |*/
-    fastify.put('/games/:id', async (request, reply) => {
+    fastify.put('/games/:id', {
+        schema: {
+            summary: 'Editar partida por ID',
+            description: 'Facilita actualizar los datos de la partida una vez creada',
+            params: {
+            type: 'object',
+            properties: {
+                id: { type: 'integer' }
+            },
+            required: ['id']
+            },
+            body: {
+            type: 'object',
+            required: ['winner_id', 'loser_id'],
+            properties: {
+                winner_id: { type: 'integer' },
+                loser_id: { type: 'integer' },
+                tournament: { type: 'boolean' },
+                score_winner: { type: 'integer' },
+                score_loser: { type: 'integer' },
+                exp_winner: { type: 'integer' },
+                exp_loser: { type: 'integer' },
+                game_duration: { type: 'integer' }
+            }
+            },
+            response: {
+            200: {
+                type: 'object',
+                properties: {
+                status: { type: 'string' },
+                message: { type: 'string' }
+                }
+            }
+            }
+        }
+    }, async (request, reply) => {
         const gameId = parseInt(request.params.id)
         const {
             winner_id,
@@ -150,7 +269,45 @@ async function gameRoutes(fastify, options) {
     /*| Método | Ruta               | Descripción                                       |
         | ------ | ------------------ | --------------------------------------------------|
         | GET    | /users/:id/games   | Partidas en las que participó un usuario          |*/
-    fastify.get('/users/:id/games', async (request, reply) => {
+    fastify.get('/users/:id/games', {
+        schema: {
+            summary: 'Obtener partidas de un usuario',
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        games: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    id: { type: 'integer' },
+                                    winner_id: { type: 'integer' },
+                                    loser_id: { type: 'integer' },
+                                    tournament: { type: 'boolean' },
+                                    score_winner: { type: 'integer' },
+                                    score_loser: { type: 'integer' },
+                                    exp_winner: { type: 'integer' },
+                                    exp_loser: { type: 'integer' },
+                                    game_duration: { type: 'integer' },
+                                    created_at: { type: 'string' },
+                                    updated_at: { type: 'string', nullable: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },async (request, reply) => {
         const userId = parseInt(request.params.id)
 
         if (isNaN(userId)) {
