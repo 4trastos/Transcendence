@@ -1,11 +1,11 @@
 import { ChatRepositoryPort } from "../../application/ports/ChatRepositoryPort";
 import { Chat } from "../../domain/entities/Chat";
 import { Message } from "../../domain/entities/Message";
-import ChatSingleton from "../db/ChatSqlite";
+import ChatRepository from "../db/ChatSqlite";
 
 
 export class ChatRepositoryAdapter implements ChatRepositoryPort {
-    private chatSingleton: ChatSingleton;
+    private chatSingleton: typeof ChatRepository;
     constructor() {
         this.init();
     }
@@ -30,7 +30,7 @@ export class ChatRepositoryAdapter implements ChatRepositoryPort {
 
 
     private init() {
-        this.chatSingleton = ChatSingleton.getInstance();
+        this.chatSingleton = ChatRepository;
     }
     
     async saveMessage(chatId: string, message: Message): Promise<Message> {

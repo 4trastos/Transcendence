@@ -119,6 +119,118 @@ async function profileRoutes(fastify, options) {
         })
     })
 
+    fastify.put('/profile/:id', {
+        schema: {
+          summary: 'Actualizar el perfil de un usuario',
+          description: 'Actualiza los datos del perfil del usuario',
+          params: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer', description: 'ID del usuario' }
+            },
+            required: ['id']
+          },
+          body: {
+            type: 'object',
+            properties: {
+              username: { type: 'string' },
+              email: { type: 'string' },
+              full_name: { type: 'string' },
+              last_name: { type: 'string' },
+              favourite_color: { type: 'string' },
+              country: { type: 'string' },
+              bio: { type: 'string' },
+              avatar_url: { type: 'string' }
+            },
+            additionalProperties: false
+          },
+          response: {
+            200: {
+              description: 'Usuario actualizado',
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+                message: { type: 'string' }
+              }
+            },
+            400: {
+              description: 'Error de validación',
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+                message: { type: 'string' }
+              }
+            },
+            500: {
+              description: 'Error del servidor',
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+                message: { type: 'string' }
+              }
+            }
+          }
+        }
+      }, async (request, reply) => {
+        const userId = parseInt(request.params.id)
+      
+        if (isNaN(userId)) {
+          return reply.code(400).send({ status: 'error', message: 'ID inválido' })
+        }
+      
+        const fields = request.body
+      
+        if (Object.keys(fields).length === 0) {
+          return reply.code(400).send({ status: 'error', message: 'No se enviaron campos para actualizar' })
+        }
+      
+        const allowedFields = [
+          'username', 'email', 'full_name', 'last_name',
+          'favourite_color', 'country', 'bio', 'avatar_url'
+        ];
+      
+        const updates = []
+        const values = []
+      
+        for (const key of allowedFields) {
+          if (fields[key] !== undefined) {
+            updates.push(`${key} = ?`)
+            values.push(fields[key])
+          }
+        }
+      
+        if (updates.length === 0) {
+          return reply.code(400).send({ status: 'error', message: 'Campos no válidos para actualizar' })
+        }
+      
+        updates.push(`updated_at = CURRENT_TIMESTAMP`)
+      
+        const query = `
+          UPDATE users
+          SET ${updates.join(', ')}
+          WHERE id = ?
+        `
+      
+        values.push(userId)
+      
+        return new Promise((resolve, reject) => {
+          db.run(query, values, function (err) {
+            if (err) {
+              console.error('Error al actualizar usuario:', err.message)
+              reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
+              return reject(err)
+            }
+      
+            if (this.changes === 0) {
+              reply.code(404).send({ status: 'error', message: 'Usuario no encontrado' })
+              return resolve()
+            }
+      
+            reply.code(200).send({ status: 'ok', message: 'Usuario actualizado correctamente' })
+            resolve();
+          })
+        })
+      })      
 }
 
 module.exports = profileRoutes;
