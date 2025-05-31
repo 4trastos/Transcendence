@@ -1,5 +1,7 @@
 const fastify = require('fastify');
 const path = require('path');
+const fastifySwagger = require('@fastify/swagger');
+const swaggerUI = requier('@fastify/swagger-ui');
 const cors = require('@fastify/cors');
 const helmet = require('@fastify/helmet');
 const crypto = require('crypto');
@@ -21,6 +23,49 @@ const app = fastify({
     logger: true,
     trustProxy: true,
     ignoreTrailingSlash: true
+});
+
+fastify.register(fastifySwagger, {
+    openapi: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Test swagger',
+            description: 'Testing the Fastify swagger API',
+            version: '0.1.0'
+        },
+        servers: [
+            {
+            url: 'http://localhost:3000',
+            description: 'Development server'
+            }
+        ],
+        tags: [
+            { name: 'chat', description: 'Chat related end-points' },
+            { name: 'chat-ws', description: 'Chat Websocket related end-points' }
+        ],
+        components: {
+            securitySchemes: {
+            bearerAuth: {
+                type: "http",
+                scheme:'bearer',
+                bearerFormat: "JWT",
+                },
+
+            }
+        },
+        security: [
+        {
+            bearerAuth: [],
+        },
+        ],
+        externalDocs: {
+            url: 'https://swagger.io',
+            description: 'Find more info here'
+        }
+    }
+});
+fastify.register(swaggerUI, {
+    routePrefix: '/docs',
 });
 
 const port = process.env.PORT || 3000;
