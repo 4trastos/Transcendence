@@ -2,7 +2,7 @@ import { UserRepositoryPort } from "../../application/ports/UserRepositoryPort";
 import { Chat } from "../../domain/entities/Chat";
 import { Message } from "../../domain/entities/Message";
 import { User } from "../../domain/entities/User";
-import ChatSingleton from "../db/ChatSingleton";
+import ChatSingleton from "../db/ChatSqlite";
 import UserRepositoryStore from "../rest/UserRepositoryStore";
 import UserTemplate from "../rest/UserTemplate";
 

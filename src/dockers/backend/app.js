@@ -1,5 +1,4 @@
 const fastify = require('fastify');
-const path = require('path');
 const fastifySwagger = require('@fastify/swagger');
 const swaggerUI = requier('@fastify/swagger-ui');
 const cors = require('@fastify/cors');
