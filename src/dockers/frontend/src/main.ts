@@ -5,11 +5,11 @@ import { UserJwt } from './data/UserJwt';
 import ChatView from './pages/chat/ChatView';
 import { HomePage } from './pages/home/home';
 import { GamePage } from './pages/game/GamePage'
-import { LogInPage } from './pages/login/login';
 import { StatsPage } from './pages/stats/StatsPage';
 import { mount } from './utils/component';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { GameStarter } from './pages/game/state/GameSate';
+import { AuthPage } from './pages/auth/AuthPage';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
@@ -107,7 +107,7 @@ function loadLoginPage() {
 	while (chatContainer.firstChild) {
     chatContainer.removeChild(chatContainer.firstChild);
   }
-  const loginPage = new LogInPage();
+  const loginPage = new AuthPage();
   mount(loginPage, '#app');
   
 }
