@@ -28,7 +28,58 @@ async function profileRoutes(fastify, options) {
         }
     })
 
-    fastify.get('/profile/:id', async (request, reply) => {
+    fastify.get('/profile/:id', {
+        schema: {
+            summary: 'Obtener los datos de perfil de un usuario',
+            description: 'Devuelve todos los datos neccesarios para montar el perfil del usuario en el front',
+            params: {
+                type: 'object',
+                properties: {
+                    id: { type: 'integer', description: 'ID del usuario' }
+                },
+                required: ['id']
+            },
+            response: {
+                200: {
+                    description: 'Datos del usuario',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string', example: 'ok' },
+                        data: {
+                            type: 'object',
+                            properties: {
+                                id: { type: 'integer' },
+                                username: { type: 'string' },
+                                email: { type: 'string' },
+                                full_name: { type: 'string' },
+                                last_name: { type: 'string' },
+                                favourite_color: { type: 'string' },
+                                pfp: { type: 'string' },
+                                country: { type: 'string' },
+                                bio: { type: 'string' }
+                            }
+                        }
+                    }
+                },
+                400: {
+                    description: 'ID inválido',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        message: { type: 'string' }
+                    }
+                },
+                500: {
+                    description: 'Error del servidor',
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        message: { type: 'string' }
+                    }
+                }
+            }
+        }
+    },async (request, reply) => {
         const userId = parseInt(request.params.id)
 
         if (isNaN(userId)){
@@ -47,8 +98,22 @@ async function profileRoutes(fastify, options) {
                     reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
                     return reject(err)
                 }
-                //Hacer el dto del profile
-                reply.code(200).send({status: 'ok', games: rows})
+                
+                const user = rows[0]
+
+                const userData = {
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    full_name: user.full_name,
+                    last_name: user.last_name,
+                    favourite_color: user.favourite_color,
+                    pfp: user.avatar_url,
+                    country: user.country,
+                    bio: user.bio
+                }
+
+                reply.code(200).send({status: 'ok', data: userData})
                 resolve()
             })
         })
