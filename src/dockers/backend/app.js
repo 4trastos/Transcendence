@@ -1,6 +1,6 @@
 const fastify = require('fastify');
 const fastifySwagger = require('@fastify/swagger');
-const swaggerUI = requier('@fastify/swagger-ui');
+const swaggerUI = require('@fastify/swagger-ui');
 const cors = require('@fastify/cors');
 const helmet = require('@fastify/helmet');
 const crypto = require('crypto');
@@ -10,6 +10,7 @@ const fastifySession = require('@fastify/session');
 const fastifyCookie = require('@fastify/cookie');
 const fs = require('fs');
 const { db } = require('./database');
+require('dotenv').config();
 const vault = require("node-vault")({
     apiVersion: "v1",
     endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
@@ -17,6 +18,7 @@ const vault = require("node-vault")({
 });
 const userRoutes = require('./routes/userRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = fastify({
     logger: true,
@@ -24,7 +26,15 @@ const app = fastify({
     ignoreTrailingSlash: true
 });
 
-fastify.register(fastifySwagger, {
+app.register(require('@fastify/jwt'), {
+  secret: 'supersecret', // puedes cargarlo desde Vault o dotenv,
+    cookie: {
+        signed: false,
+        cookieName: 'token',
+    },
+});
+
+app.register(fastifySwagger, {
     openapi: {
         openapi: '3.0.0',
         info: {
@@ -39,8 +49,9 @@ fastify.register(fastifySwagger, {
             }
         ],
         tags: [
-            { name: 'chat', description: 'Chat related end-points' },
-            { name: 'chat-ws', description: 'Chat Websocket related end-points' }
+            { name: 'Users', description: 'Gestion de usuarios' },
+            { name: 'Auth', description: 'Autorizaciones' },
+            { name: 'game', description: 'Historial, puntaje y datos del juego' }
         ],
         components: {
             securitySchemes: {
@@ -63,7 +74,7 @@ fastify.register(fastifySwagger, {
         }
     }
 });
-fastify.register(swaggerUI, {
+app.register(swaggerUI, {
     routePrefix: '/docs',
 });
 
@@ -92,8 +103,9 @@ app.register(rateLimit, {
 
 // Middlewares
 app.register(helmet);
+
 app.register(cors, {
-    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001', 'http://localhost:3000', 'https://localhost:3000'],
+    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
@@ -102,6 +114,7 @@ app.register(cors, {
 
 // Configuración de cookies y sesión
 app.register(fastifyCookie);
+
 app.register(fastifySession, {
     secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     cookie: { 
@@ -143,6 +156,7 @@ app.addHook('onSend', (request, reply, payload, done) => {
 });
 
 // Rutas
+app.register(authRoutes, { prefix: '/api' });
 app.register(userRoutes, { prefix: '/api' });
 app.register(gameRoutes, { prefix: '/api' });
 
@@ -207,6 +221,7 @@ app.setErrorHandler((error, request, reply) => {
 // Iniciar servidor
 app.listen({ port, host: '0.0.0.0' }, (err) => {
     if (err) {
+        db.close();
         app.log.error(err);
         process.exit(1);
     }
@@ -223,6 +238,8 @@ process.on('SIGINT', () => {
     app.close(() => {
         process.exit();
     });
+    process.exit();
+
 });
 
 module.exports = app;

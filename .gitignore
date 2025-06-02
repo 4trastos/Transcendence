@@ -1,7 +1,9 @@
 dist/
 
 src/dockers/frontend/public/js/*
-src/dockers/backend/node_modules/*
+src/dockers/backend/node_modules
+src/dockers/backend/package-lock.json
+src/dockers/backend/data
 
 src/dockers/frontend/public/css/*
 src/dockers/chat-service/node_modules/.package-lock.json
@@ -6541,3 +6543,4 @@ src/dockers/chat-service/node_modules/yn/license
 src/dockers/chat-service/node_modules/yn/package.json
 src/dockers/chat-service/node_modules/yn/readme.md
 src/dockers/frontend/node_modules/*
+src/dockers/backend/node_modules/.package-lock.json

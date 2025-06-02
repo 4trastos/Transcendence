@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS games (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     winner_id INTEGER NOT NULL,
-    looser_id INTEGER NOT NULL,
+    loser_id INTEGER NOT NULL,
     tournament BOOLEAN,
     score_winner INTEGER DEFAULT 0,
     score_loser INTEGER DEFAULT 0,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS games (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (winner_id) REFERENCES users(id),
-    FOREIGN KEY (loser_id) REFERENCES users(id),
+    FOREIGN KEY (loser_id) REFERENCES users(id)
 );
 
 -- Tabla de relaciones entre usuarios (amistades, bloqueos, etc.)
@@ -121,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti ON revoked_tokens(jti);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_games_players ON games(player1_id, player2_id);
+CREATE INDEX IF NOT EXISTS idx_games_players ON games(winner_id, loser_id);
 CREATE INDEX IF NOT EXISTS idx_user_relationships ON user_relationships(user_id, related_user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
