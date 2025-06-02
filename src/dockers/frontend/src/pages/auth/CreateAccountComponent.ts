@@ -1,10 +1,15 @@
-import { Component } from "../../utils/component";
+import { Component, ComponentProps } from "../../utils/component";
 
 
+export interface CreateAccountProps extends ComponentProps {
+  onSignIn:()=>void;
+}
 
-export class LogInComponent extends Component {
-  constructor() {
+export class CreateAccountComponent extends Component {
+  protected props;
+  constructor(props: CreateAccountProps) {
     super();
+    this.props = props;
     this.template = `
     <div class="w-full h-full"> 
   <div 
@@ -28,8 +33,8 @@ export class LogInComponent extends Component {
     <div class="relative z-10">
 
 	<div class="pb-6 px-[10vw]">
-      <h2 class="text-start text-white text-2xl font-regular mb-2 mt-2">¡Bienvenido!</h2>
-      <h2 class="text-start text-white text-lg font-regular mb-2 mt-2">¿No tienes una cuenta? Create una nueva cuenta ahora</h2>
+      <h2 class="text-start text-white text-2xl font-regular mb-2 mt-2">Sign UP</h2>
+
   </div>
  
   
@@ -37,6 +42,7 @@ export class LogInComponent extends Component {
 
 <form id="login-form" class="space-y-6 px-[10vw]">
   <div class="space-y-4">
+
     <!-- Usuario -->
     <div class="mb-1">
       <div class="relative">
@@ -46,12 +52,26 @@ export class LogInComponent extends Component {
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           </svg>
         </div>
-        <input type="text" name="username" placeholder="Username"
-          class="bg-black bg-opacity-5 text-white p-2 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600"
+        <input id="input-username" type="text" name="username" placeholder="Usuario"
+          class="autofill:bg-autofill appearance-none bg-black/5 text-white p-2 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600"
           required />
       </div>
     </div>
-    
+    <!-- Email -->
+    <div class="mb-1">
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="7" r="4" />
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          </svg>
+        </div>
+        <input id="input-email" type="text" name="email" placeholder="Correo"
+          class="autofill:bg-autofill appearance-none bg-black/5 text-white p-2 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600"
+          required />
+      </div>
+    </div>
+
     <!-- Contraseña -->
     <div class="mb-1">
       <div class="relative">
@@ -62,40 +82,52 @@ export class LogInComponent extends Component {
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </div>
-        <input type="password" name="password" placeholder="Password"
-          class="bg-black bg-opacity-5 text-white p-2 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600"
+        <input id="input-password" type="password" name="password" placeholder"Contraseña"
+          class="autofill:bg-autofill appearance-none bg-black/5 text-white p-2 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600"
           required />
       </div>
     </div>
+
   </div>
+
   <div class="flex flex-col space-y-2">
     <!-- Botón de inicio de sesión -->
     <div class="w-full flex rounded-lg bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]  p-[1px] items-center justify-end">
       <div class="bg-[#11162F] w-full rounded-lg">
         <button type="submit" id="login-button" 
           class="w-full  hover:bg-white/10 text-white py-2 px-6 rounded-lg">
-          Iniciar Sesion
+          SignUP
         </button>
       </div>
     </div>
+
     <div class="px-[5vw] py-1 w-full space-x-4 flex flex-row justify-center items-center">
       <div class="w-full bg-white bg-opacity-40 h-[1px]"></div>
-      <label class="text-white"> Or </label>
+        <label class="text-white"> O </label>
       <div class="w-full bg-white bg-opacity-40 h-[1px]"></div>
     </div>
 
     <div class="bg-white w-full rounded-lg">
-      <button type="submit" id="login-button" 
-        class="w-full  hover:bg-black/10  py-2 px-6 text-black rounded-lg">
-        Login with Google
+      <button type="submit" id="signUp-google"   class="w-full  hover:bg-black/10  py-2 px-6 text-black rounded-lg">
+        SignUp with Google
       </button>
     </div>
+
+    <div class="h-fill flex flex-row space-x-0">
+      <label class="text-white">ir a ,
+        <a id="back-login" href="javascript:void(0)"
+        class="underline font-bold text-white hover:text-blue-400">
+        Iniciar sesion
+        </a>
+      </label>
+    </diV>
   </div>
 
 </form>
 </div>
   </div>
 </div>
+
 `;
   }
 
@@ -117,35 +149,19 @@ export class LogInComponent extends Component {
     const loginButton = this.element.querySelector(
       "#login-button"
     ) as HTMLButtonElement;
+    const backLogin = this.element.querySelector(
+      "#back-login"
+    ) as HTMLButtonElement;
 
     if (loginForm && loginButton) {
-      loginForm.addEventListener("submit", this.handleLogin.bind(this));
     }
+    if (backLogin){
+      backLogin.addEventListener("click", () => {
+        this.props.onSignIn();
+      })
+    }
+      
   }
 
-  private async handleLogin(event: Event): Promise<void> {
-    event.preventDefault(); // Prevenir el envío del formulario por defecto
-    const formData = new FormData(event.target as HTMLFormElement);
-    const username = formData.get("username") as string;
-    const password = formData.get("password") as string;
-    const loginData = { username, password };
 
-    const response = await fetch(
-      "https://transcendence.42.fr/api/v1/auth/signin",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginData),
-        credentials: "include", // Incluir cookies en la solicitud
-      }
-    );
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Inicio de sesión exitoso:", data);
-      //Todo: Redirigir a la página de inicio o chat
-      window.location.hash = "";
-    }
-  }
 }

@@ -1,7 +1,7 @@
 import { Component } from "../../utils/component";
-import { LogInComponent } from "./login";
-
-
+import { CreateAccountComponent } from "./CreateAccountComponent";
+import { LogInComponent } from "./LoginComponent";
+import { RecoverPasswordComponent } from "./RecoverPasswordComponent";
 
 export class AuthPage extends Component {
   constructor() {
@@ -12,8 +12,6 @@ export class AuthPage extends Component {
 
 
 		<div class="flex justify-center items-center backdrop-blur-md h-full w-full bg-opacity-10 bg-[#11162F] shadow-[0_0_20px_rgba(0,0,0,0.5)] rounded relative">
-			<label>Hola!</label>
-			<p></p>
 <svg xmlns="http://www.w3.org/2000/svg"
      viewBox="0 0 600 150"
      overflow="visible"
@@ -79,11 +77,36 @@ export class AuthPage extends Component {
   }
 
   protected initEvents(): void {
-	if (!this.element) return;
-	const session = this.element.querySelector('#session-box');
-	const loginComponent = new LogInComponent();
-	session?.appendChild(loginComponent.render());
-	
+    if (!this.element) return;
+    const session = this.element.querySelector('#session-box');
+    if (session) {
+      const loginComponent = new LogInComponent({
+        onCreateAccount: () => {
+          session.innerHTML = '';
+          const createAccount = new CreateAccountComponent({
+            onSignIn: () => {
+              session.innerHTML = '';
+              session.appendChild(loginComponent.render());
+
+            }});
+          session.appendChild(createAccount.render());
+
+        },
+        onRecoverPassword: () => {
+          session.innerHTML = '';
+          const recoverPassword = new RecoverPasswordComponent({
+            onSignIn: () => {
+
+              session.innerHTML = '';
+              session.appendChild(loginComponent.render());
+
+            }
+          });
+          session.appendChild(recoverPassword.render());
+        }
+      });
+      session?.appendChild(loginComponent.render());
+    }
 
   }
 
