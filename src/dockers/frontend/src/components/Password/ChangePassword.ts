@@ -33,7 +33,7 @@ export class ChangePasswordComponent extends Component{
 			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 		  </svg>
 		</div>
-		<input type="oldPassword" name="password" placeholder="Actual Password"
+		<input type="oldPassword" name="password" placeholder="Actual Contraseña"
 		  class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
 		  required />
 	  </div>
@@ -48,7 +48,7 @@ export class ChangePasswordComponent extends Component{
 			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 		  </svg>
 		</div>
-		<input type="newPassword" name="password" placeholder="New Password"
+		<input type="newPassword" name="password" placeholder="Nueva Contraseña"
 		  class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
 		  required />
 	  </div>
@@ -63,7 +63,7 @@ export class ChangePasswordComponent extends Component{
 			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 		  </svg>
 		</div>
-		<input type="repeatPassword" name="password" placeholder="Repeat Password"
+		<input type="repeatPassword" name="password" placeholder="Repite Contraseña"
 		  class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
 		  required />
 	  </div>
@@ -86,62 +86,10 @@ export class ChangePasswordComponent extends Component{
 
 	const loginForm = this.element.querySelector("#change-pass-form") as HTMLFormElement;
 	if (loginForm) {
-	  loginForm.addEventListener("submit", this.handleLogin.bind(this));
 	}
 	
   }
 
-	private async handleLogin(event: Event): Promise<void> {
-	event.preventDefault(); // Prevenir el envío del formulario por defecto
-	const formData = new FormData(event.target as HTMLFormElement);
-	const oldPassword = formData.get("oldPassword") as string;
-	const newPassword = formData.get("newPassword") as string;
-    const repeatPassword = formData.get("repeatPassword") as string;
 
-    const errorDiv = this.element?.querySelector("#change-pass-error") as HTMLElement;
-    if (errorDiv) {
-        errorDiv.classList.add("hidden");
-        errorDiv.textContent = "";
-    }
-
-
-    if (newPassword !== repeatPassword) {
-        if (newPassword !== repeatPassword) {
-            const errorDiv = this.element?.querySelector("#change-pass-error") as HTMLElement;
-            if (errorDiv) {
-              errorDiv.textContent = "Las contraseñas no coinciden.";
-              errorDiv.classList.remove("hidden");
-            }
-            return;
-        }          
-    }
-	const loginData = { oldPassword, newPassword };
-
-	//La direccion tiene que se la del frontEnd.
-	try {
-	  const response = await fetch(
-		"https://transcendence.42.fr/api/v1/auth/password/change",
-		{
-		  method: "POST",
-		  headers: {
-			"Content-Type": "application/json",
-		  },
-		  body: JSON.stringify(loginData),
-		  credentials: "include", // Incluir cookies en la solicitud
-		}
-	  );
-	  if (response.ok) {
-		const data = await response.json();
-		console.log("Inicio de sesión exitoso:", data);
-		this.props.onComplete(data);  
-	  } else {
-		this.props.onError(null);
-	  }
-	} catch(err) {
-		this.props.onError(null);
-	}
-
-
-  }
 }
 

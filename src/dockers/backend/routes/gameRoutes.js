@@ -1,8 +1,6 @@
 const fastify = require('fastify');
 const fs = require('fs');
-const { request } = require('http');
 const path = require('path');
-const { use } = require('react');
 const sqlite3 = require('sqlite3').verbose();
 
 async function gameRoutes(fastify, options) {
@@ -84,7 +82,14 @@ async function gameRoutes(fastify, options) {
                         message: { type: 'string' }
                     }
                 }
-            }
+            },
+            summary: 'Get messages by chatId',
+		  tags: ['game'],
+		  security: [
+			{
+			  bearerAuth: [],
+			},
+		  ],
         }
     }, async (request, reply) =>{
         const userId = parseInt(request.params.id)
@@ -142,7 +147,14 @@ async function gameRoutes(fastify, options) {
                 game_id: { type: 'integer' }
                 }
             }
-            }
+            },
+             summary: 'Get messages by chatId',
+		  tags: ['game'],
+		  security: [
+			{
+			  bearerAuth: [],
+			},
+		  ],
         }
     },async (request, reply) => {
         const {
@@ -217,7 +229,14 @@ async function gameRoutes(fastify, options) {
                 message: { type: 'string' }
                 }
             }
-            }
+            },
+            summary: 'Get messages by chatId',
+		  tags: ['game'],
+		  security: [
+			{
+			  bearerAuth: [],
+			},
+		  ],
         }
     }, async (request, reply) => {
         const gameId = parseInt(request.params.id)
@@ -305,7 +324,14 @@ async function gameRoutes(fastify, options) {
                         }
                     }
                 }
-            }
+            },
+            summary: 'Get messages by chatId',
+		  tags: ['game'],
+		  security: [
+			{
+			  bearerAuth: [],
+			},
+		  ],
         }
     },async (request, reply) => {
         const userId = parseInt(request.params.id)

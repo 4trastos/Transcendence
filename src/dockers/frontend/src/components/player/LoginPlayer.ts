@@ -32,7 +32,7 @@ export class LoginPlayerComponent extends Component{
 			<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
 		  </svg>
 		</div>
-		<input type="text" name="username" placeholder="Username"
+		<input type="text" name="username" placeholder="Usuario"
 		  class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
 		  required />
 	  </div>
@@ -47,7 +47,7 @@ export class LoginPlayerComponent extends Component{
 			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 		  </svg>
 		</div>
-		<input type="password" name="password" placeholder="Password"
+		<input type="password" name="password" placeholder="Contraseña"
 		  class="bg-white bg-opacity-5 text-white p-2 pl-10 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-600"
 		  required />
 	  </div>

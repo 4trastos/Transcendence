@@ -1,8 +1,6 @@
 const fastify = require('fastify');
 const fs = require('fs');
-const { request } = require('http');
 const path = require('path');
-const { use } = require('react');
 const sqlite3 = require('sqlite3').verbose();
 
 async function profileRoutes(fastify, options) {
@@ -19,7 +17,7 @@ async function profileRoutes(fastify, options) {
     /**
      * Ejecutar el script de inicialización de la base de datos desde tools/init.sql
      */
-    const initSQL = fs.readFileSync(path.join(__dirname, '..', 'tools', 'init.sql'), 'utf-8')
+    const initSQL = fs.readFileSync(path.join(__dirname, '..', 'tools', 'init.sql'), 'utf-8');
     db.exec(initSQL, (err) => {
         if (err) {
             console.error('Error al inicializar la base de datos:', err.message)
@@ -134,7 +132,7 @@ async function profileRoutes(fastify, options) {
             type: 'object',
             properties: {
               username: { type: 'string' },
-              email: { type: 'string' },
+              email: { type: 'string'},
               full_name: { type: 'string' },
               last_name: { type: 'string' },
               favourite_color: { type: 'string' },

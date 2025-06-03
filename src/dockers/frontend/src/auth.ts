@@ -6,7 +6,7 @@ export async function fetchUser(): Promise<UserJwt | null> {
   if (currentUser) return currentUser;
   try {
 	const response = await fetch(
-	  "https://transcendence.42.fr/api/v1/auth/me",
+	  "http://localhost:3000/api/validate-token",
 	  {
 		method: "GET",
 		credentials: "include",
@@ -15,8 +15,8 @@ export async function fetchUser(): Promise<UserJwt | null> {
 	if (!response.ok) {
 	  throw new Error("Network response was not ok");
 	}
-	const data: {valid:boolean, user:UserJwt} = await response.json();
-	return (data.valid)? data.user:null;
+	const data: {valid:boolean, decoded:UserJwt} = await response.json();
+	return (data.valid)? data.decoded:null;
   } catch (error) {
 	console.error("Error fetching user data:", error);
   }
