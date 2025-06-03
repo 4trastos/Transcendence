@@ -3,12 +3,14 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    url: https://prometheus:9090
     access: proxy
-    url: http://prometheus:9090
     isDefault: true
     jsonData:
+      httpMethod: POST
       timeInterval: "15s"
-      httpMethod: "POST"
+      tlsAuth: false
+      tlsAuthWithCACert: false
       tlsSkipVerify: true
     version: 1
-    editable: true
+    editable: false

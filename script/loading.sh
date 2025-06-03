@@ -11,7 +11,7 @@ check_zap_ready() {
 
 # Verifica si Kibana está listo
 check_kibana_ready() {
-  docker logs --tail 1000 kibana 2>&1 | grep -q "Kibana is now available (was degraded)"
+  docker logs --tail 1000 kibana 2>&1 | grep -q "Kibana is now available"
 }
 
 # Verifica si Elasticsearch está healthy

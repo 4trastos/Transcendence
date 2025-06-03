@@ -264,6 +264,8 @@ services:
       - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs
       - es_certs:/etc/prometheus/ssl
+    command:
+      - '--web.config.file=/etc/prometheus/web-config.yml'
     environment:
       - UID=65534
       - GID=65534
@@ -289,10 +291,10 @@ services:
     ports:
       - "3003:3000"  # Grafana usa el puerto 3000 por defecto
     environment:
-    - GF_SERVER_PROTOCOL=https
-    - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
-    - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
-    - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
+      - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
     depends_on:
       - prometheus
       - elasticsearch

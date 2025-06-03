@@ -1,6 +1,8 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    monitor: 'transcendence'
 
 rule_files:
   - /etc/prometheus/alert_rules.yml
@@ -52,9 +54,6 @@ scrape_configs:
       - targets: ['localhost:9090']
     scheme: https
     tls_config:
-      ca_file: "/etc/prometheus/certs/ca.crt"
-      cert_file: "/etc/prometheus/certs/prometheus.crt"
-      key_file: "/etc/prometheus/certs/prometheus.key"
       insecure_skip_verify: true
   
   - job_name: 'grafana'
