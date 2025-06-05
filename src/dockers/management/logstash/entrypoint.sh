@@ -72,6 +72,28 @@ else
     exit 1
 fi
 
+# ====================================================================
+# NUEVO BLOQUE: Cargar Plantilla de Índice de Elasticsearch
+# ====================================================================
+TEMPLATE_FILE="/usr/share/logstash/pipeline/elasticsearch-template.json"
+TEMPLATE_NAME="transcendence-template" # Puedes poner el nombre que quieras para tu plantilla
+
+echo "⚙️ Intentando cargar la plantilla de índice de Elasticsearch..."
+for i in {1..10}; do
+    if curl -s -k -u "elastic:$ELASTIC_PASSWORD" -X PUT \
+       "https://elasticsearch:9200/_template/$TEMPLATE_NAME" \
+       -H "Content-Type: application/json" \
+       --data-binary "@$TEMPLATE_FILE" >/dev/null; then
+        echo "✅ Plantilla de índice '$TEMPLATE_NAME' cargada correctamente."
+        break
+    else
+        echo "⚠️ Intento $i/10 fallido al cargar la plantilla, reintentando en 10 segundos..."
+        sleep 10
+        [ $i -eq 10 ] && echo "❌ No se pudo cargar la plantilla de índice después de 10 intentos." && exit 1
+    fi
+done
+# ====================================================================
+
 # Iniciar Logstash optimizado
 echo "🚀 Iniciando Logstash..."
 exec /usr/share/logstash/bin/logstash \

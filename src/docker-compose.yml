@@ -187,7 +187,7 @@ services:
       - XPACK_MONITORING_ENABLED=false 
     volumes:
       - es_secrets:/usr/share/elasticsearch/secrets
-      - es_certs:/usr/share/elasticsearch/config/certs:ro
+      - es_certs:/usr/share/elasticsearch/config/certs
       - ls_config:/usr/share/logstash/config
       - ls_pipeline:/usr/share/logstash/pipeline
     ports:

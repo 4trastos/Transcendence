@@ -43,8 +43,58 @@
           "format": "strict_date_optional_time||epoch_millis"
         },
         "host": {
-          "type": "keyword",
-          "ignore_above": 256
+          "type": "object",
+          "properties": {
+            "ip": { "type": "ip" },
+            "name": { "type": "keyword", "ignore_above": 256 },
+            "id": { "type": "keyword", "ignore_above": 256 },
+            "mac": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "keyword", "ignore_above": 1024 }, 
+            "domain": { "type": "keyword", "ignore_above": 256 },
+            "port": { "type": "long" }
+          }
+        },
+        "http": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "keyword", "ignore_above": 256 },
+            "version": { "type": "keyword", "ignore_above": 256 },
+            "request": {
+              "type": "object",
+              "properties": {
+                "mime_type": { "type": "keyword", "ignore_above": 256 },
+                "body": {
+                  "properties": {
+                    "bytes": { "type": "long" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "user_agent": { 
+          "type": "object",
+          "properties": {
+            "original": { "type": "keyword", "ignore_above": 1024 },
+            "name": { "type": "keyword", "ignore_above": 256 },
+            "version": { "type": "keyword", "ignore_above": 256 },
+            "device": { "type": "keyword", "ignore_above": 256 },
+            "os": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "keyword", "ignore_above": 256 },
+                "version": { "type": "keyword", "ignore_above": 256 }
+              }
+            }
+          }
+        },
+        "level": { 
+          "type": "long"
         },
         "type": {
           "type": "keyword",
@@ -62,11 +112,11 @@
           "type": "integer",
           "doc_values": true
         },
-        "bytes": {
+        "bytes": { 
           "type": "long",
           "doc_values": true
         },
-        "request": {
+        "request": { 
           "type": "text",
           "fields": {
             "keyword": {
@@ -79,25 +129,12 @@
           "type": "keyword",
           "ignore_above": 1024
         },
-        "agent": {
+        "agent": { 
           "type": "text",
           "fields": {
             "keyword": {
               "type": "keyword",
               "ignore_above": 512
-            }
-          }
-        },
-        "response": {
-          "type": "integer",
-          "doc_values": true
-        },
-        "path": {
-          "type": "text",
-          "fields": {
-            "keyword": {
-              "type": "keyword",
-              "ignore_above": 1024
             }
           }
         }
