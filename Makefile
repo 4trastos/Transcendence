@@ -64,6 +64,8 @@ restart_if_needed:
 
 down:
 	@docker compose -f ./src/docker-compose.yml down -v
+down:
+	@docker compose -f ./src/docker-compose.yml up
 
 clean:
 	rm -rf $(HOME)/goinfre/data/sqlite/*
