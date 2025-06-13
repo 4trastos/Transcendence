@@ -13,14 +13,15 @@ export default class VerifyConnection {
 	}
 	
 	async execute(connection:any, req:any, onStatusChange: (req:any, status: string) => void): Promise<void> {
-        const decoded:{ user: string, roles: string[] } =  await req.jwtVerify();
-		let userId = decoded.user;
-		if (!decoded.user) {
+        const decoded:{ id:string, user: string, roles: string[] } =  await req.jwtVerify();
+		let userId = decoded.id;
+		if (!decoded.id) {
 			onStatusChange(req,"close");
 			connection.close();
 			throw new HandleException("El usuario no es correcto", 401, "Unauthorized");
 		}
 		const user:User | undefined = await this.userRepository.getUserById(userId);
+		console.log("userId: " + userId,"user: "+ user);
 		if (!user) {
 			console.log("No estas autorizado para conectarte, create una cuenta");
 			onStatusChange(req,"close");

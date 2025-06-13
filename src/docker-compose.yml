@@ -96,6 +96,7 @@ services:
     command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
       - "3001:3001"
+      #- "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped

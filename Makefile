@@ -64,8 +64,6 @@ restart_if_needed:
 
 down:
 	@docker compose -f ./src/docker-compose.yml down -v
-up:
-	@docker compose -f ./src/docker-compose.yml up
 
 clean:
 	rm -rf $(HOME)/goinfre/data/sqlite/*
@@ -174,4 +172,4 @@ elastic-password:
 	@docker exec elasticsearch cat /usr/share/elasticsearch/secrets/elastic_password
 	@docker exec -it logstash curl -X POST -H "Content-Type: application/json" -d '{"time": 1678886400000, "level": 30, "msg": "Test HTTP log from curl"}' http://logstash:8082
 
-.PHONY: all down up clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password

@@ -1,7 +1,7 @@
 import { ChatRepositoryPort } from "../../application/ports/ChatRepositoryPort";
 import { Chat } from "../../domain/entities/Chat";
 import { Message } from "../../domain/entities/Message";
-import ChatSingleton from "../db/ChatSingleton";
+import { ChatSingleton } from "../db/ChatSingleton";
 
 
 export class ChatRepositoryAdapter implements ChatRepositoryPort {

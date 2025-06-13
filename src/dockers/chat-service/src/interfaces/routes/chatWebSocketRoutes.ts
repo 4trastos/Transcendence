@@ -27,9 +27,6 @@ export default async function chatWebSocketRoutes(fastify: FastifyInstance, user
           tags: ['chat-ws'],
           querystring: {
             type: 'object',
-            properties: {
-                userId: { type: 'number' },
-            },
             },
           response: {
             101: {

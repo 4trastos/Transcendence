@@ -1,5 +1,6 @@
 const fastify = require('fastify');
-const path = require('path');
+const fastifySwagger = require('@fastify/swagger');
+const swaggerUI = require('@fastify/swagger-ui');
 const cors = require('@fastify/cors');
 const helmet = require('@fastify/helmet');
 const crypto = require('crypto');
@@ -9,6 +10,7 @@ const fastifySession = require('@fastify/session');
 const fastifyCookie = require('@fastify/cookie');
 const fs = require('fs');
 const { db } = require('./database');
+require('dotenv').config();
 const vault = require("node-vault")({
     apiVersion: "v1",
     endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
@@ -16,11 +18,74 @@ const vault = require("node-vault")({
 });
 const userRoutes = require('./routes/userRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+
+const SQLiteConnection = require('./db/SQLiteConnection');
+
+const dbConnect = new SQLiteConnection("sqlite.db","init.sql");
+dbConnect.executeScript();
+const dbInstance = dbConnect.getDBInstance();
+
 
 const app = fastify({
     logger: true,
     trustProxy: true,
     ignoreTrailingSlash: true
+});
+
+app.register(require('@fastify/multipart'))
+
+app.register(require('@fastify/jwt'), {
+  secret: 'supersecret', // puedes cargarlo desde Vault o dotenv,
+    cookie: {
+        signed: false,
+        cookieName: 'token',
+    },
+});
+
+app.register(fastifySwagger, {
+    openapi: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Test swagger',
+            description: 'Testing the Fastify swagger API',
+            version: '0.1.0'
+        },
+        servers: [
+            {
+            url: 'http://localhost:3000',
+            description: 'Development server'
+            }
+        ],
+        tags: [
+            { name: 'Users', description: 'Gestion de usuarios' },
+            { name: 'Auth', description: 'Autorizaciones' },
+            { name: 'game', description: 'Historial, puntaje y datos del juego' }
+        ],
+        components: {
+            securitySchemes: {
+            bearerAuth: {
+                type: "http",
+                scheme:'bearer',
+                bearerFormat: "JWT",
+                },
+
+            }
+        },
+        security: [
+        {
+            bearerAuth: [],
+        },
+        ],
+        externalDocs: {
+            url: 'https://swagger.io',
+            description: 'Find more info here'
+        }
+    }
+});
+app.register(swaggerUI, {
+    routePrefix: '/docs',
 });
 
 const port = process.env.PORT || 3000;
@@ -48,8 +113,9 @@ app.register(rateLimit, {
 
 // Middlewares
 app.register(helmet);
+
 app.register(cors, {
-    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001', 'http://localhost:3000', 'https://localhost:3000'],
+    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
@@ -58,6 +124,7 @@ app.register(cors, {
 
 // Configuración de cookies y sesión
 app.register(fastifyCookie);
+
 app.register(fastifySession, {
     secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     cookie: { 
@@ -99,8 +166,11 @@ app.addHook('onSend', (request, reply, payload, done) => {
 });
 
 // Rutas
-app.register(userRoutes, { prefix: '/api' });
-app.register(gameRoutes, { prefix: '/api' });
+
+app.register(authRoutes, { prefix: '/api' }, dbInstance);
+app.register(userRoutes, { prefix: '/api' }, dbInstance);
+app.register(gameRoutes, { prefix: '/api' }, dbInstance);
+app.register(profileRoutes, { prefix: '/api' }, dbInstance);
 
 // Health check endpoint
 app.get('/health', async (request, reply) => {
@@ -163,6 +233,7 @@ app.setErrorHandler((error, request, reply) => {
 // Iniciar servidor
 app.listen({ port, host: '0.0.0.0' }, (err) => {
     if (err) {
+        db.close();
         app.log.error(err);
         process.exit(1);
     }
@@ -179,6 +250,8 @@ process.on('SIGINT', () => {
     app.close(() => {
         process.exit();
     });
+    process.exit();
+
 });
 
 module.exports = app;

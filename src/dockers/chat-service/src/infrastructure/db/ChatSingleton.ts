@@ -1,7 +1,6 @@
-import { Message } from "../../domain/entities/Message";
 import { Chat } from "../../domain/entities/Chat";
 
-class ChatSingleton  {
+export class ChatSingleton  {
 	private static instance: ChatSingleton = null;
 	private chats: Chat[] = [];
 
@@ -63,13 +62,12 @@ class ChatSingleton  {
 	 async getAllChats(): Promise<Chat[]> {
 		return this.chats;
 	}
-	public async addMessageToChat(chatId: string, message: Message): Promise<Message> {
+	public async addMessageToChat(chatId: string, message: any): Promise<void> {
 		const chat = await this.getChatById(chatId);
 		if (!chat) {
 			throw new Error(`Chat with id ${chatId} not found`);
 		}
 		chat.messages.push(message);
-		return message;
 	}
 
 	 async addChat(chat: Chat): Promise<void> {
@@ -84,4 +82,3 @@ class ChatSingleton  {
 	}
 }
 
-export default ChatSingleton;

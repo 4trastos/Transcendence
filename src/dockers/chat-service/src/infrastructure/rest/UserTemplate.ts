@@ -2,17 +2,17 @@ import { User } from "../../domain/entities/User";
 import UserRepositoryStore from "./UserRepositoryStore";
 
 class UserTemplate implements UserRepositoryStore {
-	private url = process.env.URI_USER_SERVICE || "http://localhost:3010/api/v1/users";
+	private url = process.env.URI_USER_SERVICE || "http://localhost:3000/api/profile";
 
     public constructor() {} // Evita instanciar directamente
 
 	public async getUserById(userId: string): Promise<User> {
-		const chat = await fetch(this.url + `/${userId}`);
-		if (!chat) {
-			throw new Error(`Chat with id ${userId} not found`);
+		const body = await fetch(this.url + `/${userId}`);
+		if (!body) {
+			throw new Error(`user with id ${userId} not found`);
 		}
-		const user:User = await chat.json();
-		return user as unknown as User;
+		const user:{status: string, data: User} = await body.json();
+		return user.data as unknown as User;
 	}
 
 	 async getAllUsers(): Promise<User[]> {
