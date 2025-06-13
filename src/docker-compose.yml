@@ -85,13 +85,11 @@ services:
 
 
   frontend:   # Frontend (TypeScript + Tailwind)
-    build: dockers/frontend/.
+    build:
+      context: ./dockers/frontend/
+      dockerfile: Dockerfile
     container_name: frontend
-    image: node:18-alpine
     volumes:
-      - frontend_data:/usr/src/app      # Volumen para el código fuente
-      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
-      - ./frontend/public:/usr/share/nginx/html:ro
       - ./ssl_certs:/etc/nginx/ssl:ro
     command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:

@@ -32,6 +32,6 @@ RUN npm install
 #EXPOSE 3040
 EXPOSE 3001
 
-ENTRYPOINT [ "/usr/local/bin/init.sh"]
+ENTRYPOINT [ "bash", "/usr/local/bin/init.sh"]
 # Usa un comando para mantener el contenedor en ejecución, en caso de que necesites interactuar con él
 CMD ["npx", "node", "server.js"]
