@@ -1,9 +1,14 @@
-const fastify = require('fastify');
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+import fs from "fs";
+import path from "path";
+import sqlite3Module from "sqlite3";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-async function gameRoutes(fastify, options) {
+const sqlite3 = sqlite3Module.verbose();
+
+export async function gameRoutes(fastify, options) {
     const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
     const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
@@ -361,5 +366,3 @@ async function gameRoutes(fastify, options) {
     })
 
 }
-
-module.exports = gameRoutes;

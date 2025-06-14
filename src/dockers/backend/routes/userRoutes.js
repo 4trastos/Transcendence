@@ -1,18 +1,17 @@
-const fastify = require('fastify');
-const bcrypt = require('bcrypt');
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
-const crypto = require('crypto');
+import fs from 'fs';
+import path from 'path';
+import sqlite3Module from 'sqlite3';
+import crypto from 'crypto';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const { config, verifyTempToken, generateAccessToken, generateRefreshToken, middleware: authMiddleware } = require('../auth');
-const speakeasy = require('speakeasy');
-const QRCode = require('qrcode');
-const emailService = require('../emailService');
+const sqlite3 = sqlite3Module.verbose();
 
 
 // Creamos el router de Fastify (usando el plugin system)
-async function userRoutes(fastify, options) {
+export async function userRoutes(fastify, options) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
@@ -82,5 +81,3 @@ async function userRoutes(fastify, options) {
 
 }
 
-
-module.exports = userRoutes;

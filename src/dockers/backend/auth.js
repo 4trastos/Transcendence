@@ -1,9 +1,8 @@
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { db } = require('./database');
+import crypto from 'crypto';
+import { db } from './database.js';
 
 // Configuración mejorada
-const config = {
+export const config = {
     secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
     algorithm: 'HS256',
     issuer: 'pong-app.com',
@@ -18,7 +17,7 @@ const config = {
 };
 
 // Genera token de acceso con más información de contexto
-const generateAccessToken = (user, request = {}) => {
+export const generateAccessToken = (user, request = {}) => {
     if (!user?.id) {
         throw new Error('User ID is required to generate token');
     }
@@ -46,7 +45,7 @@ const generateAccessToken = (user, request = {}) => {
 };
 
 // Genera refresh token con validación mejorada
-const generateRefreshToken = async (userId, request = {}) => {
+export const generateRefreshToken = async (userId, request = {}) => {
     if (userId === undefined || userId === null) {
         throw new Error(`Invalid user ID: ${userId}`);
     }
@@ -94,7 +93,7 @@ const generateRefreshToken = async (userId, request = {}) => {
 };
 
 // Revoca token con verificación
-const revokeToken = async (jti) => {
+export const revokeToken = async (jti) => {
     if (!jti) {
         throw new Error('JTI is required to revoke token');
     }
@@ -113,7 +112,7 @@ const revokeToken = async (jti) => {
 };
 
 // Verificación de token con chequeo de revocación
-const verifyToken = async (token) => {
+export const verifyToken = async (token) => {
     if (!token || typeof token !== 'string') {
         throw new Error('Invalid token format');
     }
@@ -164,7 +163,7 @@ const verifyToken = async (token) => {
 };
 
 // Verificación de token temporal para 2FA
-const verifyTempToken = (token) => {
+export const verifyTempToken = (token) => {
     try {
         const decoded = jwt.verify(token, config.secret, {
             algorithms: [config.algorithm],
@@ -198,7 +197,7 @@ const verifyTempToken = (token) => {
 };
 
 // Middleware de autenticación mejorado
-const authMiddleware = async (request, reply) => {
+export const authMiddleware = async (request, reply) => {
     try {
         // Verificar header de autorización
         const authHeader = request.headers.authorization;
@@ -242,13 +241,3 @@ const authMiddleware = async (request, reply) => {
     }
 };
 
-// Exportar todas las funciones
-module.exports = {
-    generateAccessToken,
-    generateRefreshToken,
-    revokeToken,
-    verifyToken,
-    verifyTempToken,
-    middleware: authMiddleware,
-    config
-};
