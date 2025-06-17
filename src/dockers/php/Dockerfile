@@ -36,8 +36,8 @@ RUN set -x && git clone --depth 1 https://github.com/SpiderLabs/ModSecurity.git 
     && make install
 
 # Descargar el módulo de Nginx para ModSecurity
-#RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git /tmp/ModSecurity-nginx
-COPY ModSecurity-nginx /tmp/ModSecurity-nginx
+RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git /tmp/ModSecurity-nginx
+#COPY ModSecurity-nginx /tmp/ModSecurity-nginx
 
 # Descargar y compilar Nginx con el módulo de ModSecurity
 RUN set -x && apt-get update && apt-get install -y wget \
