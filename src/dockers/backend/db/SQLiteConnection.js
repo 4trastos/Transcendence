@@ -1,14 +1,9 @@
-import fs from "fs";
-import path from "path";
-import sqlite3Module from "sqlite3";
-import { fileURLToPath } from 'url';
+const fs = require('fs');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-const sqlite3 = sqlite3Module.verbose();
-
-export class SQLiteConnection {
+class SQLiteConnection {
   db;
   nameScript;
   constructor(name, nameScript){
@@ -43,3 +38,4 @@ export class SQLiteConnection {
   }
 }
 
+module.exports = SQLiteConnection;

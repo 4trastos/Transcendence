@@ -1,8 +1,8 @@
 FROM docker.elastic.co/kibana/kibana:8.12.0
 
-USER root
+#USER root
 RUN mkdir -p /usr/share/kibana/dashboards && \
-    chown -R kibana:kibana /usr/share/kibana
+    chown -R kibana:kibana /usr/share/kibana/dashboards
 
 COPY --chown=kibana:kibana config/kibana.yml /usr/share/kibana/config/
 COPY --chown=kibana:kibana entrypoint.sh /usr/local/bin/

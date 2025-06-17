@@ -1,25 +1,25 @@
-import fs from "fs";
-import path from "path";
-import sqlite3Module from "sqlite3";
-import crypto from "crypto";
-import { config, verifyTempToken,  authMiddleware } from "../auth.js";
-import speakeasy from "speakeasy";
-import QRCode from "qrcode";
-import {sendVerificationEmail, sendResetPasswordEmail} from "../emailService.js";
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const fastify = require("fastify");
+const bcrypt = require("bcrypt");
+const fs = require("fs");
+const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
+const crypto = require("crypto");
+const {
+  config,
+  verifyTempToken,
+  middleware: authMiddleware,
+} = require("../auth");
+const speakeasy = require("speakeasy");
+const QRCode = require("qrcode");
+const emailService = require("../emailService");
 
-const sqlite3 = sqlite3Module.verbose();
+
+
+
 
 // Creamos el router de Fastify (usando el plugin system)
-export async function authRoutes(fastify, options) {
-    const sendError = (reply, status, error, details = {}) => {
-      const response = { success: false, error, ...details };
-      console.error(`Login error [${status}]:`, response);
-      return reply.status(status).send(response);
-    };
+async function authRoutes(fastify, options) {
+  const verificationToken = crypto.randomBytes(32).toString("hex");
 
   const dbPath = path.join(__dirname, "..", "data", "sqlite.db");
   const db = new sqlite3.Database(dbPath, (err) => {
@@ -143,7 +143,7 @@ export async function authRoutes(fastify, options) {
         }
 
         // Generar hash de contraseña y token de verificación
-        const hashedPassword = await fastify.bcrypt.hash(password, 12);
+        const hashedPassword = await bcrypt.hash(password, 12);
         const verificationToken = crypto.randomBytes(32).toString("hex");
         const isVerified = false; // Cuenta no verificada inicialmente
 
@@ -196,7 +196,7 @@ export async function authRoutes(fastify, options) {
         });
         if (process.env.NODE_ENV !== "test") {
           try {
-            const emailSent = await sendVerificationEmail(
+            const emailSent = await emailService.sendVerificationEmail(
               email,
               verificationToken
             );
@@ -346,6 +346,11 @@ export async function authRoutes(fastify, options) {
     async (request, reply) => {
       const { username, password, guestMode } = request.body;
 
+      const sendError = (status, error, details = {}) => {
+        const response = { success: false, error, ...details };
+        console.error(`Login error [${status}]:`, response);
+        return reply.status(status).send(response);
+      };
 
       try {
         if (guestMode) {
@@ -353,7 +358,7 @@ export async function authRoutes(fastify, options) {
         }
 
         if (!username?.trim() || !password?.trim()) {
-          return sendError(reply, 400, "Credenciales inválidas", {
+          return sendError(400, "Credenciales inválidas", {
             details: "Username y password son requeridos",
           });
         }
@@ -378,7 +383,7 @@ export async function authRoutes(fastify, options) {
         });
 
         if (!user) {
-          return sendError(reply, 404, "Usuario no encontrado", {
+          return sendError(404, "Usuario no encontrado", {
             solution: "Verifique el username o regístrese",
           });
         }
@@ -390,15 +395,15 @@ export async function authRoutes(fastify, options) {
             : "NULL",
         });
 
-        const isMatch = await fastify.bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          return sendError(reply, 401, "Credenciales inválidas", {
+          return sendError(401, "Credenciales inválidas", {
             details: "La contraseña es incorrecta",
           });
         }
 
         if (!user.is_verified && process.env.NODE_ENV !== "test") {
-          return sendError(reply, 403, "Cuenta no verificada", {
+          return sendError(403, "Cuenta no verificada", {
             needsVerification: true,
             solution: "Verifique su email o contacte al administrador",
           });
@@ -406,6 +411,7 @@ export async function authRoutes(fastify, options) {
 
         // Flujo 2FA - Versión corregida
         if (user.two_factor_enabled && user.two_factor_secret) {
+          //const { config } = require('../auth');
           const tempToken = jwt.sign(
             {
               userId: user.id, // Asegurar que sea userId (no user.id)
@@ -444,7 +450,7 @@ export async function authRoutes(fastify, options) {
           stack: error.stack,
           requestBody: request.body,
         });
-        return sendError(reply, 500, "Error interno del servidor", {
+        return sendError(500, "Error interno del servidor", {
           message:
             process.env.NODE_ENV === "development" ? error.message : undefined,
         });
@@ -878,7 +884,7 @@ export async function authRoutes(fastify, options) {
       const username = decoded.user;
 
         if (!newPassword?.trim() || !currentPassword?.trim()) {
-          return sendError(reply, 400, "Credenciales inválidas", {
+          return sendError(400, "Credenciales inválidas", {
             details: "La contraseña es requerida",
           });
         }
@@ -903,7 +909,7 @@ export async function authRoutes(fastify, options) {
         });
 
         if (!user) {
-          return sendError(reply, 404, "Usuario no encontrado", {
+          return sendError(404, "Usuario no encontrado", {
             solution: "Verifique el username o regístrese",
           });
         }
@@ -917,12 +923,12 @@ export async function authRoutes(fastify, options) {
 
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
-          return sendError(reply, 401, "Credenciales inválidas", {
+          return sendError(401, "Credenciales inválidas", {
             details: "La contraseña es incorrecta",
           });
         }
 
-        const hashedPassword = await fastify.bcrypt.hash(newPassword, 12);
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
         await new Promise((resolve, reject) => {
           db.run(`UPDATE users SET password =? WHERE username = ?`,
             [hashedPassword, username ],
@@ -992,7 +998,7 @@ fastify.post("/send-reset-email-password", {
   });
 
   if (!userExists) {
-    return sendError(reply, 404, "Usuario no encontrado", {
+    return sendError(404, "Usuario no encontrado", {
       details: "Usuario no encontrado en la DB",
     });
   }
@@ -1007,11 +1013,9 @@ fastify.post("/send-reset-email-password", {
     );
   });
 
-  console.log("Enviando mensaje")
-  const sended = await sendResetPasswordEmail(email, verificationToken);
-  console.log("Mensaje enviado")
+  const sended = await emailService.sendResetPasswordEmail(email, verificationToken);
   if (!sended) {
-    return sendError(reply, 400, "Error al enviar correo", {
+    return sendError(400, "Error al enviar correo", {
       details: "Email incorrecto",
     });
   }
@@ -1097,7 +1101,7 @@ fastify.post("/send-reset-email-password", {
     }
 
     try {
-      const hashedPassword = await fastify.bcrypt.hash(password, 12);
+      const hashedPassword = await bcrypt.hash(password, 12);
       await new Promise((resolve, reject) => {
         db.run(
           "UPDATE users SET password = ? WHERE email = ? AND verification_token = ?",
@@ -1676,3 +1680,4 @@ fastify.post("/send-reset-email-password", {
   );
 }
 
+module.exports = authRoutes;

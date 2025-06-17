@@ -1,16 +1,17 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-dotenv.config();
+const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+  host: process.env.MAIL_URL || 'mailserver',
+  port: parseInt(process.env.MAIL_PORT || 25),  // Puerto INTERNO del contenedor SMTP
+  secure: false,
+  ignoreTLS: true,  // Crucial para namshi/smtp
+  tls: {
+    rejectUnauthorized: false
   },
+  connectionTimeout: 100
 });
 
-export async function sendVerificationEmail(email, token) {
+async function sendVerificationEmail(email, token) {
   const verificationLink = `${process.env.BACKEND_URL}/api/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
   
   const mailOptions = {
@@ -35,20 +36,18 @@ export async function sendVerificationEmail(email, token) {
   }
 }
 
-export async function sendResetPasswordEmail(email, token) {
+async function sendResetPasswordEmail(email, token) {
   const verificationLink = `${process.env.FRONTEND_URL}/#newPassword?token=${token}&email=${encodeURIComponent(email)}`;
   
-  console.log("configurando mensaje")
   const mailOptions = {
     from: '"PongApp" <no-reply@pongapp.com>',
     to: email,
-    subject: 'Correo para resetear tu contraseña',
-    html: `<a href="${verificationLink}">Reset</a>`,
-    text: `: ${verificationLink}`
+    subject: 'Verifica tu cuenta en PongApp',
+    html: `<a href="${verificationLink}">Verifica tu cuenta</a>`,
+    text: `Por favor verifica tu cuenta: ${verificationLink}`
   };
-  
+
   try {
-    console.log("Enviando mensaje")
     const info = await transporter.sendMail(mailOptions);
     console.log('Email enviado:', info.messageId);
     return true;
@@ -61,3 +60,4 @@ export async function sendResetPasswordEmail(email, token) {
     return false;
   }
 }
+module.exports = { sendVerificationEmail, sendResetPasswordEmail };

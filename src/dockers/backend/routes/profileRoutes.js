@@ -1,16 +1,10 @@
-import { pipeline } from 'node:stream/promises';
-import fs from "fs";
-import path from "path";
-import sqlite3Module from "sqlite3";
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const fastify = require('fastify');
+const fs = require('fs');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
+const { pipeline } = require('node:stream/promises')
 
-const sqlite3 = sqlite3Module.verbose();
-
-
-export async function profileRoutes(fastify, options) {
+async function profileRoutes(fastify, options) {
 
     const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db')
     const db = new sqlite3.Database(dbPath, (err) => {
@@ -241,52 +235,27 @@ export async function profileRoutes(fastify, options) {
             reply.code(200).send({ status: 'ok', message: 'Usuario actualizado correctamente' })
             resolve();
           })
-        });
+        })
       })      
 
-
-
     fastify.post('/upload-avatar', async (request, reply) => {
-      const data = await request.file();
-      const decoded = await request.jwtVerify();
-      
-      const userId = parseInt(decoded.id)
-      
       // Aquí procesas la imagen subida
+      const data = await request.file();
       const filename = data.filename;
-      const uploadDir = path.join(__dirname,'..', 'uploads');
+      const uploadDir = path.join(__dirname, 'uploads');
 
       await fs.promises.mkdir(uploadDir, { recursive: true });
       const filePath = path.join(uploadDir, filename);
-        const query = `
-          UPDATE users
-          SET avatar_url = ?
-          WHERE id = ?
-        `
+
 
       // Ejemplo de guardar el archivo en disco (no recomendado para producción):
       if (data.file) {
         await pipeline(data.file, fs.createWriteStream(filePath))
-          new Promise((resolve, reject) => {//Puede no ser reactiva
-            db.run(query, [`http://localhost:3000/uploads/${filename}`,userId], function (err) {
-              if (err) {
-                console.error('Error al actualizar usuario:', err.message)
-                reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
-                return reject(err)
-              }
-        
-              if (this.changes === 0) {
-                reply.code(404).send({ status: 'error', message: 'Usuario no encontrado' })
-                return resolve()
-              }
-        
-              reply.code(200).send({ status: 'ok', message: 'Usuario actualizado correctamente' })
-              resolve();
-            })
-          });
-          reply.send({ message: 'Imagen subida con éxito', url: "/uploads/" + filename });
+          reply.send({ message: 'Imagen subida con éxito', filename: filename, path: filePath });
       } else {
           reply.status(400).send({ message: 'No se subió ningún archivo' });
       }
     });
 }
+
+module.exports = profileRoutes;

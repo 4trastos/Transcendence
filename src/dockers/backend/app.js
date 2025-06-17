@@ -1,117 +1,257 @@
-import Prometheus from 'prom-client';
-import vaultLib from 'node-vault';
-import {userRoutes} from './routes/userRoutes.js';
-import {gameRoutes} from './routes/gameRoutes.js';
-import {authRoutes} from './routes/authRoutes.js';
-import {profileRoutes} from './routes/profileRoutes.js';
-import configApp from './configApp.js';
-import dotenv from 'dotenv';
+const fastify = require('fastify');
+const fastifySwagger = require('@fastify/swagger');
+const swaggerUI = require('@fastify/swagger-ui');
+const cors = require('@fastify/cors');
+const helmet = require('@fastify/helmet');
+const crypto = require('crypto');
+const Prometheus = require('prom-client');
+const rateLimit = require('@fastify/rate-limit');
+const fastifySession = require('@fastify/session');
+const fastifyCookie = require('@fastify/cookie');
+const fs = require('fs');
+const { db } = require('./database');
+require('dotenv').config();
+const vault = require("node-vault")({
+    apiVersion: "v1",
+    endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
+    token: process.env.VAULT_TOKEN || "root",
+});
+const userRoutes = require('./routes/userRoutes');
+const gameRoutes = require('./routes/gameRoutes');
+const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
-dotenv.config();
-async function main() {
-    const app = await configApp();
+const SQLiteConnection = require('./db/SQLiteConnection');
 
-    const vault = vaultLib({
-        apiVersion: "v1",
-        endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
-        token: process.env.VAULT_TOKEN || "root",
-    });
-    // Rutas
+const dbConnect = new SQLiteConnection("sqlite.db","init.sql");
+dbConnect.executeScript();
+const dbInstance = dbConnect.getDBInstance();
 
-    app.register(authRoutes, { prefix: '/api' });
-    app.register(userRoutes, { prefix: '/api' });
-    app.register(gameRoutes, { prefix: '/api' });
-    app.register(profileRoutes, { prefix: '/api' });
 
-    app.get('/metrics', async (req, res) => {
-        res.header('Content-Type', Prometheus.register.contentType);
-        res.send(await Prometheus.register.metrics());
-    });
+const app = fastify({
+    logger: true,
+    trustProxy: true,
+    ignoreTrailingSlash: true
+});
 
-    // Health check endpoint
-    app.get('/health', async (request, reply) => {
-        try {
-            const dbStatus = app.db.open ? 'connected' : 'disconnected';
-            let vaultStatus = 'disconnected';
-            
-            try {
-                await vault.health();
-                vaultStatus = 'connected';
-            } catch (vaultError) {
-                console.error('Error checking Vault health:', vaultError);
+app.register(require('@fastify/multipart'))
+
+app.register(require('@fastify/jwt'), {
+  secret: 'supersecret', // puedes cargarlo desde Vault o dotenv,
+    cookie: {
+        signed: false,
+        cookieName: 'token',
+    },
+});
+
+app.register(fastifySwagger, {
+    openapi: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Test swagger',
+            description: 'Testing the Fastify swagger API',
+            version: '0.1.0'
+        },
+        servers: [
+            {
+            url: 'http://localhost:3000',
+            description: 'Development server'
             }
+        ],
+        tags: [
+            { name: 'Users', description: 'Gestion de usuarios' },
+            { name: 'Auth', description: 'Autorizaciones' },
+            { name: 'game', description: 'Historial, puntaje y datos del juego' }
+        ],
+        components: {
+            securitySchemes: {
+            bearerAuth: {
+                type: "http",
+                scheme:'bearer',
+                bearerFormat: "JWT",
+                },
 
-            reply.status(200).send({ 
-                status: 'OK', 
-                db: dbStatus,
-                vault: vaultStatus,
-                timestamp: new Date().toISOString()
-            });
-        } catch (error) {
-            reply.status(500).send({ 
-                status: 'ERROR',
-                error: error.message 
-            });
+            }
+        },
+        security: [
+        {
+            bearerAuth: [],
+        },
+        ],
+        externalDocs: {
+            url: 'https://swagger.io',
+            description: 'Find more info here'
         }
-    });
+    }
+});
+app.register(swaggerUI, {
+    routePrefix: '/docs',
+});
 
-    // Endpoint de secretos de Vault
-    app.get("/api/secret", async (request, reply) => {
+const port = process.env.PORT || 3000;
+
+const collectDefaultMetrics = Prometheus.collectDefaultMetrics;
+collectDefaultMetrics({ timeout: 5000 });
+
+app.get('/metrics', async (req, res) => {
+    res.header('Content-Type', Prometheus.register.contentType);
+    res.send(await Prometheus.register.metrics());
+  });
+
+// Configuración de seguridad mejorada
+app.register(rateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: '15 minutes',
+    addHeaders: {
+        'x-ratelimit-limit': true,
+        'x-ratelimit-remaining': true,
+        'x-ratelimit-reset': true,
+        'retry-after': true
+    }
+});
+
+// Middlewares
+app.register(helmet);
+
+app.register(cors, {
+    origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    optionsSuccessStatus: 200
+});
+
+// Configuración de cookies y sesión
+app.register(fastifyCookie);
+
+app.register(fastifySession, {
+    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+    }
+});
+
+// Headers de seguridad adicionales
+app.addHook('onSend', (request, reply, payload, done) => {
+    reply.headers({
+        'Access-Control-Allow-Credentials': 'true',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    });
+    done();
+});
+
+// CSP
+app.addHook('onSend', (request, reply, payload, done) => {
+    const csp = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "script-src-elem 'self'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data:",
+        "connect-src 'self'",
+        "font-src 'self' https://fonts.gstatic.com",
+        "form-action 'self'"
+    ].join('; ');
+    
+    reply.header('Content-Security-Policy', csp);
+    done();
+});
+
+// Rutas
+
+app.register(authRoutes, { prefix: '/api' }, dbInstance);
+app.register(userRoutes, { prefix: '/api' }, dbInstance);
+app.register(gameRoutes, { prefix: '/api' }, dbInstance);
+app.register(profileRoutes, { prefix: '/api' }, dbInstance);
+
+// Health check endpoint
+app.get('/health', async (request, reply) => {
+    try {
+        const dbStatus = db.open ? 'connected' : 'disconnected';
+        let vaultStatus = 'disconnected';
+        
         try {
-            const secret = await vault.read("secret/myapp");
-            reply.send(secret.data.data);
-        } catch (error) {
-            console.error("Error al obtener secretos de Vault:", error);
-            reply.status(500).send({ 
-                error: "Error al obtener secretos",
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
+            await vault.health();
+            vaultStatus = 'connected';
+        } catch (vaultError) {
+            console.error('Error checking Vault health:', vaultError);
         }
-    });
 
-    // Manejador de errores centralizado
-    app.setErrorHandler((error, request, reply) => {
-        console.error('Error global:', {
-            error: error.message,
-            stack: error.stack,
-            url: request.raw.url,
-            method: request.raw.method,
+        reply.status(200).send({ 
+            status: 'OK', 
+            db: dbStatus,
+            vault: vaultStatus,
             timestamp: new Date().toISOString()
         });
-
-        reply.status(error.statusCode || 500).send({
-            error: 'Internal Server Error',
-            message: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    } catch (error) {
+        reply.status(500).send({ 
+            status: 'ERROR',
+            error: error.message 
         });
+    }
+});
+
+// Endpoint de secretos de Vault
+app.get("/api/secret", async (request, reply) => {
+    try {
+        const secret = await vault.read("secret/myapp");
+        reply.send(secret.data.data);
+    } catch (error) {
+        console.error("Error al obtener secretos de Vault:", error);
+        reply.status(500).send({ 
+            error: "Error al obtener secretos",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// Manejador de errores centralizado
+app.setErrorHandler((error, request, reply) => {
+    console.error('Error global:', {
+        error: error.message,
+        stack: error.stack,
+        url: request.raw.url,
+        method: request.raw.method,
+        timestamp: new Date().toISOString()
     });
 
-    const port = process.env.PORT || 3000;
-
-    // Iniciar servidor
-    app.listen({ port, host: '0.0.0.0' }, (err) => {
-        if (err) {
-            app.db.close();
-            app.log.error(err);
-            process.exit(1);
-        }
-        console.log(`Servidor escuchando en http://localhost:${port}`);
-        console.log('Configuración:');
-        console.log('- Entorno:', process.env.NODE_ENV || 'development');
-        console.log('- Vault:', process.env.VAULT_ADDR || 'http://0.0.0.0:8200');
+    reply.status(error.statusCode || 500).send({
+        error: 'Internal Server Error',
+        message: error.message,
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
+});
 
-    // Manejo de cierre limpio
-    process.on('SIGINT', () => {
-        app.db.close();
-        console.log('Conexión a SQLite cerrada');
-        app.close(() => {
-            process.exit();
-        });
+// Iniciar servidor
+app.listen({ port, host: '0.0.0.0' }, (err) => {
+    if (err) {
+        db.close();
+        app.log.error(err);
+        process.exit(1);
+    }
+    console.log(`Servidor escuchando en http://localhost:${port}`);
+    console.log('Configuración:');
+    console.log('- Entorno:', process.env.NODE_ENV || 'development');
+    console.log('- Vault:', process.env.VAULT_ADDR || 'http://0.0.0.0:8200');
+});
+
+// Manejo de cierre limpio
+process.on('SIGINT', () => {
+    db.close();
+    console.log('Conexión a SQLite cerrada');
+    app.close(() => {
         process.exit();
-
     });
- 
-}
+    process.exit();
 
-main();
+});
+
+module.exports = app;

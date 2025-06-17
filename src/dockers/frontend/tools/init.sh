@@ -1,3 +1,5 @@
 #!/bin/bash
 
-npm run dev
+npm run build
+
+exec npx node server.js

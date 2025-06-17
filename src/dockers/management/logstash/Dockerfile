@@ -8,7 +8,9 @@ RUN logstash-plugin install --no-verify logstash-output-prometheus && \
 
 # Crear estructura de directorios optimizada
 RUN mkdir -p /usr/share/logstash/{config,pipeline,data} && \
-    chown -R logstash:logstash /usr/share/logstash
+    chown -R logstash:logstash /usr/share/logstash/config && \
+    chown -R logstash:logstash /usr/share/logstash/pipeline && \
+    chown -R logstash:logstash /usr/share/logstash/data
 
 # Copiar configuraciones (con caché Docker optimizado)
 COPY --chown=logstash:logstash config/ /usr/share/logstash/config/
