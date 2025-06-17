@@ -57,14 +57,14 @@ export class ProfilePage extends Component {
         contacts: []
     };
     this.template = `
-    <div class="w-screen h-screen flex flex-col justify-center items-center ">
-        <div class=" w-fit h-fit  flex flex-col overflow-hidden px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)] z-50">
-            <div id="profile" class=" bg-[#11162F] flex flex-col w-fit h-fit space-y-4 px-[2rem] pb-8 pt-4">
+    <div class=" w-screen h-screen flex flex-col justify-center items-center ">
+        <div id="profile-lineal-bg" class="animate-expand-from-center w-fit h-fit  flex flex-col overflow-hidden px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)] z-50">
+            <div id="profile" class="reveal-content bg-[#11162F] flex flex-col w-fit h-fit space-y-4 px-[2rem] pb-8 pt-4">
                 <!-- Carga los datos del profile: fdp, username, email... -->
-                <div class="relative flex flex-row justify-center items-center"> 
+                <div class="reveal-content-child relative flex flex-row justify-center items-center"> 
                     <div id="div-username" class="text-white text-lg font-semibold">PERFIL</div>
                 </div>
-                <div id="div-detail" class="h-fit w-full flex flex-col " ></div>
+                <div id="div-detail" class="reveal-content-child h-fit w-full flex flex-col " ></div>
             </div>		
         </div>
     </div>
@@ -95,7 +95,15 @@ export class ProfilePage extends Component {
             const divDetail = this.element.querySelector("#div-detail") as HTMLElement
             //Cargar los datos del usuario
             this.buildContent();
+
+            setTimeout(() => {
+                if (!this.element) return;
+                const val = this.element.querySelector(`#profile-lineal-bg`);
+                if (val)
+                    val.classList.remove('animate-expand-from-center');
+            }, 1000);
         }
+
     }
 
     buildContent() {
@@ -110,31 +118,38 @@ export class ProfilePage extends Component {
             position:"first",
             classItem:" w-[29rem] ",
             avatarType: "image",
+            avatar: this.userProfile.pfp,
             hasEdit: true,
             onEdit: () => {
                 this.toggleHiddenItems("0");
             },
             onSave: async (profile: DataProfileChange[]) => {
                 let  profileUp = 1;
-                if (profile.length > 0) {
-                    profileUp = await this.updateAvatar(profile[1], ()=> {
-
+                let avatarName = this.userProfile.pfp;
+                if (profile.length > 1) {
+                    profileUp = await this.updateAvatar(profile[1], (url) => {
+                        this.headerItem?.update({avatar: "http://localhost:3000" + url});
+                        profileUp = 1;
                     }, () => {
-
+                        profileUp = 0;
                     });
                 }
 
-                if (profileUp) {
-                    this.updateProfile(profile, () => {
+                if (profileUp === 1 && profile[0].field === "Username") {
+                    await this.updateProfile(profile, () => {
                         this.toggleHiddenItems("0");
-                        this.headerItem?.update({value: this.userProfile.username});
-                        this.headerItem?.toggleView("Editar", true);
+                        this.headerItem?.update({value: this.userProfile.username, hasEdit: true});
                     }, ()=> {
-                        
+
                     });
+                } else {
+                    this.toggleHiddenItems("0");
+                    this.headerItem?.toggleView("Editar", true);
+
                 }
             }
         });
+        divDetail.appendChild(this.headerItem.render());
 
         const emailItem = new ProfileItemComponent({
             id:"1",
@@ -156,46 +171,7 @@ export class ProfilePage extends Component {
 
             }
         });
-
-        const colorFavItem = new ProfileItemComponent({
-            id:"2",
-            field: "Color",
-            value: this.userProfile.favourite_color,
-            position:"middle",
-            classItem:" w-[29rem] ",
-            avatarType: "card",
-            avatarColor: "#FFFF23",
-            hasEdit: true,
-            onEdit: () => {
-                this.toggleHiddenItems("2");
-
-            },
-            onSave: (profile: [DataProfileChange]) => {
-                this.updateProfile(profile, () => {
-                    this.toggleHiddenItems("2");
-                    colorFavItem?.update({value:this.userProfile.favourite_color});
-                }, ()=> {});
-            }
-        });
-        const countryItem = new ProfileItemComponent({
-            id:"3",
-            field: "Country",
-            value: this.userProfile.country,
-            position:"last",
-            classItem:" w-[29rem] ",
-            avatarType: "svg",
-            hasEdit: true,
-            onEdit: () => {
-                this.toggleHiddenItems("3");
-            },
-            onSave: (profile: [DataProfileChange]) => {
-                this.updateProfile(profile, () => {
-                    this.toggleHiddenItems("3");
-                    countryItem?.update({value: this.userProfile.country});
-                }, ()=>{});
-            }
-        });
-
+        divDetail.appendChild(emailItem.render());
         this.authItem = new ProfileAuthItemComponent({
             id:"4",
             field: "Password",
@@ -221,27 +197,69 @@ export class ProfilePage extends Component {
                     });
             }
         });
-        divDetail.appendChild(this.headerItem.render());
-        divDetail.appendChild(emailItem.render());
         divDetail.appendChild(this.authItem.render());
+
+        const colorFavItem = new ProfileItemComponent({
+            id:"2",
+            field: "Color",
+            value: this.userProfile.favourite_color,
+            position:"middle",
+            classItem:" w-[29rem] ",
+            avatarType: "card",
+            avatarColor: "#FFFF23",
+            hasEdit: true,
+            onEdit: () => {
+                this.toggleHiddenItems("2");
+
+            },
+            onSave: (profile: [DataProfileChange]) => {
+                this.updateProfile(profile, () => {
+                    this.toggleHiddenItems("2");
+                    colorFavItem?.update({value:this.userProfile.favourite_color});
+                }, ()=> {});
+            }
+        });
         divDetail.appendChild(colorFavItem.render());
+    
+        const countryItem = new ProfileItemComponent({
+            id:"3",
+            field: "Country",
+            value: this.userProfile.country,
+            position:"last",
+            classItem:" w-[29rem] ",
+            avatarType: "svg",
+            hasEdit: true,
+            onEdit: () => {
+                this.toggleHiddenItems("3");
+            },
+            onSave: (profile: [DataProfileChange]) => {
+                this.updateProfile(profile, () => {
+                    this.toggleHiddenItems("3");
+                    countryItem?.update({value: this.userProfile.country});
+                }, ()=>{});
+            }
+        });
         divDetail.appendChild(countryItem.render());
         this.items.set("1",emailItem);
         this.items.set("2",colorFavItem);
         this.items.set("3",countryItem);
     }
 
-    async updateAvatar(data: DataProfileChange, callBack: ()=>void, onError: ()=>void): Promise<number>{
+    async updateAvatar(data: DataProfileChange, callBack: (url: string)=>void, onError: ()=>void): Promise<number>{
         const formData = new FormData();
         formData.append('image', data.value);
 
         try {
             const response = await fetch('http://localhost:3000/api/upload-avatar', {
-            method: 'POST',
-            body: formData,
+                method: 'POST',
+                body: formData,
+                credentials: "include",
             });
-
-            callBack();
+            if (response.ok) {
+                const body = await response.json();
+                body.url
+                callBack(body.url);
+            }
             return 1;
         } catch (err) {
             console.error(err);
@@ -305,7 +323,6 @@ export class ProfilePage extends Component {
         if ("4" !== id){
              this.authItem?.toggleHidden();
         }
-        
         if ("0" !== id){
              this.headerItem?.toggleHidden();
         }

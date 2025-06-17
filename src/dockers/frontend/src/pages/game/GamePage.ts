@@ -44,7 +44,7 @@ export class GamePage extends Component {
         <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
       </div>
 
-    <div id="game-table"  class=" w-fit h-fit  flex flex-col overflow-hidden    px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+    <div id="game-table"  class=" w-fit h-fit  flex flex-col overflow-hidden    px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
         <!-- Encabezado -->
         <div class ="bg-[#11162F] w-fit rounded items-center justify-center">
 

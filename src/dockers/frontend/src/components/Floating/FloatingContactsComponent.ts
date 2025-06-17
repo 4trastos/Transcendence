@@ -80,7 +80,7 @@ export default class FloatingChatListComponent extends Component{
   renderTemplate() {
 	return `
 
-<div class="rounded-lg h-fit w-fit px-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+<div class="rounded-lg h-fit w-fit px-[5px] bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
 
 <div id="contacts" class=" shadow-black shadow-xl bg-[#11162F] bottom-4 right-4 w-[18rem] h-[33rem] rounded-lg  flex flex-col overflow-hidden z-50">
   <!-- Encabezado -->

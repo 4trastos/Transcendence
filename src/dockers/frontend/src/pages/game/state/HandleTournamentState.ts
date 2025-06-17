@@ -22,18 +22,17 @@ export class HandleTournamentState implements GameState {
   render(): HTMLElement {
 	this.container.id = "tournament-state";
 	this.displayTournamentState();
-	console.log("Me subscribo");
 	this.context.onChange(()=>{
 	  const matchData:MatchData = this.context.getMatchData();
 	  if (matchData.status === 'finished') {
-		console.log("Players: , Winner", this.players, matchData.winner);
+		//TODO: Enviar un post del Juego 
 		if (matchData.winner) {
-		  if (!this.nextPlayers) this.nextPlayers = new Array(matchData.winner);
-		  else this.nextPlayers?.push(matchData.winner);
-		  this.context.addWinner(matchData.winner, this.round);
+			this.saveGame();
+			if (!this.nextPlayers) this.nextPlayers = new Array(matchData.winner);
+			else this.nextPlayers?.push(matchData.winner);
+			this.context.addWinner(matchData.winner, this.round);
 		}
 		this.players = this.players?.filter(item=>!matchData.players?.includes(item));
-		console.log("Filter-Players: ",matchData.players,this.players,", nextPlayers", this.nextPlayers);
 		this.container.innerHTML = '';
 		const resultGame = new ResultGameComponent({
 		  name: matchData.winner!,
@@ -48,8 +47,37 @@ export class HandleTournamentState implements GameState {
 	});
 	return this.container;
   }
-  getTwoRandomStrings(arr: string[]): [string, string] {
+  
+  async saveGame() {
+	const matchData:MatchData = this.context.getMatchData();
+	const losser = this.players?.findLast(item =>item !== matchData.winner);
+	const body = {
+			winner_id: matchData.winner,
+			loser_id: losser,
+			tournament: true,
+			score_winner: 0,
+			score_loser: 0,
+			exp_winner: 0,
+			exp_loser: 0,
+			game_duration: 0
+		};
+		const response = await fetch(
+			"http://localhost:3000/api/games",
+			{
+				method: "POST",
+				headers: {
+					"Accept": "application/json",
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+				credentials: "include", // Incluir cookies en la solicitud
+			}
+		);
+		if (response.ok) {
 
+		}
+  }
+  getTwoRandomStrings(arr: string[]): [string, string] {
 	const shuffled = [...arr].sort(() => Math.random() - 0.5);
 	return [shuffled[0], shuffled[1]];
   }

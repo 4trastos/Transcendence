@@ -11,6 +11,7 @@ import { ProfilePage } from './pages/profile/ProfilePage';
 import { GameStarter } from './pages/game/state/GameSate';
 import { AuthPage } from './pages/auth/AuthPage';
 import { NewPasswordPage } from './pages/auth/NewPasswordComponent';
+import { ToastService } from './utils/toast';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
@@ -43,8 +44,7 @@ async function handleRoute() {
     navbar = new Navigation(
       {
         items: [
-          { text: 'Home', url: '#home', active: true },
-          { text: 'Game', url: '#game' },
+          { text: 'Game', url: '#game', active: true },
           { text: 'Stats', url: '#stats' },
           { text: 'Profile', url: '#profile' }
         ],
@@ -65,10 +65,6 @@ async function handleRoute() {
     case '#profile':
       navbar.changeActiveItem('#profile');
       loadProfilePage();
-      break;
-    default:
-      loadHomePage();
-      navbar.changeActiveItem('#home');
       break;
   }
 
@@ -138,3 +134,32 @@ function loadHomePage() {
     targetContainer.removeChild(targetContainer.firstChild);
   }
 }
+
+
+
+document.addEventListener('change', () => {
+  document.querySelectorAll(".ripple").forEach((button) => {
+    (button as HTMLElement).addEventListener("click", (e: MouseEvent) => {
+      const target = e.currentTarget as HTMLElement;
+
+      // Eliminar ripple anterior si existe
+      const existingRipple = target.querySelector(".ripple-effect");
+      if (existingRipple) {
+        existingRipple.remove();
+      }
+
+      // Crear nuevo span
+      const circle = document.createElement("span");
+      const diameter = Math.max(target.clientWidth, target.clientHeight);
+      const radius = diameter / 2;
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${e.clientX - target.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${e.clientY - target.getBoundingClientRect().top - radius}px`;
+      circle.classList.add("ripple-effect");
+
+      target.appendChild(circle);
+    });
+  });
+})
+

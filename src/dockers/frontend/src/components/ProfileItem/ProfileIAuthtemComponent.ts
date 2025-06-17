@@ -41,7 +41,7 @@ export class ProfileAuthItemComponent extends Component {
 	}
 
 	return `
-	<div class="flex justify-center z-50 bg-white/10 ${classItem}"> 
+	<div class="animate-expand-horizontal flex justify-center z-50 bg-white/10 ${classItem}"> 
 		<div id="profile-item-${this.props.id}" class=" z-0 flex h-full w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-4 px-6 ">
 			
 			<div class="flex-shrink-0 flex flex-col justify-center items-center">
@@ -68,13 +68,13 @@ export class ProfileAuthItemComponent extends Component {
 
 				<div id="profile-btn-back-${this.props.id}" class="hidden bg-[#11162F] rounded-full">
 					<button 
-						class=" hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">Atras
+						class="ripple hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">Atras
 					</button>
 				</div>
-				<div class="w-fit flex rounded-full bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]  p-[1px] items-center justify-end">
+				<div class="w-fit flex rounded-full bg-gradient-animate  p-[1px] items-center justify-end">
 					<div class="bg-[#11162F] rounded-full">
 						<button id="profile-edit-${this.props.id}" 
-							class=" hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">
+							class="ripple hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">
 							${this.props.hasEdit? "Editar" : "Guardar"}
 						</button>
 					</div>

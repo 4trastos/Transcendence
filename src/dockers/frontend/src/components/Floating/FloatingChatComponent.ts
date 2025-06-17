@@ -111,7 +111,7 @@ export class FloatingChatComponent extends Component {
   renderTemplate() {
     return `
 
-    <div class="rounded-lg h-fit w-fit px-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+    <div class="rounded-lg h-fit w-fit px-[5px] bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
 	<div id="${this.props.id}" class=" backdrop-3xl bg-[#11162F] bottom-4 right-4 px-5 w-[18rem] h-[22rem]  rounded-lg shadow-lg flex flex-col overflow-hidden z-50">
 	<!-- Header del chat -->	
 	<div id="${this.props.id}-header" class="relative flex items-center space-x-2 px-4 py-2  text-white">
@@ -147,7 +147,7 @@ export class FloatingChatComponent extends Component {
   />
   <button
 	type="submit"
-	class="p-2 text-white hover:bg-white/10 rounded-lg transition"
+	class="ripple p-2 text-white hover:bg-white/10 rounded-lg transition"
   >
 	  <svg 
 	  xmlns="http://www.w3.org/2000/svg" 

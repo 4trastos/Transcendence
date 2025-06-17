@@ -7,27 +7,6 @@
   <link rel="icon" href="images/favicons/sanchez.jpg" type="image/jpg">
   <link href="/css/tailwind.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script defer>
-      document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll(".ripple").forEach((button) => {
-        button.addEventListener("click", function (e) {
-          const circle = document.createElement("span");
-          const diameter = Math.max(this.clientWidth, this.clientHeight);
-          const radius = diameter / 2;
-
-          circle.style.width = circle.style.height = `${diameter}px`;
-          circle.style.left = `${e.clientX - this.getBoundingClientRect().left - radius}px`;
-          circle.style.top = `${e.clientY - this.getBoundingClientRect().top - radius}px`;
-          circle.classList.add("ripple-effect");
-
-          const ripple = this.querySelector(".ripple-effect");
-          if (ripple) ripple.remove();
-
-          this.appendChild(circle);
-        });
-      });
-    });
-</script>
   <style>
 
       html, body {

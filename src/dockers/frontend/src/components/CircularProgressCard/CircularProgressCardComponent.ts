@@ -27,31 +27,37 @@ export class CircularProgressCardComponent extends Component {
 	const offset = circumference * (1 - this.props.progress / 100);
 
 	return `
-	<div id="${this.props.id}" class="backdrop-blur-3xl bg-opacity-15 bg-[#1D1F2B] w-[18rem] h-[12rem] border border-white border-opacity-15 rounded-2xl shadow-lg flex flex-col overflow-hidden">
+	<div  class="animate-expand-from-center w-fit h-fit  flex flex-col overflow-hidden px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)] ">
+		<div  id="${this.props.id}" class="reveal-content backdrop-blur-3xl bg-[#11162F] flex flex-col w-[18rem] h-[9rem] space-y-4 px-[1rem] pb-8 pt-4">
 
-	<div id="${this.props.id}-header" class="relative flex justify-center items-center space-x-2 px-4 py-2 text-center text-white text-sm">
-		${this.props.title}
-		</div>
-		<!-- Divider -->
-		<hr id="${this.props.id}-divider" class="w-full border-t border-white border-opacity-15" />
-		<div class="grid grid-cols-2 gap-x-2 items-center justify-center place-items-center h-full px-2">
-			<svg class="w-24 h-24" viewBox="0 0 100 100">
-			<circle cx="50" cy="50" r="${r}" stroke="${this.props.colorHint}" stroke-width="6" fill="none"/>
-			<circle cx="50" cy="50" r="${r}" 
-			stroke="${this.props.color}" 
-			stroke-width="6"
-			fill="none"
-			stroke-dasharray="${circumference}" 
-			stroke-dashoffset="${offset}"
-			stroke-linecap="round"
-			transform="rotate(-90 50 50)"/>
-			</svg>
-			<div class="flex flex-col justify-start items-start">
-				<p class="text-white text-sm">${this.props.contentTitle}</p>
-				<p class="text-gray-400 text-xs">${this.props.contentText}</p>
+			<div class="reveal-content-child grid grid-cols-2 gap-x-2 items-center justify-center place-items-center h-full px-2">
+				<svg class="w-24 h-24" viewBox="0 0 100 100">
+
+				<circle cx="50" cy="50" r="${r}" stroke="${this.props.colorHint}" stroke-width="6" fill="none"/>
+				<circle cx="50" cy="50" r="${r}" 
+				stroke="${this.props.color}" 
+				stroke-width="6"
+				fill="none"
+				stroke-dasharray="${circumference}" 
+				stroke-dashoffset="${offset}"
+				stroke-linecap="round"
+				transform="rotate(-90 50 50)"/>
+				</svg>
+				<div class="flex flex-col justify-start items-start">
+					<p class="text-white text-sm uppercase">${this.props.contentTitle}</p>
+					<p class="text-gray-400 text-xs ">${this.props.contentText}</p>
+				</div>
 			</div>
 		</div>
 	</div>
 	`;
   }
+
+    protected async initEvents(): Promise<void> {
+		if (!this.element) return;
+		setTimeout(() => {
+			if (!this.element) return;
+			this.element.classList.remove('animate-expand-from-center');
+		}, 1000);
+	}
 }

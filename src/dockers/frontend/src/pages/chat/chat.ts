@@ -16,7 +16,7 @@ export class ChatPage extends Component {
     <div id="chat-box" class="flex flex-col gap-2 overflow-y-auto h-full px-4 py-2 space-y-2 p-4 bg-white shadow-md rounded-md"></div>
     <div class="mt-4 flex">
       <input id="message-input" type="text" class="flex-1 p-2 border rounded-md" placeholder="Escribe un mensaje...">
-      <button id="send-button" class="ml-2 bg-blue-500 text-white px-4 py-2 rounded-md">Enviar</button>
+      <button id="send-button" class="ripple ml-2 bg-blue-500 text-white px-4 py-2 rounded-md">Enviar</button>
     </div>
   </main>
   <aside class="w-1/4 bg-white p-4 border-l shadow-md">

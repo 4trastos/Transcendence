@@ -45,7 +45,7 @@ export class RankCardContent extends Component {
 
 	renderTemplate() {
 		return `
-			<div class="items-center w-full px-5 py-3"> 
+			<div class="animate-expand-from-center items-center w-full px-5 py-3"> 
 				<div id="rank-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10">
 				</div>
 			</div>
@@ -64,6 +64,8 @@ export class RankCardContent extends Component {
 			rankList.appendChild(rankItem1.render());
 	
 		});
+
+
 	}
 }
 
@@ -79,7 +81,7 @@ export class RankCard extends Card {
 			id: "rank-card",
 			title: "Rank",
 			width: "w-[18rem]",
-			height: "h-[23rem]",
+			height: "h-[22rem]",
 		};
 		props = {...defaultProps, ...props};
 		const rankCardProps = new RankCardContent({

@@ -37,6 +37,18 @@ services:
       - transcendence
     restart: unless-stopped
 
+  chat-service:
+    build:
+      context: ./dockers/chat-service/
+      dockerfile: Dockerfile
+    container_name: chat-service
+    env_file:
+      - .env
+    ports:
+      - "3050:3050"
+    networks:
+      - transcendence
+
   php:
     build: dockers/php/.
     container_name: php

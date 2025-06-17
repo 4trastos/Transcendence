@@ -55,7 +55,6 @@ export class GameStarter extends Component {
 
   public setState(state: GameState) {
     this.state = state;
-    console.log("Me desuscribo");
     this._clearObservers();
     this.update();
   }
@@ -76,6 +75,9 @@ export class GameStarter extends Component {
 
   }
 
+  public updatePlayers(updatePlayers: string[]) {
+    this.gameData.players = updatePlayers;
+  }
   public setMatchData(matchData: MatchData) {
     this._pause();
     this.matchData.status = matchData.status;

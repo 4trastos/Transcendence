@@ -174,15 +174,12 @@ configure_vault() {
     echo "$UI_TOKEN" > /vault/data/ui_token.txt
     chmod 644 /vault/data/ui_token.txt
 
-    # 7. Crear token para Prometheus y guardarlo
+   # 7. Crear token para Prometheus y guardarlo
     echo "Generando token para Prometheus..."
     mkdir -p /vault/data/prometheus
-    #PROMETHEUS_TOKEN=$(vault token create -policy=prometheus -ttl=24h -renewable=true -field=token)
-    #echo "$PROMETHEUS_TOKEN" > /vault/data/prometheus/token.txt
-    #chmod 644 /vault/data/prometheus/token.txt
     if vault token create -policy=prometheus -ttl=24h -renewable=true -format=json > /tmp/prom_token.json; then
-    jq -r .auth.client_token /tmp/prom_token.json > /vault/data/prometheus/token.txt
-    chmod 644 /vault/data/prometheus/token.txt
+        jq -r .auth.client_token /tmp/prom_token.json > /vault/data/prometheus/token.txt
+        chmod 644 /vault/data/prometheus/token.txt
     else
         echo "❌ Error al crear token para Prometheus"
         exit 1
@@ -195,6 +192,17 @@ configure_vault() {
         policies="transcendence"
     
     echo "Configuración completada!"
+
+    # 9. Crear token para ZAP reporter y guardarlo
+    echo "Generando token para ZAP Reporter..."
+    mkdir -p /vault/data/zap
+    if vault token create -policy=zap-reporter -ttl=12h -renewable=true -format=json > /tmp/zap_token.json; then
+        jq -r .auth.client_token /tmp/zap_token.json > /vault/data/zap/token.txt
+        chmod 644 /vault/data/zap/token.txt
+    else
+        echo "❌ Error al crear token para ZAP Reporter"
+        exit 1
+    fi
 }
 
 # Inicialización condicional

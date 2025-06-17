@@ -59,8 +59,8 @@ export class AuthPage extends Component {
   </text>
 </svg>
 
-  			<div class="absolute top-0 left-0 h-full w-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]  "></div>
-			<div class="absolute top-0 right-0 h-full w-[5px] bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] "></div>
+  			<div class="absolute top-0 left-0 h-full w-[5px] bg-gradient-animate  "></div>
+			<div class="absolute top-0 right-0 h-full w-[5px] bg-gradient-animate "></div>
 
 		</div>
 

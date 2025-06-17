@@ -65,10 +65,10 @@ export class RecoverPasswordComponent extends Component {
 
   <div class="flex flex-col space-y-2">
     <!-- Botón de inicio de sesión -->
-    <div class="w-full flex rounded-lg bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]  p-[1px] items-center justify-end">
+    <div class="w-full flex rounded-lg bg-gradient-animate  p-[1px] items-center justify-end">
       <div class="bg-[#11162F] w-full rounded-lg">
         <button type="submit" id="login-button" 
-          class="w-full  hover:bg-white/10 text-white py-2 px-6 rounded-lg">
+          class="ripple w-full  hover:bg-white/10 text-white py-2 px-6 rounded-lg">
           Enviar Correo
         </button>
       </div>

@@ -11,7 +11,7 @@ export class Button extends Component {
   constructor(props: ButtonProps) {
     super(props);
     this.props = props;
-    this.template = `<button class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+    this.template = `<button class=" ripple px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">
   {{ text }}
 </button>`;
   }

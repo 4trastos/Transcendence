@@ -16,7 +16,7 @@ export class MatchGameComponent extends Component {
 
   renderTemplate() {
     return `
-    <div class="flex items-center justify-center px-[5px] rounded bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+    <div class="flex items-center justify-center px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
       <div class="flex flex-col space-y-2 bg-[#11162F] p-6 text-white justify-center items-center text-center">
         <h2>MATCH</h2>
         <div class="flex justify-center items-center bg-[#11162F] space-x-2 flex flex-row justify-center items-center">

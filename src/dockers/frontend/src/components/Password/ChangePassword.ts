@@ -75,7 +75,7 @@ export class ChangePasswordComponent extends Component{
 	<!-- Botón de inicio de sesión -->
 	<div class="w-full flex items-center justify-end">
 	  <button type="submit" id="change-pass-button" 
-		class="w-fit border-white border  hover:bg-white/10 text-white font-regular py-2 px-6 rounded-full transition duration-300">
+		class="ripple w-fit border-white border  hover:bg-white/10 text-white font-regular py-2 px-6 rounded-full transition duration-300">
 		Cambiar Contraseña
 	  </button>
 	</div>

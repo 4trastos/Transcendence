@@ -60,15 +60,15 @@ export class ProfileItemComponent extends Component {
 	}
 
 	return `
-	<div class="flex justify-center z-50 bg-white/10 ${classItem}"> 
+	<div class="animate-expand-horizontal flex justify-center z-50 bg-white/10 ${classItem}"> 
 		<div id="profile-item-${this.props.id}" class=" z-0 flex h-full w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-4 px-6 ">
 			
-			<form id="upload-form" class="flex-shrink-0 flex flex-col justify-center items-center">
+			<form id="upload-form-${this.props.id}" class="flex-shrink-0 flex flex-col justify-center items-center">
 				${this.getAvatarHTML()}
 				
 				${ (this.props.field !== `Country` && this.props.field !== `Email`) ? `
-				<input type="file" id="imageInput" name="image" accept="image/*" style="display: none;"/> 
-				<label  id="prfile-label-edit-avatar" class="hidden" for="imageInput" style="cursor:pointer;">
+				<input type="file" id="imageInput-${this.props.id}" name="image" accept="image/*" style="display: none;"/> 
+				<label  id="prfile-label-edit-avatar" class="hidden" for="imageInput-${this.props.id}" style="cursor:pointer;">
 					<a id="btn-edit"
 					class=" hover:font-bold text-white hover:text-blue-400">Seleccionar imagen</a>
 				</label>` : ""}
@@ -91,13 +91,13 @@ export class ProfileItemComponent extends Component {
 
 				<div id="profile-btn-back-${this.props.id}" class="hidden bg-[#11162F] rounded-full">
 					<button 
-						class=" hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">Atras
+						class="ripple hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">Atras
 					</button>
 				</div>
-				<div class="w-fit flex rounded-full bg-[linear-gradient(45deg,_#E615F2,_#1ADEF9)]  p-[1px] items-center justify-end">
+				<div class="w-fit flex rounded-full bg-gradient-animate  p-[1px] items-center justify-end">
 					<div class="bg-[#11162F] rounded-full">
 						<button id="profile-edit-${this.props.id}" 
-							class=" hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">
+							class="ripple hover:bg-white/10 text-white text-sm py-2 px-6 rounded-full">
 							${this.props.hasEdit? "Editar" : "Guardar"}
 						</button>
 					</div>
@@ -118,7 +118,7 @@ export class ProfileItemComponent extends Component {
 		if (this.props.avatarType === "image") {
 			const avatar = this.element.querySelector(`#avatar-profile-${this.props.id}`) as HTMLImageElement;
 			if (!avatar) return;
-			const imageInput = this.element.querySelector(`#imageInput`);
+			const imageInput = this.element.querySelector(`#imageInput-${this.props.id}`);
 			if (!imageInput) return;
 			imageInput.addEventListener('change', async (e) =>{
 				if (!e || !e.target) return;

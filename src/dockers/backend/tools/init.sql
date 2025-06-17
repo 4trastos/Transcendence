@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Tabla de juegos
 CREATE TABLE IF NOT EXISTS games (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    winner_id INTEGER NOT NULL,
-    loser_id INTEGER NOT NULL,
+    winner_id TEXT NOT NULL,
+    loser_id TEXT NOT NULL,
     tournament BOOLEAN,
     score_winner INTEGER DEFAULT 0,
     score_loser INTEGER DEFAULT 0,
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS games (
     game_duration INTEGER, -- en segundos
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT NULL,
-    FOREIGN KEY (winner_id) REFERENCES users(id),
-    FOREIGN KEY (loser_id) REFERENCES users(id)
+    FOREIGN KEY (winner_id) REFERENCES users(username),
+    FOREIGN KEY (loser_id) REFERENCES users(username)
 );
 
 -- Tabla de relaciones entre usuarios (amistades, bloqueos, etc.)

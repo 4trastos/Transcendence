@@ -30,8 +30,8 @@ fastify.setNotFoundHandler((request, reply) => {
 // Iniciar servidor
 const start = async () => {
   try {
-    await fastify.listen({ port: process.env.FRONT_PORT || 3001, host: '0.0.0.0' });
-    fastify.log.info(`Servidor ejecutándose en http://localhost:3001`);
+    await fastify.listen({ port: process.env.FRONT_PORT || 3040, host: '0.0.0.0' });
+    fastify.log.info(`Servidor ejecutándose en http://localhost:3040`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -66,25 +66,26 @@ down:
 	@docker compose -f ./src/docker-compose.yml down -v
 
 clean:
-	rm -rf $(HOME)/goinfre/data/sqlite/*
-	rm -rf $(HOME)/goinfre/data/app/*
-	rm -rf $(HOME)/goinfre/data/php/*
-	rm -rf $(HOME)/goinfre/data/frontend/*
-	rm -rf $(HOME)/goinfre/data/security/*
-	rm -rf $(HOME)/goinfre/data/vault/*
-	rm -rf $(HOME)/goinfre/data/elasticsearch/*
-	rm -rf $(HOME)/goinfre/data/logstash/*
-	rm -rf $(HOME)/goinfre/data/grafana/*
-	rm -rf $(HOME)/goinfre/data/prometheus/*
-	rm -rf $(HOME)/goinfre/data/prometheus_query_log/*
-	rm -rf $(HOME)/goinfre/data/mail/*
-	rm -rf $(HOME)/goinfre/data/mail-state/*
-	rm -rf $(HOME)/goinfre/data/es_secrets/*
-	rm -rf $(HOME)/goinfre/data/es_data/*
-	rm -rf $(HOME)/goinfre/data/es_certs/*
-	rm -rf $(HOME)/goinfre/data/ls_config/*
-	rm -rf $(HOME)/goinfre/data/ls_pipeline/*
-	rm -rf $(HOME)/goinfre/data
+	@echo "Limpiando volúmenes montados en ~/goinfre/data de forma segura..."
+	@docker run --rm -v $(HOME)/goinfre/data/sqlite:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/app:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/php:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/frontend:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/security:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/vault:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/elasticsearch:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/logstash:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/grafana:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/prometheus:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/prometheus_query_log:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/mail:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/mail-state:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/es_secrets:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/es_data:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/es_certs:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/ls_config:/data alpine sh -c "rm -rf /data/*"
+	@docker run --rm -v $(HOME)/goinfre/data/ls_pipeline:/data alpine sh -c "rm -rf /data/*"
+	@rm -rf $(HOME)/goinfre/data
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
 	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi

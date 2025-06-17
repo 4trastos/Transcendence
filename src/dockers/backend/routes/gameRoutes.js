@@ -1,9 +1,14 @@
-const fastify = require('fastify');
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+import fs from "fs";
+import path from "path";
+import sqlite3Module from "sqlite3";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-async function gameRoutes(fastify, options) {
+const sqlite3 = sqlite3Module.verbose();
+
+export async function gameRoutes(fastify, options) {
     const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
     const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
@@ -128,8 +133,8 @@ async function gameRoutes(fastify, options) {
             type: 'object',
             required: ['winner_id', 'loser_id'],
             properties: {
-                winner_id: { type: 'integer' },
-                loser_id: { type: 'integer' },
+                winner_id: { type: 'string' },
+                loser_id: { type: 'string' },
                 tournament: { type: 'boolean' },
                 score_winner: { type: 'integer' },
                 score_loser: { type: 'integer' },
@@ -168,6 +173,7 @@ async function gameRoutes(fastify, options) {
             game_duration = null
         } = request.body
 
+        //TODO: Verificar si Existen los usaurios
         const query = `
             INSERT INTO games (
                 winner_id, loser_id, tournament, score_winner,
@@ -288,16 +294,9 @@ async function gameRoutes(fastify, options) {
     /*| Método | Ruta               | Descripción                                       |
         | ------ | ------------------ | --------------------------------------------------|
         | GET    | /users/:id/games   | Partidas en las que participó un usuario          |*/
-    fastify.get('/users/:id/games', {
+    fastify.get('/games/users', {
         schema: {
             summary: 'Obtener partidas de un usuario',
-            params: {
-                type: 'object',
-                properties: {
-                    id: { type: 'integer' }
-                },
-                required: ['id']
-            },
             response: {
                 200: {
                     type: 'object',
@@ -334,12 +333,9 @@ async function gameRoutes(fastify, options) {
 		  ],
         }
     },async (request, reply) => {
-        const userId = parseInt(request.params.id)
+        const decoded = await request.jwtVerify();
 
-        if (isNaN(userId)) {
-            return reply.code(400).send({ status: 'error', message: 'ID inválido' })
-        }
-
+        const userId = decoded.user
         const query = `
             SELECT * FROM games
             WHERE winner_id = ? OR loser_id = ?
@@ -359,7 +355,6 @@ async function gameRoutes(fastify, options) {
             })
         })
     })
+    
 
 }
-
-module.exports = gameRoutes;
