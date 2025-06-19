@@ -66,26 +66,8 @@ down:
 	@docker compose -f ./src/docker-compose.yml down -v
 
 clean:
-	@echo "Limpiando volúmenes montados en ~/goinfre/data de forma segura..."
-	@docker run --rm -v $(HOME)/goinfre/data/sqlite:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/app:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/php:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/frontend:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/security:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/vault:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/elasticsearch:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/logstash:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/grafana:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/prometheus:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/prometheus_query_log:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/mail:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/mail-state:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/es_secrets:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/es_data:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/es_certs:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/ls_config:/data alpine sh -c "rm -rf /data/*"
-	@docker run --rm -v $(HOME)/goinfre/data/ls_pipeline:/data alpine sh -c "rm -rf /data/*"
-	@rm -rf $(HOME)/goinfre/data
+	@echo "⚠️  Borrando por completo ~/goinfre/data ..."
+	@docker run --rm -v $(HOME)/goinfre:/mnt alpine sh -c "rm -rf /mnt/data"
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
 	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi
