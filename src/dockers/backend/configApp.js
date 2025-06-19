@@ -145,7 +145,7 @@ export default async function configApp() {
 	app.register(helmet);
 
 	app.register(cors, {
-		origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
+		origin: ['http://localhost:8080', 'https://localhost:8080', 'https://localhost:3040','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 		credentials: true,

@@ -105,10 +105,9 @@ services:
       - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
       - ./frontend/public:/usr/share/nginx/html:ro
       - ./ssl_certs:/etc/nginx/ssl:ro
-    command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
+    command: sh -c "npm run build && npx serve dist -l 3040"  # Cambiado a `npm run build` para generar archivos estáticos
     ports:
-      - "3001:3001"
-      #- "3040:3040"
+      - "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped

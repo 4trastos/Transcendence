@@ -24,8 +24,13 @@ RUN mkdir -p /etc/prometheus/certs /prometheus/data && \
 # Copiar archivos de configuración
 COPY prometheus.yml alert_rules.yml web-config.yml /etc/prometheus/
 COPY entrypoint.sh /prometheus/scripts/entrypoint.sh
-RUN chmod +x /prometheus/scripts/entrypoint.sh
+
+# Configurar permisos sin cambiar ownership (evita problemas con volúmenes montados)
+RUN chmod +x /prometheus/scripts/entrypoint.sh && \
+    chmod -R a+r /etc/prometheus && \
+    find /etc/prometheus -type d -exec chmod a+rx {} \;
 
 USER nobody
 EXPOSE 9090
+WORKDIR /prometheus
 ENTRYPOINT ["/prometheus/scripts/entrypoint.sh"]

@@ -5,9 +5,16 @@ echo "🚀 [START] Inicializando Prometheus..."
 
 CERT_DIR="/etc/prometheus/certs"
 mkdir -p "${CERT_DIR}" /prometheus/data
-chown -R nobody:nogroup "${CERT_DIR}" /prometheus
-chmod -R 750 "${CERT_DIR}"
-chmod 755 /prometheus/data
+
+# Cambiar permisos SOLO si somos root (evitar errores en sistemas sin permisos)
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R nobody:nogroup "${CERT_DIR}" /prometheus 2>/dev/null || \
+        echo "⚠️ No se pudo cambiar ownership - continuando sin cambiar permisos"
+    chmod -R 750 "${CERT_DIR}" 2>/dev/null || \
+        echo "⚠️ No se pudo cambiar permisos de CERT_DIR - continuando"
+    chmod 755 /prometheus/data 2>/dev/null || \
+        echo "⚠️ No se pudo cambiar permisos de /prometheus/data - continuando"
+fi
 
 # Generar certificados si no existen
 if [ ! -f "${CERT_DIR}/prometheus.crt" ]; then
@@ -28,8 +35,13 @@ if [ ! -f "${CERT_DIR}/prometheus.crt" ]; then
     -CA "${CERT_DIR}/ca.crt" -CAkey "${CERT_DIR}/ca.key" -CAcreateserial \
     -out "${CERT_DIR}/prometheus.crt" -days 3650 -sha256
 
-  chmod 600 "${CERT_DIR}"/*.key
-  chmod 644 "${CERT_DIR}"/*.crt
+  # Cambiar permisos de los certificados (solo si somos root)
+  if [ "$(id -u)" -eq 0 ]; then
+      chmod 600 "${CERT_DIR}"/*.key 2>/dev/null || \
+          echo "⚠️ No se pudo proteger clave privada"
+      chmod 644 "${CERT_DIR}"/*.crt 2>/dev/null || \
+          echo "⚠️ No se pudo cambiar permisos de certificados"
+  fi
 fi
 
 echo "🌀 Iniciando Prometheus..."

@@ -63,6 +63,7 @@ RUN chmod 644 /etc/vault/policy.hcl /etc/vault/prometheus.hcl \
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -k -s -o /dev/null -w "%{http_code}" https://localhost:8200/v1/sys/health | grep -q 200 || exit 1
 
+
 EXPOSE 8081 8200
 
 ENTRYPOINT ["/zap/wrk/entrypoint.sh"]

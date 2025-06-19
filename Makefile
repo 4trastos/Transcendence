@@ -16,7 +16,6 @@ grant_permissions:
 
 kill_docker:
 	@./script/kill_docker.sh
-	@open /Applications/Docker.app
 
 restart_if_needed:
 	@if [ ! -d "$(HOME)/goinfre/data" ]; then \
