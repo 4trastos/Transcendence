@@ -169,10 +169,31 @@ configure_vault() {
     echo "$SECRET_ID" > /vault/data/secret_id.txt
     chmod 600 /vault/data/secret_id.txt
     
-    # 6. Generar token para UI (existente)
-    UI_TOKEN=$(vault token create -policy="transcendence" -ttl=24h -field=token)
-    echo "$UI_TOKEN" > /vault/data/ui_token.txt
-    chmod 644 /vault/data/ui_token.txt
+    # 6. Generar token para UI y asegurar su persistencia
+    echo "Generando o verificando token para UI..."
+    TOKEN_FILE="/vault/data/ui_token.txt"
+    RETRY_COUNT=0
+    MAX_RETRIES=10
+    RETRY_DELAY=5 # segundos
+
+    # Bucle para intentar generar el token hasta que exista y no esté vacío
+    while [ ! -s "$TOKEN_FILE" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if vault token create -policy="transcendence" -ttl="${VAULT_TOKEN_TTL}" -field=token > "$TOKEN_FILE"; then
+            echo "✅ Token de UI generado con éxito en el intento $((RETRY_COUNT + 1))."
+            chmod 644 "$TOKEN_FILE"
+            break # Salir del bucle si el token se generó con éxito
+        else
+            echo "❌ Error al generar el token de UI (intento $((RETRY_COUNT + 1))/$MAX_RETRIES). Reintentando en $RETRY_DELAY segundos..."
+            rm -f "$TOKEN_FILE" # Limpiar archivo potencialmente corrupto/vacío
+            sleep $RETRY_DELAY
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+        fi
+    done
+
+    if [ ! -s "$TOKEN_FILE" ]; then
+        echo "🚨 ERROR FATAL: No se pudo generar el token de UI después de $MAX_RETRIES intentos. Verificar la configuración de Vault o los recursos del sistema."
+        exit 1 # Salir si el token no se pudo generar después de todos los reintentos
+    fi
 
    # 7. Crear token para Prometheus y guardarlo
     echo "Generando token para Prometheus..."

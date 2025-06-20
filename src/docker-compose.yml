@@ -143,6 +143,14 @@ services:
         aliases:
           - security
     restart: unless-stopped
+    mem_limit: 1.5GB 
+    mem_reservation: 512MB
+    healthcheck:
+      test: ["CMD", "sh", "-c", "vault status -tls-skip-verify && test -s /vault/data/ui_token.txt && echo 'Vault ready and token present'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20 # Número de reintentos antes de considerar el contenedor unhealthy
+      start_period: 30s # Tiempo para que el contenedor inicie antes de que healthcheck comience a contar fallos
 
   elasticsearch:
     build: ./dockers/management/elasticsearch
@@ -151,7 +159,7 @@ services:
     hostname: elasticsearch
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
