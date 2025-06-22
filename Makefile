@@ -1,5 +1,5 @@
 all: grant_permissions restart_if_needed setup
-	@docker compose -f ./src/docker-compose.yml up ${C} -d --build
+	@docker compose -f ./src/docker-compose.yml up -d --build
 	@clear
 	@./script/loading.sh 
 	@clear
@@ -72,10 +72,6 @@ clean:
 	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi
 	@if docker volume ls -q | grep -q .; then docker volume rm $$(docker volume ls -q); fi
 	@if docker network ls --filter name=transcendence -q | grep -q .; then docker network rm transcendence; fi
-
-build:
-	@docker compose -f ./src/docker-compose.yml build ${C}
-	@docker compose -f ./src/docker-compose.yml up ${C} -d
 
 setup:
 	@mkdir -p $(HOME)/goinfre
@@ -158,4 +154,4 @@ elastic-password:
 	@docker exec elasticsearch cat /usr/share/elasticsearch/secrets/elastic_password
 	@docker exec -it logstash curl -X POST -H "Content-Type: application/json" -d '{"time": 1678886400000, "level": 30, "msg": "Test HTTP log from curl"}' http://logstash:8082
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password build
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password

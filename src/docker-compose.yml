@@ -4,17 +4,17 @@ networks:
     driver: bridge
 
 services:
-  sqlite:   # Base de datos (SQLite)
+  sqlite:  
     build: dockers/sqlite/.
     container_name: sqlite
-    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
+    image: nouchka/sqlite3  
     volumes:
       - sqlite_data:/var/lib/sqlite
     networks:
       - transcendence
     restart: on-failure
 
-  backend:    # Backend (Node.js API)
+  backend:   
     build: dockers/backend/.
     container_name: app
     working_dir: /usr/src/app
@@ -67,12 +67,8 @@ services:
     networks:
       - transcendence
     depends_on:
-      security:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-      backend:
-        condition: service_started
+      - security
+      - frontend
     restart: always
   
   nginx-exporter:
@@ -100,16 +96,16 @@ services:
       - transcendence
 
 
-  frontend:   # Frontend (TypeScript + Tailwind)
+  frontend:
     build: dockers/frontend/.
     container_name: frontend
     image: node:18-alpine
     volumes:
-      - frontend_data:/usr/src/app      # Volumen para el código fuente
-      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
+      - frontend_data:/usr/src/app    
+      - php_data:/usr/src/app/dist  
       - ./frontend/public:/usr/share/nginx/html:ro
       - ./ssl_certs:/etc/nginx/ssl:ro
-    command: sh -c "npm run build && npx serve dist -l 3040"  # Cambiado a `npm run build` para generar archivos estáticos
+    command: sh -c "npm run build && npx serve dist -l 3040" 
     ports:
       - "3040:3040"
     networks:
@@ -153,8 +149,8 @@ services:
       test: ["CMD", "sh", "-c", "vault status -tls-skip-verify && test -s /vault/data/ui_token.txt && echo 'Vault ready and token present'"]
       interval: 10s
       timeout: 5s
-      retries: 20 # Número de reintentos antes de considerar el contenedor unhealthy
-      start_period: 30s # Tiempo para que el contenedor inicie antes de que healthcheck comience a contar fallos
+      retries: 20
+      start_period: 30s
 
   elasticsearch:
     build: ./dockers/management/elasticsearch
@@ -176,9 +172,8 @@ services:
       - "9200:9200"
     networks:
       - transcendence
-    depends_on:
-      security:
-        condition: service_healthy
+    #depends_on:
+    #  - security
     healthcheck:
       test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
       interval: 10s
@@ -221,8 +216,7 @@ services:
       - "5000:5000"   # Entrada Beats
       - "8082:8082"   # Métricas Prometheus
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      - elasticsearch
     networks:
       - transcendence
   
@@ -236,8 +230,7 @@ services:
     ports:
       - "9811:9811"
     depends_on:
-      logstash:
-        condition: service_started
+      - logstash
     networks:
       - transcendence
 
@@ -252,8 +245,7 @@ services:
     ports:
       - "5601:5601"
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      - elasticsearch
     networks:
       - transcendence
 
@@ -271,8 +263,7 @@ services:
     ports:
       - "9201:9201"
     depends_on:
-      kibana:
-        condition: service_started
+      - kibana
     networks:
       - transcendence
   
@@ -305,14 +296,12 @@ services:
     networks:
       - transcendence
     restart: unless-stopped
-    depends_on:
-      - php
 
   grafana:
     build: ./dockers/monitoring/grafana
     image: grafana/grafana
     container_name: grafana
-    user: "472"  # Usuario grafana por defecto (UID 472)
+    user: "472"
     volumes:
       - grafana_data:/var/lib/grafana
       - prometheus_data:/prometheus/certs:ro
@@ -322,17 +311,15 @@ services:
       - ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./dockers/monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:
-      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
+      - "3003:3000"
     environment:
       - GF_SERVER_PROTOCOL=https
       - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
       - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
       - GF_INSTALL_PLUGINS=grafana-clock-panel
     depends_on:
-      elasticsearch:
-        condition: service_healthy
-      prometheus:
-        condition: service_started
+      - prometheus
+      - elasticsearch
     networks:
       - transcendence
     restart: unless-stopped
@@ -416,7 +403,6 @@ volumes:
        type: none
        device: "$HOME/goinfre/data/vault"
        o: bind
-       #o: bind,uid=65534,gid=65534,mode=0777
   
   tls_volume:
     driver: local

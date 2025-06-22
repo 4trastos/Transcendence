@@ -613,9 +613,6 @@ cat >> $REPORT_FILE <<EOF
 </html>
 EOF
 
-# Crear enlace simbólico para el reporte
-#ln -sf $REPORT_FILE /zap/reports/security_report.html
-
 echo "Reporte de seguridad generado: $REPORT_FILE"
 echo "Accesible en: https://localhost/zap_reports/security_report.html"
 
