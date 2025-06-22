@@ -14,7 +14,7 @@ elasticsearch.username: "elastic"
 elasticsearch.password: ["/usr/share/elasticsearch/secrets/elastic_password"]
 elasticsearch.ssl.certificateAuthorities: ["/usr/share/elasticsearch/config/certs/ca/ca.crt"]
 elasticsearch.ssl.verificationMode: certificate
-elasticsearch.requestTimeout: 120000
+elasticsearch.requestTimeout: 30000
 elasticsearch.pingTimeout: 30000
 elasticsearch.healthCheck.delay: 60000
 

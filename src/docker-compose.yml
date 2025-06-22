@@ -13,6 +13,15 @@ services:
     networks:
       - transcendence
     restart: on-failure
+    mem_limit: 384MB  # Aumentado de 256MB
+    mem_reservation: 192MB  # Aumentado de 128MB
+    memswap_limit: 512MB  # Límite de swap
+    cpu_shares: 512  # Prioridad relativa de CPU
+    healthcheck:
+      test: ["CMD", "sqlite3", "/var/lib/sqlite/database.db", "PRAGMA integrity_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   backend:   
     build: dockers/backend/.
@@ -26,16 +35,33 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - sqlite
-      - security
+      security:
+        condition: service_healthy
+      sqlite:
+        condition: service_healthy
     environment:
-      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDR=http://security:8200  # Usar nombre de servicio en lugar de IP
       - TZ=Europe/Madrid
+      - NODE_OPTIONS=--max-old-space-size=768  # Aumentado a 768MB
+      - SQLITE_BUSY_TIMEOUT=15000  # Aumentado a 15 segundos
+      - SQLITE_SYNCHRONOUS=FULL
+      - SQLITE_JOURNAL_MODE=WAL
+      - HEALTH_CHECK_PATH=/health  # Ruta explícita
     env_file:
       - .env
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 1024MB  # Aumentado a 1GB
+    mem_reservation: 512MB
+    memswap_limit: 1536MB  # 1.5GB
+    cpu_shares: 768
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 15s  # Aumentado
+      retries: 6    # Más reintentos
+      start_period: 60s  # Más tiempo para iniciar
 
   chat-service:
     build:
@@ -60,16 +86,35 @@ services:
       - .env
     environment:
       - ENVIRONMENT=production
+      - PHP_FPM_PM=dynamic                # Modo de procesos dinámico
+      - PHP_FPM_PM_MAX_CHILDREN=20        # Máximo de procesos hijos
+      - PHP_FPM_PM_START_SERVERS=4        # Procesos iniciales
+      - PHP_FPM_PM_MIN_SPARE_SERVERS=2    # Mínimo de procesos inactivos
+      - PHP_FPM_PM_MAX_SPARE_SERVERS=8    # Máximo de procesos inactivos
+      - PHP_FPM_PM_MAX_REQUESTS=500       # Reciclar procesos después de 500 peticiones
+      - NGINX_WORKER_PROCESSES=2          # Procesos de Nginx
+      - NGINX_WORKER_CONNECTIONS=1024     # Conexiones por worker
     ports:
       - "8443:443"
       - "8080:80"
-      #- "9001:9001"
     networks:
       - transcendence
     depends_on:
-      - security
-      - frontend
+      security:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     restart: always
+    mem_limit: 768MB           # Límite máximo de RAM
+    mem_reservation: 384MB     # RAM reservada garantizada
+    memswap_limit: 1GB         # Límite de swap
+    cpu_shares: 768            # Prioridad relativa de CPU
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
   
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter
@@ -82,19 +127,36 @@ services:
       - transcendence
     depends_on:
       - php
+    mem_limit: 128MB
+    mem_reservation: 64MB
+    memswap_limit: 256MB
+    cpu_shares: 256
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9113/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   
   php-fpm-exporter:
     image: hipages/php-fpm_exporter:latest
     container_name: php-fpm-exporter
     environment:
-      - PHP_FPM_SCRAPE_URI=tcp://php-nginx:9001/status
+      - PHP_FPM_SCRAPE_URI=tcp://php:9001/status  # Cambiado a "php" (nombre del servicio)
     ports:
       - "9253:9253"
     depends_on:
       - php
     networks:
       - transcendence
-
+    mem_limit: 128MB
+    mem_reservation: 64MB
+    memswap_limit: 256MB
+    cpu_shares: 256
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9253/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   frontend:
     build: dockers/frontend/.
@@ -105,14 +167,29 @@ services:
       - php_data:/usr/src/app/dist  
       - ./frontend/public:/usr/share/nginx/html:ro
       - ./ssl_certs:/etc/nginx/ssl:ro
-    command: sh -c "npm run build && npx serve dist -l 3040" 
+    command: sh -c "npm run build && npx serve dist -l 3040"
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=384  # Limita el heap de Node.js
+      - GENERATE_SOURCEMAP=false  # Reduce uso de memoria durante build
     ports:
       - "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 512MB           # Límite máximo de RAM
+    mem_reservation: 256MB     # RAM reservada garantizada
+    memswap_limit: 768MB       # Límite de swap
+    cpu_shares: 512            # Prioridad relativa de CPU
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3040"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   security:
     build: dockers/security/.
@@ -164,6 +241,9 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
       - xpack.security.transport.ssl.enabled=true
+      - xpack.security.authc.api_key.enabled=true
+      - xpack.security.authc.token.enabled=true
+      - xpack.security.authc.token.timeout=1h
     volumes:
       - es_data:/usr/share/elasticsearch/data
       - es_secrets:/usr/share/elasticsearch/secrets
@@ -172,13 +252,14 @@ services:
       - "9200:9200"
     networks:
       - transcendence
-    #depends_on:
-    #  - security
     healthcheck:
       test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
       interval: 10s
       timeout: 5s
       retries: 30
+    depends_on:
+      backend:
+        condition: service_healthy
 
   elasticsearch-exporter:
     image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
@@ -204,21 +285,38 @@ services:
     container_name: logstash
     restart: on-failure
     environment:
-      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m  # Reducido a 256MB
       - ELASTIC_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
-      - XPACK_MONITORING_ENABLED=false 
+      - XPACK_MONITORING_ENABLED=false
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_SSL_VERIFICATION_MODE=none
+      - LOGSTASH_MONITORING_ENABLED=false
+      - pipeline.workers=1  # Solo 1 worker
+      - pipeline.batch.size=125  # Tamaño de lote reducido
+      - pipeline.ordered=auto
     volumes:
-      - es_secrets:/usr/share/elasticsearch/secrets
-      - es_certs:/usr/share/elasticsearch/config/certs
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
       - ls_config:/usr/share/logstash/config
       - ls_pipeline:/usr/share/logstash/pipeline
     ports:
-      - "5000:5000"   # Entrada Beats
-      - "8082:8082"   # Métricas Prometheus
-    depends_on:
-      - elasticsearch
+      - "5000:5000"
     networks:
       - transcendence
+    mem_limit: 512MB  # Reducido a 512MB
+    mem_reservation: 384MB
+    memswap_limit: 768MB
+    cpu_shares: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
   
   logstash-exporter:
     build: ./dockers/management/logstash-exporter
@@ -244,10 +342,17 @@ services:
       - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "5601:5601"
-    depends_on:
-      - elasticsearch
     networks:
       - transcendence
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/login"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 300s
+    depends_on:
+      logstash:
+        condition: service_healthy
 
   kibana-exporter:
     build: ./dockers/management/kibana-exporter
@@ -296,6 +401,10 @@ services:
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 1.5GB
+    mem_reservation: 1GB
+    memswap_limit: 2GB
+    cpu_shares: 768
 
   grafana:
     build: ./dockers/monitoring/grafana
@@ -317,12 +426,22 @@ services:
       - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
       - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
       - GF_INSTALL_PLUGINS=grafana-clock-panel
-    depends_on:
-      - prometheus
-      - elasticsearch
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 512MB
+    mem_reservation: 256MB
+    memswap_limit: 768MB
+    cpu_shares: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      - prometheus
+      - elasticsearch
 
   mailserver:
     build: dockers/mailserver/.
@@ -422,15 +541,15 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      o: bind
       device: "$HOME/goinfre/data/prometheus"
+      o: bind
 
   prometheus_query_log:
     driver: local
     driver_opts:
       type: none
+      device: "$HOME/goinfre/data/prometheus_query_log"
       o: bind
-      device: "$HOME/goinfre/data/prometheus"
   
   mail_data:
     driver: local
@@ -479,4 +598,11 @@ volumes:
     driver_opts:
       type: none
       device: "$HOME/goinfre/data/ls_pipeline"
+      o: bind
+
+  kibana_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/kibana"
       o: bind

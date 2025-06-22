@@ -94,6 +94,7 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/es_certs
 	@mkdir -p $(HOME)/goinfre/data/ls_config
 	@mkdir -p $(HOME)/goinfre/data/ls_pipeline
+	@mkdir -p $(HOME)/goinfre/data/kibana
 
 re: down all
 
