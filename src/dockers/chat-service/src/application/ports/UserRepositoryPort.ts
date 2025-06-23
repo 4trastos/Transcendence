@@ -3,7 +3,7 @@ import { User } from "../../domain/entities/User";
 
 
 export interface  UserRepositoryPort {
-    getUserById(userID: string): Promise<User>;
+    getUserById(userID: string, jwt: string): Promise<User>;
     /**
      * 
      * @deprecated

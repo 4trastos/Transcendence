@@ -37,12 +37,17 @@ if [ "$IP_ALLOWED" = true ]; then
   echo "IP permitida. Ejecutando comando..."
   
   # Aquí pones tu comando real, por ejemplo:
-  wget -q --server-response http://$IPS:8000/dockers.tar.gz -O dockers.tar.gz \
-    && tar -xzf dockers.tar.gz \
-    && cd src \
-    && docker compose up $CONTAINERS -d 
+  wget -q --server-response http://$IPS:8000/dockers.tar.gz -O dockers.tar.gz && tar -xzf dockers.tar.gz
+  
+  cd src
+  echo "Ejecutando contenedor..."
+  docker compose build $CONTAINERS
+  docker compose up $CONTAINERS 
+
+  echo "EXIT"
+  exit
   
 else
-  echo "❌ IP $LOCAL_IP no está en la lista de permitidas. Abortando."
+  echo "❌ IP $LOCAL_IP :$ALLOWED_IPSno está en la lista de permitidas. Abortando."
   exit 1
 fi

@@ -9,6 +9,6 @@ export interface  ChatRepositoryPort {
     saveChat(chat: Chat): Promise<void>;
     getMessages(chatId);
     getChatById(chatId: string): Promise<Chat>;
-    getChatByMembers(userIds: string[]): Promise<Chat[]>;
+    getChatByMember(userIds: string): Promise<Chat[]>;
     getMessagesByChatId(chatId: string): Promise<Message[]>;
 }

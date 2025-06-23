@@ -15,13 +15,17 @@ RUN apt-get update && \
     apt-get clean
 
 # Copia los archivos de tu proyecto al contenedor
-COPY /src /app/
+
+COPY /src /app/src
+COPY /data /app/data
+COPY /tools /app/tools
+
 COPY /tsconfig.json /app/
 COPY /package.json /app/
 
 RUN npm install
-EXPOSE 3000
+EXPOSE 3050
 
 
 # Usa un comando para mantener el contenedor en ejecución, en caso de que necesites interactuar con él
-CMD ["npx", "ts-node", "server.ts"]
+CMD ["npx", "ts-node", "src/server.ts"]

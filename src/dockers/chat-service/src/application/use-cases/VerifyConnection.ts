@@ -18,15 +18,17 @@ export default class VerifyConnection {
 		if (!decoded.id) {
 			onStatusChange(req,"close");
 			connection.close();
-			throw new HandleException("El usuario no es correcto", 401, "Unauthorized");
+			return;
+			//throw new HandleException("El usuario no es correcto", 401, "Unauthorized");
 		}
-		const user:User | undefined = await this.userRepository.getUserById(userId);
-		console.log("userId: " + userId,"user: "+ user);
+		const user:User | undefined = await this.userRepository.getUserById(userId, req.cookies.token);
+		console.log("userId: " + userId,"user: "+ JSON.stringify(user, null, 2));
 		if (!user) {
 			console.log("No estas autorizado para conectarte, create una cuenta");
 			onStatusChange(req,"close");
 			connection.close();
-			throw new HandleException("No se tiene permiso para la conexion", 401, "Unauthorized");
+			return;
+			//throw new HandleException("No se tiene permiso para la conexion", 401, "Unauthorized");
 		}
 		const wsUser:WebSocketUser = ({ user: user, websocket: connection });
 		await this.sessionRepository.saveSession(userId, wsUser).then((ws) => {

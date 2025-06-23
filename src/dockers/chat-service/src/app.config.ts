@@ -28,7 +28,7 @@ export default async function configApp() {
 			},
 			servers: [
 			  {
-				url: 'http://localhost:3050',
+				url: 'http://localhost:3030',
 				description: 'Development server'
 			  }
 			],
@@ -57,10 +57,20 @@ export default async function configApp() {
 			}
 		  }
 	});
-	
+
 	fastify.register(require("@fastify/jwt"), {
-		secret: process.env.JWT_SECRET ,
-		cookie: {
+		secret: process.env.JWT_SECRET,
+		algorithm: 'HS256',
+		issuer: 'pong-app.com',
+		audience: 'pong-client',
+		accessExpiry: '15m',
+		refreshExpiry: '7d',
+		clockTolerance: 30,
+		minPasswordStrength: 3,
+		maxDevicesPerUser: 5,
+		tempTokenExpiry: '15m',
+		tempTokenPurpose: '2fa_verification',
+			cookie: {
 			signed: false,
 			cookieName: 'token',
 		},
@@ -70,7 +80,7 @@ export default async function configApp() {
 	});
 
 	fastify.register(cors, {
-		origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3040', 'https://localhost:3040','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
+		origin: ['http://localhost:8080', 'https://localhost:8080', 'http://localhost:3001', 'https://localhost:3001','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 		credentials: true,

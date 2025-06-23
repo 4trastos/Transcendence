@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json",
     "test": "ts-node test/run-tests.ts",
     "start": "node dist/server.js"
   },
@@ -26,13 +26,13 @@
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.3",
-    "@types/node": "^22.13.14",
+    "@types/node": "^22.15.32",
     "@types/ws": "^8.18.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.2",
     "ts-node": "^10.9.2",
     "typedoc": "^0.28.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   }
 }

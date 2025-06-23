@@ -6,8 +6,12 @@ class UserTemplate implements UserRepositoryStore {
 
     public constructor() {} // Evita instanciar directamente
 
-	public async getUserById(userId: string): Promise<User> {
-		const body = await fetch(this.url + `/${userId}`);
+	public async getUserById(userId: string, jwt:string): Promise<User> {
+		const body = await fetch(this.url, {
+			headers: {
+				Cookie: `token=${jwt}`
+			}
+		});
 		if (!body) {
 			throw new Error(`user with id ${userId} not found`);
 		}

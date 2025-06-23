@@ -5,6 +5,7 @@ import { Message } from "../../domain/entities/Message";
 import { User } from "../../domain/entities/User";
 import UserRepositoryStore from "../rest/UserRepositoryStore";
 import UserTemplate from "../rest/UserTemplate";
+import { HandleException } from "../../domain/exception/HandleException";
 
 
 export class UserRepositoryAdapter implements UserRepositoryPort {
@@ -21,15 +22,17 @@ export class UserRepositoryAdapter implements UserRepositoryPort {
     async getAllUsers(userIds: string[]): Promise<User[]> {
         const users = await this.userTemplate.getAllUsers();
         if (users.length <= 0) {
-            throw new Error(`User with ID ${userIds} not found.`);
+           console.log(`user with ID ${userIds} not found`);
+            //throw new HandleException(`User with ID ${userIds} not found.`, 400);
         }
         return users;
     }
 
-    async getUserById(userId: string): Promise<User> {
-        const user:User = await this.userTemplate.getUserById(userId);
+    async getUserById(userId: string, jwt: string): Promise<User> {
+        const user:User = await this.userTemplate.getUserById(userId, jwt);
         if (!user) {
-            throw new Error(`user with ID ${userId} not found.`);
+           console.log(`user with ID ${userId} not found`);
+           // throw new HandleException(`user with ID ${userId} not found.`, 400);
         }
         return user;
     }

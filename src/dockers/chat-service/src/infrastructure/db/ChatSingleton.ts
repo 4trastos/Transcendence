@@ -11,37 +11,33 @@ export class ChatSingleton  {
 			this.instance = new ChatSingleton();
 			this.instance.chats = [
 				{
-					id: "1",
-					users: ["1", "3", "2"],
+					id: "19",
+					users: ["adrian3", "3", "2"],
 					isGroupChat: true,
 					title: "New Group",
 					messages:[{
-						content: { text: "Hola Chicos, ¿cómo están?" },
-						chatId: "1",
+						content: "Hola Chicos, ¿cómo están?" ,
+						chatId: "19",
 						sender_id: "2"
 					},
 					{
-					  content: {
-						text: "@Adrian! ¿Todavia estas en casa?"
-					  },
-					  chatId: "1",
+					  content: "@Adrian! ¿Todavia estas en casa?",
+					  chatId: "19",
 					  sender_id: "2"
 					}]
 				},
 				{
 					id: "2",
-					users: ["1", "3"],
+					users: ["adrian3", "3"],
 					isGroupChat: false,
 					title: "New Group",
 					messages:[{
-						content: { text: "Hola, ¿cómo estás?" },
+						content: "Hola, ¿cómo estás?" ,
 						chatId: "2",
-						sender_id: "1"
+						sender_id: "adrian3"
 					},
 					{
-					  content: {
-						text: "Bien, desarrollando un proyecto, tu?"
-					  },
+					  content: "Bien, desarrollando un proyecto, tu?",
 					  chatId: "2",
 					  sender_id: "3"
 					}]
@@ -54,7 +50,8 @@ export class ChatSingleton  {
 	public async getChatById(chatId: string): Promise<Chat> {
 		const chat = this.chats.find(chat => chat.id === chatId);
 		if (!chat) {
-			throw new Error(`Chat with id ${chatId} not found`);
+			console.error(`Chat with id ${chatId} not found`);
+			return null;
 		}
 		return chat;
 	}
@@ -65,7 +62,8 @@ export class ChatSingleton  {
 	public async addMessageToChat(chatId: string, message: any): Promise<void> {
 		const chat = await this.getChatById(chatId);
 		if (!chat) {
-			throw new Error(`Chat with id ${chatId} not found`);
+			console.error(`Chat with id ${chatId} not found`);
+			return;
 		}
 		chat.messages.push(message);
 	}
@@ -76,7 +74,8 @@ export class ChatSingleton  {
 	 async updateChat(chatId: string, updatedChat: Chat): Promise<void> {
 		const index = this.chats.findIndex(chat => chat.id === chatId);
 		if (index === -1) {
-			throw new Error(`Chat with id ${chatId} not found`);
+			console.error(`Chat with id ${chatId} not found`);
+			return ;
 		}
 		this.chats[index] = updatedChat;
 	}

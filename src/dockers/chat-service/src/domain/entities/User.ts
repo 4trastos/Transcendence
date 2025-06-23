@@ -2,6 +2,6 @@
 
 export interface User {
     id: string;//uuid
-    name: string;
+    username: string;
     contacts: string[];
 }
