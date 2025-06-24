@@ -32,7 +32,7 @@ export default class ChatView extends Component {
     if (!this.element) return;
 
     this.socket = new WebSocket(
-      `ws://localhost:3050/api/v1/chats/connect-ws?userId=${this.userId}`
+      `ws://localhost:3030/api/v1/chats/connect-ws`
     );
     this.socket.addEventListener("open", () => {
       console.log("Conexión WebSocket abierta");
@@ -87,13 +87,13 @@ export default class ChatView extends Component {
           messages: [
             {
               chatId: "3",
-              content: { text: "Hola" },
+              content:  "Hola",
               sender_id: "2",
               avatarUrl: "/images/jubin_jack.svg",
             },
             {
               chatId: "3",
-              content: { text: "Adrian! ¿Todavia estas en casa?" },
+              content:  "Adrian! ¿Todavia estas en casa?" ,
               sender_id: "3",
               avatarUrl: "/images/henry_deco.svg",
             },
@@ -109,13 +109,13 @@ export default class ChatView extends Component {
           messages: [
             {
               chatId: "2",
-              content: { text: "Hola, ¿cómo estás?" },
+              content: "Hola, ¿cómo estás?",
               sender_id: "1",
               avatarUrl: "/images/devid_heilo.svg",
             },
             {
               chatId: "2",
-              content: { text: "Bien, desarrollando un proyecto, tu?" },
+              content: "Bien, desarrollando un proyecto, tu?" ,
               sender_id: "3",
               avatarUrl: "/images/henry_deco.svg",
 
@@ -127,7 +127,7 @@ export default class ChatView extends Component {
       const env = await fetch("/env").then((res) => res.json());
       if (env.env === "production") {
         res = (await fetch(
-          `http://localhost:3050/api/v1/chats/user/${this.userId}`,
+          `http://localhost:3030/api/v1/chats/user`,
           {
             method: "GET",
             credentials: "include",
@@ -223,7 +223,7 @@ export default class ChatView extends Component {
       JSON.stringify({
         sender_id: this.userId,
         chatId: chatId,
-        content: { text: message },
+        content: message,
       })
     );
   }

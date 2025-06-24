@@ -9,7 +9,7 @@ interface ProfileHeaderItemProps extends ComponentProps {
 	hasEdit: boolean;
 	avatar?: string;
 	avatarColor?: string;
-	onEdit: () => void;
+	onEdit: (id:string) => void;
 	onSave: (profile: DataProfileChange[]) => void;
 }
 
@@ -27,8 +27,6 @@ export class ProfileHeaderItemComponent extends Component {
 	if (!this.element) return;
 	const profileItem = this.element?.querySelector(`#profile-item-${this.props.id}`);
 	profileItem?.classList.toggle("hidden");
-
-
   }
 
 
@@ -48,15 +46,7 @@ export class ProfileHeaderItemComponent extends Component {
 	<div class="animate-expand-horizontal  flex justify-center z-50 bg-white/10 ${classItem}"> 
 		<div id="profile-item-${this.props.id}" class=" z-0 flex h-full w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-4 px-6 ">
 			
-			<form id="upload-form-${this.props.id}" class="flex-shrink-0 flex flex-col justify-center items-center">
-				<img id="avatar-profile-${this.props.id}" src="${this.props.avatar}" alt="${this.props.title}" class="w-7 h-7 rounded-full object-cover">
-				${ (this.props.field !== `Country` && this.props.field !== `Email`) ? `
-				<input type="file" id="imageInput-${this.props.id}" name="image" accept="image/*" style="display: none;"/> 
-				<label  id="prfile-label-edit-avatar" class="hidden" for="imageInput-${this.props.id}" style="cursor:pointer;">
-					<a id="btn-edit"
-					class=" hover:font-bold text-white hover:text-blue-400">Seleccionar imagen</a>
-				</label>` : ""}
-			</form>
+
 
 
 			<div id="profile-text-${this.props.id}" class="flex-1 min-w-0">
@@ -99,20 +89,6 @@ export class ProfileHeaderItemComponent extends Component {
 	protected initEvents(): void {
 		if (!this.element) return;	
 
-		
-		const avatar = this.element.querySelector(`#avatar-profile-${this.props.id}`) as HTMLImageElement;
-		if (!avatar) return;
-		const imageInput = this.element.querySelector(`#imageInput-${this.props.id}`);
-		if (!imageInput) return;
-		imageInput.addEventListener('change', async (e) =>{
-			if (!e || !e.target) return;
-			const input = e.target as HTMLInputElement;
-			if (!input) return;
-			const file = input.files?.[0]
-			if (!file) return;
-			avatar.src = URL.createObjectURL(file);
-			this.tmpImage = file;
-		});
 		const profileItem = this.element.querySelector(`#profile-item-${this.props.id}`);
 		if (!profileItem)
 			return;
@@ -131,16 +107,15 @@ export class ProfileHeaderItemComponent extends Component {
 		const btn = this.element.querySelector(`#profile-edit-${this.props.id}`);
 
 		const btnBack = this.element.querySelector(`#profile-btn-back-${this.props.id}`);
-		const editLink = this.element.querySelector(`#prfile-label-edit-avatar`);
-		if (btn &&btnBack&& avatar) {
+		if (btn &&btnBack) {
 			btnBack.addEventListener('click', () => {
 				this.toggleView("Editar", true);
-				this.props.onEdit();
+				this.props.onEdit(this.props.id || "");
 			});
 			btn.addEventListener("click", () => {
 				if (this.props.hasEdit) {
 					this.toggleView("Guardar", false);
-					this.props.onEdit();
+					this.props.onEdit(this.props.id || "");
 				} else if (!this.props.hasEdit) {
 					const profileInputValue = this.element?.querySelector(`#profile-input-value-${this.props.id}`) as HTMLInputElement | null;
 					// Guardo la imagen que se captura
@@ -164,7 +139,7 @@ export class ProfileHeaderItemComponent extends Component {
 		//TODO: Agregar boton de Guardar y Comprimir item
 	}
 	toggleView(txtBtn: string, hasEdit: boolean) {
-			if (!this.element) return;	
+		if (!this.element) return;
 		const profileItem = this.element.querySelector(`#profile-item-${this.props.id}`);
 		if (!profileItem)
 			return;
@@ -177,18 +152,13 @@ export class ProfileHeaderItemComponent extends Component {
 		const btn = this.element.querySelector(`#profile-edit-${this.props.id}`);
 
 		const btnBack = this.element.querySelector(`#profile-btn-back-${this.props.id}`);
-		const avatar = this.element.querySelector(`#avatar-profile-${this.props.id}`);
 		const editLink = this.element.querySelector(`#prfile-label-edit-avatar`);
-		if (!(btn &&btnBack&& avatar)) return ;
+		if (!(btn &&btnBack)) return ;
 		profileText.classList.toggle("hidden");
 		profileInput.classList.toggle("hidden");
 		profileItem.classList.toggle("space-y-6");
 		profileItem.classList.toggle("flex-col");
 		editLink?.classList.toggle("hidden");
-		avatar.classList.toggle("w-7");
-		avatar.classList.toggle("h-7");
-		avatar.classList.toggle("w-[4rem]");
-		avatar.classList.toggle("h-[4rem]");
 		btnBack.classList.toggle("hidden");
 		this.props.hasEdit = hasEdit;
 		btn.innerHTML = txtBtn;

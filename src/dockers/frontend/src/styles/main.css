@@ -125,7 +125,6 @@
 	animation: reveal-child 0.3s ease-out 0.5s forwards;
 }
 
-
 @keyframes expand-horizontal {
 	from {
 		width: 0;
@@ -136,16 +135,59 @@
 		opacity: 1;
 	}
 }
+@keyframes expand-horizontal-update {
+	from {
+		width: 0;
+		opacity: 0;
+	}
+	to {
+		width: 100%;
+		opacity: 1;
+	}
+}
+
+@keyframes  contract-horizontal {
+	from {
+		width: 100%;
+		opacity: 1;
+	}
+	to {
+		width: 0;
+		opacity: 0;
+	}
+}
+
+
 
 .animate-expand-horizontal {
 	animation: expand-horizontal 0.5s ease-out 0.5s forwards;
-  opacity: 0;
+	opacity: 0;
 	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
 	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
 }
 .animate-expand-horizontal-update {
-	animation: expand-horizontal 0.5s ease-out  forwards;
+	animation: expand-horizontal-update 0.5s ease-out  forwards;
   opacity: 0;
 	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
 	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
 }
+
+.animate-contract-horizontal-update {
+	animation: contract-horizontal 0.5s ease-out  forwards;
+  opacity: 0;
+	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
+	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
+}
+
+
+
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+  }

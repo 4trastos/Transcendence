@@ -32,7 +32,7 @@ export class ChatPage extends Component {
 
     //Inicializar WebSocket
     this.socket = new WebSocket(
-      "wss://transcendence.42.fr/api/v1/chats/connect-ws?userId=3"
+      "wss://localhost:3030/api/v1/chats/connect-ws"
     );
     this.socket.addEventListener("open", () => {
       console.log("Conexión WebSocket abierta");
@@ -54,7 +54,7 @@ export class ChatPage extends Component {
 
     try {
       const res = await fetch(
-        "https://transcendence.42.fr/api/v1/chats/user/3",
+        "https://localhost:3030/api/v1/chats/user",
         {
           method: "GET",
           credentials: "include",
@@ -93,7 +93,7 @@ export class ChatPage extends Component {
         isGroupChat: chat.isGroupChat,
         // Puedes agregar estas propiedades si están disponibles en tu objeto chat
         lastMessage:
-          chat.messages[chat.messages.length - 1]?.content.text || "", // Último mensaje
+          chat.messages[chat.messages.length - 1]?.content || "", // Último mensaje
         lastMessageTime: "", // Hora del último mensaje
         unreadCount: 0,
         avatarUrl: "",
@@ -113,7 +113,7 @@ export class ChatPage extends Component {
     if (this.element === null) return;
     try {
       const res = await fetch(
-        `https://transcendence.42.fr/api/v1/chats/${chatId}/messages`,
+        `https://localhost:3030/api/v1/chats/${chatId}/messages`,
         {
           method: "GET",
           credentials: "include",

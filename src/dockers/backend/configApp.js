@@ -121,10 +121,10 @@ export default async function configApp() {
 		maxDevicesPerUser: 5,
 		tempTokenExpiry: '15m',
 		tempTokenPurpose: '2fa_verification',
-			cookie: {
-			signed: false,
-			cookieName: 'token',
-		},
+		//	cookie: {
+		//	signed: false,
+		//	cookieName: 'token',
+		//},
 	});
 
 
@@ -145,7 +145,15 @@ export default async function configApp() {
 	app.register(helmet);
 
 	app.register(cors, {
-		origin: ['http://localhost:8080', 'https://localhost:8080', 'https://localhost:3040','http://localhost:3040', 'http://localhost:3000', 'https://localhost:3000'],
+		origin: ['http://localhost:8080',
+			'https://localhost:8080',
+			'https://localhost:3040',
+			'http://localhost:3040',
+			'http://localhost:3000',
+			'https://localhost:3000',
+			'https://localhost:8443',
+			'http://localhost:8443',
+		],
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 		credentials: true,

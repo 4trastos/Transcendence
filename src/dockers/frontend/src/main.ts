@@ -1,17 +1,13 @@
 import { fetchUser } from './auth';
-import { FloatingChatComponent } from './components/Floating/FloatingChatComponent';
 import { Navigation } from './components/Navigation/Navigation';
 import { UserJwt } from './data/UserJwt';
 import ChatView from './pages/chat/ChatView';
-import { HomePage } from './pages/home/home';
 import { GamePage } from './pages/game/GamePage'
 import { StatsPage } from './pages/stats/StatsPage';
 import { mount } from './utils/component';
 import { ProfilePage } from './pages/profile/ProfilePage';
-import { GameStarter } from './pages/game/state/GameSate';
 import { AuthPage } from './pages/auth/AuthPage';
 import { NewPasswordPage } from './pages/auth/NewPasswordComponent';
-import { ToastService } from './utils/toast';
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
@@ -19,6 +15,7 @@ let navbar: Navigation | null = null;
 async function handleRoute() {
   let user: UserJwt | null = {
     id: '1',
+    avatar: '',
     user: '3'
   };
   
@@ -37,15 +34,15 @@ async function handleRoute() {
   }
   const chatContainer: HTMLElement = document.querySelector('#chat-container') as HTMLElement;
   if (chatContainer.childElementCount === 0) {
-    loadChatContainer(user?.id || '3', '/images/henry_deco.svg');
+    loadChatContainer(user?.user || '3', '/images/henry_deco.svg');
   }
 
   if (!navbar) {
     navbar = new Navigation(
       {
         items: [
-          { text: 'Game', url: '#game', active: true },
-          { text: 'Stats', url: '#stats' },
+          { text: 'Juego', url: '#game', active: true },
+          { text: 'Dashboard', url: '#stats' },
           { text: 'Profile', url: '#profile' }
         ],
       }
@@ -56,7 +53,7 @@ async function handleRoute() {
   switch (route) {
     case '#game':
       navbar.changeActiveItem('#game');
-      loadGamePage();
+      loadGamePage(user);
       break;
     case '#stats':
       navbar.changeActiveItem('#stats');
@@ -91,12 +88,12 @@ function loadProfilePage() {
  const profilePage = new ProfilePage();
  mount(profilePage, '#app');
 }
-function loadGamePage() {
+function loadGamePage(user: UserJwt) {
   /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
 	while (targetContainer.firstChild) {
     targetContainer.removeChild(targetContainer.firstChild);
   }*/
-  const gamePage = new GamePage();
+  const gamePage = new GamePage(user);
   mount(gamePage, '#app');
 
 }

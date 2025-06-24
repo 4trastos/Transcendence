@@ -15,14 +15,29 @@ export class SQLiteConnection {
 	this.nameScript = nameScript;
 	const dbPath = path.join(__dirname, "..", "data", name);
 
-	this.db = new sqlite3.Database(dbPath, (err) => {
-	  if (err) {
-		console.error("Error al conectar a la base de datos:", err.message);
-	  } else {
-		console.log("Conectado a la base de datos SQLite");
-		this.db.serialize(); // <--- Añadido serialize() aquí
-	  }
-	});
+	const MAX_RETRIES = 10; // Número máximo de reintentos
+    const RETRY_DELAY_MS = 1000; // Retardo entre reintentos en milisegundos (1 segundo)
+
+    let retries = 0;
+    const connectDb = () => {
+      this.db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          console.error("Error al conectar a la base de datos:", err.message);
+          if (err.code === 'SQLITE_BUSY' && retries < MAX_RETRIES) {
+            retries++;
+            console.log(`Reintentando conexión a la base de datos... (${retries}/${MAX_RETRIES})`);
+            setTimeout(connectDb, RETRY_DELAY_MS);
+          } else {
+            console.error("Fallo definitivo al conectar a la base de datos.");
+          }
+        } else {
+          console.log("Conectado a la base de datos SQLite");
+          this.db.serialize(); // <--- Añadido serialize() aquí
+        }
+      });
+    };
+    
+    connectDb(); // Iniciar el intento de conexión
   }
 
   executeScript() {
@@ -38,6 +53,17 @@ export class SQLiteConnection {
 	  }
 	});
   }
+
+  close() {
+    this.db.close((err) => {
+      if (err) {
+        console.error("Error al cerrar la base de datos:", err.message);
+      } else {
+        console.log("Conexión a la base de datos SQLite cerrada.");
+      }
+    });
+  }
+
   getDBInstance() {
 	return this.db;
   }

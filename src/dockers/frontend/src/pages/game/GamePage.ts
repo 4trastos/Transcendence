@@ -1,3 +1,4 @@
+import { UserJwt } from "../../data/UserJwt";
 import { Component, ComponentProps, mount } from "../../utils/component";
 import { GameData, GameStarter, MatchData } from "./state/GameSate";
 
@@ -14,10 +15,11 @@ export class GamePage extends Component {
   private ball: any;
   private matchData?: MatchData;
 
-  constructor() {
+  constructor(user: UserJwt) {
     super();
     this.template = this.renderTemplate();
     this.gameState = new GameStarter({
+      userJwt: user,
       onComplete: (data: MatchData) => {
         this.matchData = data;
         const p1 = this.element?.querySelector("#player_1");

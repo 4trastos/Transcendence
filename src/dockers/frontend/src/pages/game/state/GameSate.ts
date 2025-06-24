@@ -1,8 +1,10 @@
+import { UserJwt } from "../../../data/UserJwt";
 import { reactive } from "../../../lib/reactive";
 import { Component,ComponentProps } from "../../../utils/component"
 import { ChooseGameTypeState } from "./ChooseGameTypeState";
 
 export interface GameStarterProps extends ComponentProps {
+    userJwt: UserJwt;
 	  onComplete?: (data: GameData) => void;
 }
 export interface GameState {
@@ -29,12 +31,13 @@ export class GameStarter extends Component {
   private _clearObservers: () => void;
   private _pause: ()=>void;
   private _resume: ()=>void;
-
+  protected props: GameStarterProps;
   protected gameData: GameData;
   protected matchData: MatchData;
 
   constructor(props: GameStarterProps) {
     super(props);
+    this.props = props;
     const [reactiveData, {subscribe, clearObservers, pause, resume}] = reactive({players: []});
     this._subscribe = subscribe;
     this._clearObservers = clearObservers;
@@ -53,6 +56,9 @@ export class GameStarter extends Component {
     this._subscribe(cb);
   }
 
+  public getUserJwt(): UserJwt {
+    return this.props.userJwt;
+  }
   public setState(state: GameState) {
     this.state = state;
     this._clearObservers();

@@ -103,7 +103,7 @@ export class LoginPlayerComponent extends Component {
 		const formData = new FormData(event.target as HTMLFormElement);
 		const username = formData.get("username") as string;
 		const password = formData.get("password") as string;
-		const loginData = { username, password };
+		const loginData = { username, password, gameMode:true  };
 
 		//La direccion tiene que se la del frontEnd.
 		try {

@@ -136,10 +136,10 @@ export class FloatingChatComponent extends Component {
 		 class="border-t border-white border-opacity-15" />
 
 		<!-- Aquí puedes agregar el contenido del chat -->
-		<div id="${this.props.id}-body" class=" flex-1 py-2 px-5 overflow-y-auto text-sm  space-y-2">
+		<div id="${this.props.id}-body" class=" animate-expand-vertical flex-1 py-2 px-5 overflow-y-auto text-sm  space-y-2">
 		</div>
 
-<form id="${this.props.id}-form" class=" m-4 rounded-lg flex items-center bg-[#1D1F2B] bg-opacity-30">
+<form id="${this.props.id}-form" class="animate-expand-vertical m-4 rounded-lg flex items-center bg-[#1D1F2B] bg-opacity-30">
   <input
 	type="text"
 	placeholder="Escribe algo..."
@@ -183,7 +183,7 @@ export class FloatingChatComponent extends Component {
       while (this.props.messages && count > 0) {
         const message = this.props.messages[count - 1];
         const messageComponent = new MessageComponent({
-          text: message.content.text,
+          text: message.content,
           currentUser: message.sender_id === this.props.currentUser, // Cambia esto según la lógica de tu aplicación
           avatar: message.avatarUrl || "https://via.placeholder.com/40",
         });

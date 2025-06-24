@@ -10,7 +10,7 @@ interface ProfileItemProps extends ComponentProps {
 	avatarType: "image" | "svg" | "card";
 	avatar?: string;
 	avatarColor?: string;
-	onEdit: () => void;
+	onEdit: (id: string) => void;
 	onSave: (profile: [DataProfileChange]) => void;
 }
 
@@ -27,6 +27,7 @@ export class ProfileItemComponent extends Component {
   toggleHidden() {
 	const profileItem = this.element?.querySelector(`#profile-item-${this.props.id}`);
 	profileItem?.classList.toggle("hidden");
+	//profileItem?.classList.toggle("animate-expand-horizontal");
   }
 	getAvatarHTML() {
 		if (this.props.avatarType === 'image') {
@@ -34,7 +35,7 @@ export class ProfileItemComponent extends Component {
 		}
 
 		if (this.props.avatarType === 'svg') {
-			return `<div id="avatar-profile-${this.props.id}" class="w-7 h-7 rounded-full overflow-hidden">
+			return `<div id="avatar-profile-${this.props.id}" class="w-7 h-7 ">
 				${this.props.avatar}
 			</div>`;
 		}
@@ -164,7 +165,7 @@ export class ProfileItemComponent extends Component {
 				btn.innerHTML = "Editar";
 				this.props.hasEdit = true;
 				editLink?.classList.toggle("hidden");
-				this.props.onEdit();
+				this.props.onEdit(this.props.id || "");
 
 			});
 			btn.addEventListener("click", () => {
@@ -182,7 +183,7 @@ export class ProfileItemComponent extends Component {
 				if (this.props.hasEdit) {
 					this.props.hasEdit = false;
 					btn.innerHTML = "Guardar";
-					this.props.onEdit();
+					this.props.onEdit(this.props.id || "");
 				} else if(!this.props.hasEdit) {
 					this.props.hasEdit = true;
 					btn.innerHTML = "Editar";

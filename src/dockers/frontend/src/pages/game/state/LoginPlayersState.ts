@@ -1,8 +1,10 @@
 import { LoginPlayerComponent } from "../../../components/player/LoginPlayer";
 import { PlayersComponent } from "../../../components/player/PlayersComponent";
+import { ToastService } from "../../../utils/toast";
 import { GameStarter, GameState } from "./GameSate";
 import { HandleTournamentState } from "./HandleTournamentState";
 
+//TODO: El primer usuario es el que esta logeado.
 export class LoginPlayersState implements GameState {
 	private current = 1;
 	private playersComponent: PlayersComponent;
@@ -10,6 +12,7 @@ export class LoginPlayersState implements GameState {
 
 	constructor(context: GameStarter, private totalPlayers: number) {
 		this.context = context;
+		const userJwt = this.context.getUserJwt();
 		const nPlayers = this.context.getGameData().playersCount || 0;
 		this.playersComponent = new PlayersComponent({
 			onCompleted(data: any[]) {
@@ -23,7 +26,8 @@ export class LoginPlayersState implements GameState {
 			nPlayers: nPlayers || 0,
 			players: Array.from({ length: nPlayers }, (_, i) => ({
 				idx: "player-" + i,
-				nick: "User " + i,
+				avatar: i==0 ? userJwt.avatar:'', //Mostrar una imagen temporal
+				nick: i==0 ? userJwt.user : "User " + i,
 				hasLogged: i === 0,
 				isCurrent: i === 1,
 			}))
@@ -55,10 +59,12 @@ export class LoginPlayersState implements GameState {
 		const loginComponent = container.querySelector('#game-login-player')
 		const loginPlayerComponent = new LoginPlayerComponent({
 			onComplete: (username: string, avatar:string) => {
-				try{ 
+				try {
 					this.playersComponent.updateCurrent(username, avatar);
-				}catch (err) {
+				} catch (err) {
 					loginPlayerComponent.showError();
+					if (err instanceof Error)
+						ToastService.show(err.message, "error");
 				}
 			},
 			onError: () => {

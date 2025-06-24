@@ -13,7 +13,7 @@ export interface PlayersPros extends ComponentProps {
 	}[];
 }
 
-
+//TODO: El primer Usuario es el que esta LOGEADO.
 export class PlayersComponent extends Component {
 	protected props: PlayersPros;
 
@@ -34,7 +34,7 @@ export class PlayersComponent extends Component {
 		if (!this.element) return;
 		const participant = this.element;
 		const players: number = this.props.nPlayers;
-		if (participant && players) {
+		if (players) {
 			this.props.players?.forEach((player, idx) => {
 				const participantDiv = document.createElement('div');
 				participantDiv.id = player.idx;
@@ -49,7 +49,7 @@ export class PlayersComponent extends Component {
 				participantDiv.className = className;
 				participantDiv.innerHTML = `
 			<div class="w-full h-full rounded-xl bg-[#11162F]">
-				<button id="btn-player-${idx}" ${player.hasLogged ? 'disabled=true' : ''} class="ripple px-1 flex items-center w-full h-full justify-start rounded-xl ${player.hasLogged ? `` : `hover:bg-white/30`} "> 
+				<button id="btn-player-${idx}" ${player.hasLogged ? 'disabled=true' : ''} class="space-x-2 ripple px-2 flex items-center w-full h-full justify-start rounded-xl ${player.hasLogged ? `` : `hover:bg-white/30`} "> 
 					<img id="avatar-player-${idx}" src="${player.avatar}" alt="Avatar" class="w-7 h-7 rounded-full" />
 					<div>
 						<div id="name-player-${idx}" class="text-sm font-light">${player.nick}</div>			

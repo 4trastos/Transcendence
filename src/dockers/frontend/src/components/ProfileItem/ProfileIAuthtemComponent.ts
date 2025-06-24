@@ -10,7 +10,7 @@ interface ProfileAuthItemProps extends ComponentProps {
 	avatarType: "image" | "svg" | "card";
 	avatar?: string;
 	avatarColor?: string;
-	onEdit: () => void;
+	onEdit: (id:string) => void;
 	onSave: (profile: [DataPasswordChange]) => void;
 }
 
@@ -45,7 +45,7 @@ export class ProfileAuthItemComponent extends Component {
 		<div id="profile-item-${this.props.id}" class=" z-0 flex h-full w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-4 px-6 ">
 			
 			<div class="flex-shrink-0 flex flex-col justify-center items-center">
-				<div id="avatar-profile-${this.props.id}" class="w-7 h-7 rounded-full overflow-hidden">
+				<div id="avatar-profile-${this.props.id}" class="w-7 h-7">
 					${this.props.avatar}
 				</div>
 			</div>
@@ -124,7 +124,7 @@ export class ProfileAuthItemComponent extends Component {
 
 				
 				editLink?.classList.toggle("hidden");
-				this.props.onEdit();
+				this.props.onEdit(this.props.id || "");
 
 			});
 			btn.addEventListener("click", () => {
@@ -132,7 +132,7 @@ export class ProfileAuthItemComponent extends Component {
 					this.props.hasEdit = false;
 					btn.innerHTML = "Guardar";
 					console.log("ProfileAuth onEdit")
-					this.props.onEdit();
+					this.props.onEdit(this.props.id || "" );
 					profileText.classList.toggle("hidden");
 					profileInput.classList.toggle("hidden");
 					profileItem.classList.toggle("space-y-6");

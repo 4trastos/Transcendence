@@ -15,7 +15,12 @@ export async function fetchUser(): Promise<UserJwt | null> {
 	if (!response.ok) {
 	  throw new Error("Network response was not ok");
 	}
-	const data: {valid:boolean, decoded:UserJwt} = await response.json();
+	const body = await response.json();
+	console.log("Body: " + JSON.stringify(body, null, 2))
+	if (body.decoded.purpose === "2fa_verification"){
+		return null;
+	}
+	const data: {valid:boolean, decoded:UserJwt} = body;
 	return (data.valid)? data.decoded:null;
   } catch (error) {
 	console.error("Error fetching user data:", error);
