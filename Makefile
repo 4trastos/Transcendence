@@ -95,6 +95,7 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/ls_config
 	@mkdir -p $(HOME)/goinfre/data/ls_pipeline
 	@mkdir -p $(HOME)/goinfre/data/kibana
+	@mkdir -p $(HOME)/goinfre/data/vault_backups
 
 re: down all
 

@@ -81,7 +81,8 @@ services:
     volumes:
       - php_data:/var/www/html
       - zap_reports:/zap/reports
-      - php_ssl:/etc/nginx/ssl
+     # - php_ssl:/etc/nginx/ssl
+      - tls_volume:/etc/nginx/ssl
     env_file:
       - .env
     environment:
@@ -214,7 +215,8 @@ services:
       - zap_reports:/zap/reports    # Reportes de ZAP
       - vault_data:/vault/data      # Datos persistentes de Vault
       - tls_volume:/etc/vault/tls   # Certificados TLS (única ubicación)
-    entrypoint: ["/zap/wrk/entrypoint.sh"]
+      - vault_backups:/vault/backup # Para los backups de Vault
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
     networks:
       transcendence:
         aliases:
@@ -605,4 +607,11 @@ volumes:
     driver_opts:
       type: none
       device: "$HOME/goinfre/data/kibana"
+      o: bind
+  
+  vault_backups:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/vault"
       o: bind
