@@ -1,4 +1,3 @@
-import { fetchUser } from './auth';
 import { Navigation } from './components/Navigation/Navigation';
 import { UserJwt } from './data/UserJwt';
 import ChatView from './pages/chat/ChatView';
@@ -12,6 +11,34 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
 let navbar: Navigation | null = null;
+
+let currentUser: UserJwt | null = null;
+
+export async function fetchUser(): Promise<UserJwt | null> {
+  if (currentUser) return currentUser;
+  try {
+	const response = await fetch(
+	  "https://localhost:8443/backend/api/validate-token",
+	  {
+		method: "GET",
+		credentials: "include",
+	  }
+	);
+	if (!response.ok) {
+	  throw new Error("Network response was not ok");
+	}
+	const body = await response.json();
+	console.log("Body: " + JSON.stringify(body, null, 2))
+	if (body.decoded.purpose === "2fa_verification"){
+		return null;
+	}
+	const data: {valid:boolean, decoded:UserJwt} = body;
+	return (data.valid)? data.decoded:null;
+  } catch (error) {
+	console.error("Error fetching user data:", error);
+  }
+  return null;
+}
 async function handleRoute() {
   let user: UserJwt | null = {
     id: '1',

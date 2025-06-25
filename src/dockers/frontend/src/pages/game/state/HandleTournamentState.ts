@@ -62,7 +62,7 @@ export class HandleTournamentState implements GameState {
 			game_duration: 0
 		};
 		const response = await fetch(
-			"http://localhost:3000/api/games",
+			"https://localhost:8443/backend/api/games",
 			{
 				method: "POST",
 				headers: {

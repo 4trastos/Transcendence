@@ -99,7 +99,7 @@ export async function authRoutes(fastify, options) {
         try {
           const existingUser = await db.get("SELECT id FROM users WHERE username = ? OR email = ?", [username, email]);
           if (existingUser) {
-            console.warn("Intento de registro duplicado para:", email);
+            console.warn("Intento de registro duplicado para:", email, username);
             return sendError(reply, 409, "El usuario o email ya están registrados", {
               solution: "Por favor utiliza otro email o nombre de usuario",
             });

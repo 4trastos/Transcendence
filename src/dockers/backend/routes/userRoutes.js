@@ -12,52 +12,7 @@ export async function userRoutes(fastify, options) {
     };
 
     // GET /users (Ruta protegida)
-    fastify.get('/users', {
-        schema: {
-            description: 'Obtiene todos los usuarios registrados en la base de datos.',
-            tags: ['Users'],
-            response: {
-                200: {
-                    description: 'Lista de usuarios',
-                    type: 'array',
-                    items: {
-                        type: 'object',
-                        properties: {
-                            id: { type: 'integer' },
-                            username: { type: 'string' },
-                            email: { type: 'string' },
-                            is_verified: { type: 'boolean' },
-                            two_factor_enabled: { type: 'boolean' },
-                            full_name: { type: 'string', nullable: true },
-                            last_name: { type: 'string', nullable: true },
-                            favourite_color: { type: 'string', nullable: true },
-                            bio: { type: 'string', nullable: true },
-                            country: { type: 'string', nullable: true },
-                            created_at: { type: 'string', format: 'date-time' },
-                            updated_at: { type: 'string', format: 'date-time', nullable: true },
-                            avatar_url: { type: 'string', nullable: true },
-                        }
-                    }
-                },
-                500: {
-                    description: 'Error del servidor al consultar la base de datos',
-                    type: 'object',
-                    properties: {
-                        error: { type: 'string' }
-                    }
-                }
-            },
-            security: [{ bearerAuth: [] }], 
-        },
-        preHandler: async (request, reply) => { // ¡Correcto! Usar preHandler directamente con request.jwtVerify()
-            try {
-                await request.jwtVerify();
-            } catch (err) {
-                reply.status(401).send({ status: 'error', message: 'No autorizado o token inválido' });
-                throw err;
-            }
-        }
-    }, async (request, reply) => {
+    fastify.get('/users', async (request, reply) => {
         try {
             // Seleccionar solo los campos seguros para devolver
             const rows = await db.all('SELECT id, username, email, is_verified, two_factor_enabled, full_name, last_name, favourite_color, bio, country, created_at, updated_at, avatar_url FROM users', []);

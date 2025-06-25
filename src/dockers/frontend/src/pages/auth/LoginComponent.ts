@@ -134,7 +134,7 @@ export class LogInComponent extends Component {
 		</div>
 
 		<div class="bg-white w-full rounded-lg">
-			<button onclick="window.location.href='http://localhost:3000/auth/google';"  id="login-google"   class="ripple w-full  hover:bg-black/10  py-2 px-6 text-black rounded-lg">
+			<button onclick="window.location.href='https://localhost:8443/backend/auth/google';"  id="login-google"   class="ripple w-full  hover:bg-black/10  py-2 px-6 text-black rounded-lg">
 				Iniciar con Google
 			</button>
 		</div>
@@ -217,7 +217,7 @@ export class LogInComponent extends Component {
 		const inputTwoFA = this.element?.querySelector('#input-twofa') as HTMLElement;
 		const twofa = formData.get("twofa") as string;
 		const loginButton = this.element?.querySelector('#login-button');
-		const response = await fetch("http://localhost:3000/api/verify-2fa", 
+		const response = await fetch("https://localhost:8443/backend/api/verify-2fa", 
 			{
 				method: "POST",
 				headers: {
@@ -261,7 +261,7 @@ export class LogInComponent extends Component {
 				this.handleLoginTwoFA(formData);
 				return;
 			} else { 
-				response = await fetch("http://localhost:3000/api/login",
+				response = await fetch("https://localhost:8443/backend/api/login",
 					{
 						method: "POST",
 						headers: {

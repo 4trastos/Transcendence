@@ -215,7 +215,7 @@ export class CreateAccountComponent extends Component {
     const registerData = { username: username, email: email, password: password, enable2FA: twoFA.checked };
     
     const response = await fetch(
-      "http://localhost:3000/api/register",
+      "https://localhost:8443/backend/api/register",
       {
         method: "POST",
         headers: {

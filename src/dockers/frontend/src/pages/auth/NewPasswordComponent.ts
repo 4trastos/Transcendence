@@ -139,7 +139,7 @@ export class NewPasswordPage extends Component {
     }
 
     const response = await fetch(
-      `http://localhost:3000/api/reset-password?token=${this.props.token}&email=${this.props.email}`,
+      `https://localhost:8443/backend/api/reset-password?token=${this.props.token}&email=${this.props.email}`,
       {
         method: "PUT",
         headers: {

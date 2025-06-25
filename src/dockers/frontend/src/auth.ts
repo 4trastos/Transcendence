@@ -6,7 +6,7 @@ export async function fetchUser(): Promise<UserJwt | null> {
   if (currentUser) return currentUser;
   try {
 	const response = await fetch(
-	  "http://localhost:3000/api/validate-token",
+	  "https://localhost:8443/backend/api/validate-token",
 	  {
 		method: "GET",
 		credentials: "include",

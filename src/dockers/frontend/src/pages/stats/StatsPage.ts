@@ -125,7 +125,7 @@ export class StatsPage extends Component {
 
 	private async getStats(): Promise<StatsDto | null> {
 		try {
-		const response = await fetch("http://localhost:3000/api/stats/user/games", {
+		const response = await fetch("https://localhost:8443/backend/api/stats/user/games", {
 				method: "GET",
 				headers: {
 					"Accept": "application/json"

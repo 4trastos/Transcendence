@@ -127,7 +127,7 @@ export default class ChatView extends Component {
       const env = await fetch("/env").then((res) => res.json());
       if (env.env === "production") {
         res = (await fetch(
-          `http://localhost:3030/api/v1/chats/user`,
+          `https://localhost:8443/backend/api/v1/chats/user`,
           {
             method: "GET",
             credentials: "include",
