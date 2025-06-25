@@ -1,35 +1,35 @@
 import crypto from 'crypto';
-import { db } from './database.js';
 
-// Configuración mejorada
+// La configuración específica de JWT (secreto, algoritmo, etc.) ahora reside en fastify.jwt.options
+// en configApp.js. Aquí solo mantenemos configuraciones generales.
 export const config = {
-    secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
-    algorithm: 'HS256',
-    issuer: 'pong-app.com',
-    audience: 'pong-client',
-    accessExpiry: '15m',
-    refreshExpiry: '7d',
-    clockTolerance: 30,
-    minPasswordStrength: 3,
-    maxDevicesPerUser: 5,
-    tempTokenExpiry: '15m',
     tempTokenPurpose: '2fa_verification'
 };
 
-// Genera token de acceso con más información de contexto
-export const generateAccessToken = (user, request = {}) => {
+/**
+ * Genera un token de acceso JWT.
+ * @param {object} user - Objeto de usuario con al menos 'id'.
+ * @param {import('fastify').FastifyInstance} fastifyInstance - La instancia de Fastify.
+ * @param {object} request - Objeto de solicitud de Fastify (para contexto como IP, User-Agent).
+ * @returns {string} El token de acceso JWT.
+ * @throws {Error} Si falta el ID de usuario o la instancia de Fastify/JWT.
+ */
+export const generateAccessToken = (user, fastifyInstance, request = {}) => {
     if (!user?.id) {
         throw new Error('User ID is required to generate token');
+    }
+    if (!fastifyInstance || !fastifyInstance.jwt) {
+        throw new Error('Fastify instance with JWT plugin is required to generate access token');
     }
 
     const payload = {
         id: user.id,
-        jti: crypto.randomBytes(16).toString('hex'),
-        iss: config.issuer,
-        aud: config.audience,
-        iat: Math.floor(Date.now() / 1000),
+        jti: crypto.randomBytes(16).toString('hex'), // JWT ID para revocación
+        iss: fastifyInstance.jwt.options.issuer, // Usar issuer del plugin JWT
+        aud: fastifyInstance.jwt.options.audience, // Usar audience del plugin JWT
+        iat: Math.floor(Date.now() / 1000), // Issued at
         context: {
-            ip: request.ip,
+            ip: request.ip || 'unknown',
             ua: request.headers?.['user-agent']?.substring(0, 100) || 'unknown'
         },
         role: user.role || 'user',
@@ -38,45 +38,59 @@ export const generateAccessToken = (user, request = {}) => {
         two_fa_verified: user.two_fa_verified || false
     };
 
-    return jwt.sign(payload, config.secret, {
-        expiresIn: config.accessExpiry,
-        algorithm: config.algorithm
-    });
+    // Usar fastifyInstance.jwt.sign con las opciones configuradas en el plugin
+    return fastifyInstance.jwt.sign(payload, { expiresIn: fastifyInstance.jwt.options.accessExpiry });
 };
 
-// Genera refresh token con validación mejorada
-export const generateRefreshToken = async (userId, request = {}) => {
+/**
+ * Genera un token de refresco y lo persiste en la base de datos.
+ * @param {number} userId - El ID del usuario.
+ * @param {import('fastify').FastifyInstance} fastifyInstance - La instancia de Fastify (para acceder a opciones JWT).
+ * @param {object} db - La instancia de la base de datos SQLite.
+ * @param {object} request - Objeto de solicitud de Fastify (para contexto como IP, User-Agent).
+ * @returns {Promise<string>} El token de refresco generado.
+ * @throws {Error} Si falta el ID de usuario, la instancia de DB o Fastify/JWT, o se excede el límite de dispositivos.
+ */
+export const generateRefreshToken = async (userId, fastifyInstance, db, request = {}) => {
     if (userId === undefined || userId === null) {
         throw new Error(`Invalid user ID: ${userId}`);
+    }
+    if (!db) {
+        throw new Error('Database instance is required to generate refresh token');
+    }
+    if (!fastifyInstance || !fastifyInstance.jwt) {
+        throw new Error('Fastify instance with JWT plugin is required for refresh token options');
     }
 
     const token = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    // Usar refreshExpiry del plugin JWT
+    const refreshExpiryDays = parseInt(fastifyInstance.jwt.options.refreshExpiry.replace('d', ''));
+    expiresAt.setDate(expiresAt.getDate() + refreshExpiryDays);
     
     const deviceInfo = {
-        ip: request.ip,
+        ip: request.ip || 'unknown',
         userAgent: request.headers?.['user-agent']?.substring(0, 200) || 'unknown',
         createdAt: new Date().toISOString()
     };
 
     try {
-        // Primero verifica que no exceda el límite de dispositivos
+        // Primero verifica que no exceda el límite de dispositivos (usando maxDevicesPerUser de fastify.jwt options)
         const activeTokens = await db.all(
             `SELECT COUNT(*) as count FROM refresh_tokens 
-             WHERE user_id = ? AND expires_at > datetime('now')`,
+             WHERE user_id = ? AND expires_at > datetime('now') AND revoked = 0`,
             [userId]
         );
 
-        if (activeTokens[0]?.count >= config.maxDevicesPerUser) {
-            throw new Error('Maximum device limit reached');
+        if (activeTokens[0]?.count >= (fastifyInstance.jwt.options.maxDevicesPerUser || 5)) {
+            throw new Error(`Maximum device limit reached (${fastifyInstance.jwt.options.maxDevicesPerUser || 5} devices). Please log out from other devices.`);
         }
 
         // Inserta el nuevo token
         await db.run(
             `INSERT INTO refresh_tokens 
-             (token, user_id, expires_at, device_info) 
-             VALUES (?, ?, ?, ?)`,
+             (token, user_id, expires_at, device_info, revoked) 
+             VALUES (?, ?, ?, ?, 0)`,
             [token, userId, expiresAt.toISOString(), JSON.stringify(deviceInfo)]
         );
         
@@ -92,16 +106,26 @@ export const generateRefreshToken = async (userId, request = {}) => {
     }
 };
 
-// Revoca token con verificación
-export const revokeToken = async (jti) => {
+/**
+ * Marca un token JWT (por su JTI) como revocado en la base de datos.
+ * @param {string} jti - El JWT ID del token a revocar.
+ * @param {object} db - La instancia de la base de datos SQLite.
+ * @returns {Promise<void>}
+ * @throws {Error} Si falta el JTI o la instancia de DB.
+ */
+export const revokeToken = async (jti, db) => {
     if (!jti) {
         throw new Error('JTI is required to revoke token');
     }
+    if (!db) {
+        throw new Error('Database instance is required to revoke token');
+    }
 
     try {
+        // Insertamos el JTI en la tabla de tokens revocados
         await db.run(
             `INSERT INTO revoked_tokens (jti, expires_at) 
-             VALUES (?, datetime('now', '+1 hour'))`,
+             VALUES (?, datetime('now', '+1 hour'))`, // Se revoca por 1 hora para tokens de acceso
             [jti]
         );
         console.log(`Token revoked: ${jti}`);
@@ -111,42 +135,60 @@ export const revokeToken = async (jti) => {
     }
 };
 
-// Verificación de token con chequeo de revocación
-export const verifyToken = async (token) => {
+/**
+ * Verifica la validez de un token JWT y chequea si ha sido revocado.
+ * @param {string} token - El token JWT a verificar.
+ * @param {import('fastify').FastifyInstance} fastifyInstance - La instancia de Fastify.
+ * @param {object} db - La instancia de la base de datos SQLite (para la verificación de revocación).
+ * @returns {Promise<object>} Los datos decodificados del token.
+ * @throws {Error} Si el token es inválido, ha expirado, está revocado o faltan dependencias.
+ */
+export const verifyToken = async (token, fastifyInstance, db) => {
     if (!token || typeof token !== 'string') {
         throw new Error('Invalid token format');
     }
+    if (!fastifyInstance || !fastifyInstance.jwt) {
+        throw new Error('Fastify instance with JWT plugin is required to verify token');
+    }
+    if (!db) {
+        throw new Error('Database instance is required to verify token for revocation check');
+    }
 
     try {
-        const decoded = jwt.verify(token, config.secret, {
-            algorithms: [config.algorithm],
-            issuer: config.issuer,
-            audience: config.audience,
-            clockTolerance: config.clockTolerance
+        // Usar fastifyInstance.jwt.verify para decodificar y validar la firma/expiración
+        const decoded = fastifyInstance.jwt.verify(token, {
+            algorithms: [fastifyInstance.jwt.options.algorithm],
+            issuer: fastifyInstance.jwt.options.issuer,
+            audience: fastifyInstance.jwt.options.audience,
+            clockTolerance: fastifyInstance.jwt.options.clockTolerance
         });
 
-        // Verificar si el token está revocado
-        const revoked = await db.get(
-            `SELECT * FROM revoked_tokens 
-             WHERE jti = ? AND expires_at > datetime('now')`,
-            [decoded.jti]
-        );
-        
-        if (revoked) {
-            const error = new Error('Token revoked');
-            error.code = 'TOKEN_REVOKED';
-            error.statusCode = 401;
-            throw error;
+        // Verificar si el token (por su JTI) está revocado
+        if (decoded.jti) {
+            const revoked = await db.get(
+                `SELECT * FROM revoked_tokens 
+                 WHERE jti = ? AND expires_at > datetime('now')`,
+                [decoded.jti]
+            );
+            
+            if (revoked) {
+                const error = new Error('Token revoked');
+                error.code = 'TOKEN_REVOKED';
+                error.statusCode = 401;
+                throw error;
+            }
+        } else {
+            console.warn('JWT without JTI detected, cannot check for explicit revocation.');
         }
 
         return decoded;
     } catch (err) {
-        // Mejorar el manejo de errores
+        // Mejorar el manejo de errores para respuestas HTTP consistentes
         if (err.name === 'TokenExpiredError') {
             err.statusCode = 401;
             err.code = 'TOKEN_EXPIRED';
         } else if (err.name === 'JsonWebTokenError') {
-            err.statusCode = 403;
+            err.statusCode = 403; // Error general de JWT (malformado, firma inválida, etc.)
             err.code = 'INVALID_TOKEN';
         } else {
             err.statusCode = err.statusCode || 403;
@@ -162,19 +204,29 @@ export const verifyToken = async (token) => {
     }
 };
 
-// Verificación de token temporal para 2FA
-export const verifyTempToken = (token) => {
+/**
+ * Verifica la validez de un token temporal JWT para propósitos específicos (ej. 2FA).
+ * @param {string} token - El token temporal a verificar.
+ * @param {import('fastify').FastifyInstance} fastifyInstance - La instancia de Fastify.
+ * @returns {object} Los datos decodificados del token.
+ * @throws {Error} Si el token es inválido, no tiene el propósito correcto o falta el userId.
+ */
+export const verifyTempToken = (token, fastifyInstance) => {
+    if (!fastifyInstance || !fastifyInstance.jwt) {
+        throw new Error('Fastify instance with JWT plugin is required to verify temp token');
+    }
     try {
-        const decoded = jwt.verify(token, config.secret, {
-            algorithms: [config.algorithm],
-            issuer: config.issuer,
-            audience: config.audience,
-            clockTolerance: config.clockTolerance
+        // Usar fastifyInstance.jwt.verify
+        const decoded = fastifyInstance.jwt.verify(token, {
+            algorithms: [fastifyInstance.jwt.options.algorithm],
+            issuer: fastifyInstance.jwt.options.issuer,
+            audience: fastifyInstance.jwt.options.audience,
+            clockTolerance: fastifyInstance.jwt.options.clockTolerance
         });
         
         console.log('Token temporal decodificado:', {
             decoded,
-            expectedPurpose: config.tempTokenPurpose
+            expectedPurpose: config.tempTokenPurpose // Usar la configuración local de auth.js
         });
 
         if (decoded.purpose !== config.tempTokenPurpose) {
@@ -196,48 +248,6 @@ export const verifyTempToken = (token) => {
     }
 };
 
-// Middleware de autenticación mejorado
-export const authMiddleware = async (request, reply) => {
-    try {
-        // Verificar header de autorización
-        const authHeader = request.headers.authorization;
-        if (!authHeader) {
-            const error = new Error('Authorization header missing');
-            error.code = 'MISSING_AUTH_HEADER';
-            throw error;
-        }
-
-        // Extraer token
-        const [scheme, token] = authHeader.split(' ');
-        if (scheme !== 'Bearer' || !token || token.length < 50) {
-            const error = new Error('Invalid authorization format');
-            error.code = 'INVALID_AUTH_FORMAT';
-            throw error;
-        }
-
-        // Verificar token
-        request.user = await verifyToken(token);
-        request.token = token;
-
-    } catch (err) {
-        // Manejo estructurado de errores
-        const statusCode = err.statusCode || 403;
-        const errorResponse = {
-            error: 'Authentication failed',
-            message: err.message,
-            code: err.code || 'AUTH_ERROR',
-            timestamp: new Date().toISOString()
-        };
-
-        // Log detallado
-        console.error('Authentication error:', {
-            ip: request.ip,
-            path: request.url,
-            error: errorResponse
-        });
-
-        reply.status(statusCode).send(errorResponse);
-        throw err; // Opcional: depende del manejo de errores de Fastify
-    }
-};
-
+// NOTA: authMiddleware fue eliminado de este archivo porque su lógica debe estar directamente
+// en el preHandler de cada ruta protegida para integrar correctamente con Fastify.
+// Ejemplo: preHandler: async (request, reply) => { try { await request.jwtVerify(); } catch (err) { ... } }

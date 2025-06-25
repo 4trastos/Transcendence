@@ -18,7 +18,8 @@ services:
     memswap_limit: 512MB  # Límite de swap
     cpu_shares: 512  # Prioridad relativa de CPU
     healthcheck:
-      test: ["CMD", "sqlite3", "/var/lib/sqlite/database.db", "PRAGMA integrity_check"]
+     # test: ["CMD", "sqlite3", "/var/lib/sqlite/database.db", "PRAGMA integrity_check"]
+      test: ["CMD", "sqlite3", "/var/lib/sqlite/sqlite.db", "PRAGMA integrity_check"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -28,9 +29,10 @@ services:
     container_name: app
     working_dir: /usr/src/app
     volumes:
-      - backend_data:/usr/src/app/data
+    #  - backend_data:/usr/src/app/data
       - sqlite_data:/usr/src/app/data
-      - sqlite_data:/var/lib/sqlite
+      - tls_volume:/etc/app/tls
+    #  - sqlite_data:/var/lib/sqlite
     command: npm start
     ports:
       - "3000:3000"
@@ -40,7 +42,7 @@ services:
       sqlite:
         condition: service_healthy
     environment:
-      - VAULT_ADDR=http://security:8200  # Usar nombre de servicio en lugar de IP
+      - VAULT_ADDR=https://security:8200  # Usar nombre de servicio en lugar de IP
       - TZ=Europe/Madrid
       - NODE_OPTIONS=--max-old-space-size=768  # Aumentado a 768MB
       - SQLITE_BUSY_TIMEOUT=15000  # Aumentado a 15 segundos

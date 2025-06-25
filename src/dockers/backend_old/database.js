@@ -7,26 +7,34 @@ const sqlite = sqlite3.verbose();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export let db; 
+const dbPath = path.join(__dirname, 'data', 'sqlite.db');
 
-export function setDbInstance(dbInstance) {
-    db = dbInstance;
-    console.log('Instancia de DB de Fastify decorada para database.js.');
+if (!fs.existsSync(path.dirname(dbPath))) {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 }
+
+export const db = new sqlite.Database('/var/lib/sqlite/sqlite.db', sqlite.OPEN_READWRITE | sqlite.OPEN_CREATE | sqlite.OPEN_FULLMUTEX, (err) => {
+    if (err) {
+        console.error('Error al abrir la base de datos:', err.message);
+    } else {
+        console.log('Conectado a SQLite con modo FULLMUTEX');
+        // Configuración optimizada
+        db.exec('PRAGMA journal_mode = WAL;');
+        db.exec('PRAGMA busy_timeout = 10000;'); // 10 segundos de timeout
+        db.exec('PRAGMA synchronous = NORMAL;');
+        db.exec('PRAGMA wal_autocheckpoint = 100;');
+      }
+    }
+);
 
 export const executeWithRetry = async (fn, maxRetries = 5, delay = 200) => {
     let lastError;
     for (let i = 0; i < maxRetries; i++) {
         try {
-            // Asegurarse de que la instancia de DB está disponible antes de ejecutar la función.
-            if (!db) {
-                throw new Error("Instancia de base de datos no disponible.");
-            }
             return await fn();
         } catch (error) {
             lastError = error;
             if (error.code === 'SQLITE_BUSY') {
-                console.warn(`SQLITE_BUSY: Reintentando conexión/consulta... (${i + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
                 continue;
             }
@@ -38,7 +46,6 @@ export const executeWithRetry = async (fn, maxRetries = 5, delay = 200) => {
 
 export const runQuery = (query, params) => {
     return new Promise((resolve, reject) => {
-        // Asegúrate de usar la instancia global 'db'
         db.run(query, params, function (err) {
             if (err) {
                 console.error('Error en runQuery:', err);
@@ -52,17 +59,14 @@ export const runQuery = (query, params) => {
 
 // Implementación corregida de withTransaction
 export async function withTransaction(operations) {
-    // ! CUIDADO: Estas funciones de transacción (beginTransaction, commit, rollback)
-    // ! no están decoradas con executeWithRetry. Asegúrate de que las llamas
-    // ! usando la instancia global 'db'.
-    await beginTransaction();
+    await this.beginTransaction();
     try {
         const result = await operations();
-        await commit();
+        await this.commit();
         return result;
     } catch (error) {
         try {
-            await rollback();
+            await this.rollback();
         } catch (rollbackError) {
             console.error('Rollback failed:', rollbackError);
         }
@@ -92,7 +96,7 @@ export const rollback = () => new Promise((resolve, reject) => {
     });
 });
 
-// Wrapper para run, get, all, exec que usan executeWithRetry
+
 export const run = (query, params) => executeWithRetry(() => runQuery(query, params));
 
 export const get = (query, params) => executeWithRetry(() => new Promise((resolve, reject) => {

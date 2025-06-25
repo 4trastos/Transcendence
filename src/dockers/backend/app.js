@@ -1,46 +1,73 @@
 import Prometheus from 'prom-client';
 import vaultLib from 'node-vault';
-import {userRoutes} from './routes/userRoutes.js';
-import {gameRoutes} from './routes/gameRoutes.js';
-import {authRoutes} from './routes/authRoutes.js';
-import {profileRoutes} from './routes/profileRoutes.js';
+// Las importaciones de rutas de aquí no necesitan ser utilizadas directamente para app.register en este archivo,
+// ya que configApp.js las registra. Se mantienen por si acaso, pero no se usan directamente en app.register aquí.
+import { userRoutes } from './routes/userRoutes.js';
+import { gameRoutes } from './routes/gameRoutes.js';
+import { authRoutes } from './routes/authRoutes.js';
+import { profileRoutes } from './routes/profileRoutes.js';
 import configApp from './configApp.js';
 import dotenv from 'dotenv';
 import { statsRoutes } from './routes/statsRoutes.js';
+import fs from 'fs';
+import { setDbInstance } from './database.js';
 
 dotenv.config();
+
 async function main() {
+    // --- Carga del certificado CA de Vault ---
+    const VAULT_CA_PATH = '/etc/app/tls/ca.crt'; 
+    let vaultCaCert = null;
+
+    try {
+        if (fs.existsSync(VAULT_CA_PATH)) {
+            vaultCaCert = fs.readFileSync(VAULT_CA_PATH);
+            console.log("Certificado CA de Vault cargado exitosamente para la conexión.");
+        } else {
+            console.warn(`Advertencia: Certificado CA de Vault no encontrado en ${VAULT_CA_PATH}. La conexión a Vault podría fallar debido a 'unknown certificate authority'.`);
+        }
+    } catch (readError) {
+        console.error("Error al leer el certificado CA de Vault:", readError);
+    }
+
+    // Llama a configApp para configurar e inicializar la aplicación Fastify y sus rutas
     const app = await configApp();
 
+    // Establece la instancia de la base de datos en el módulo database.js si es necesario
+    setDbInstance(app.db); 
+
+    // Inicializa el cliente de Node.js para Vault.
     const vault = vaultLib({
         apiVersion: "v1",
-        endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
+        endpoint: process.env.VAULT_ADDR || "https://security:8200", 
         token: process.env.VAULT_TOKEN || "root",
+        tls: {
+            ca: vaultCaCert,
+            rejectUnauthorized: vaultCaCert !== null // Mantener esto, la solución es el certificado o la env VAULT_ADDR
+        }
     });
-    // Rutas
 
-    app.register(authRoutes, { prefix: '/api' });
-    app.register(userRoutes, { prefix: '/api' });
-    app.register(gameRoutes, { prefix: '/api' });
-    app.register(statsRoutes, { prefix: '/api' });
-    app.register(profileRoutes, { prefix: '/api' });
+    // ! IMPORTANTE: LAS RUTAS YA SE REGISTRAN EN configApp.js. 
+    // ! ELIMINADAS LAS LÍNEAS DUPLICADAS DE REGISTRO DE RUTAS QUE ESTABAN AQUÍ.
 
+    // Endpoint para métricas de Prometheus.
     app.get('/metrics', async (req, res) => {
         res.header('Content-Type', Prometheus.register.contentType);
         res.send(await Prometheus.register.metrics());
     });
 
-    // Health check endpoint
+    // Endpoint de health check para verificar el estado de la aplicación, DB y Vault.
     app.get('/health', async (request, reply) => {
         try {
-            const dbStatus = app.db.open ? 'connected' : 'disconnected';
+            // Verifica el estado de la conexión a la base de datos (SQLite).
+            const dbStatus = app.db && app.db.open ? 'connected' : 'disconnected';
             let vaultStatus = 'disconnected';
             
             try {
-                await vault.health();
+                await vault.health(); 
                 vaultStatus = 'connected';
             } catch (vaultError) {
-                console.error('Error checking Vault health:', vaultError);
+                console.error('Error checking Vault health:', vaultError.message);
             }
 
             reply.status(200).send({ 
@@ -50,6 +77,7 @@ async function main() {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
+            console.error('Error en el health check de la aplicación:', error);
             reply.status(500).send({ 
                 status: 'ERROR',
                 error: error.message 
@@ -57,7 +85,7 @@ async function main() {
         }
     });
 
-    // Endpoint de secretos de Vault
+    // Endpoint para obtener secretos de Vault.
     app.get("/api/secret", async (request, reply) => {
         try {
             const secret = await vault.read("secret/myapp");
@@ -71,7 +99,7 @@ async function main() {
         }
     });
 
-    // Manejador de errores centralizado
+    // Manejador de errores centralizado para la aplicación Fastify.
     app.setErrorHandler((error, request, reply) => {
         console.error('Error global:', {
             error: error.message,
@@ -90,30 +118,32 @@ async function main() {
 
     const port = process.env.PORT || 3000;
 
-    // Iniciar servidor
+    // Inicia el servidor Fastify.
     app.listen({ port, host: '0.0.0.0' }, (err) => {
         if (err) {
-            app.db.close();
+            if (app.db && typeof app.db.close === 'function') {
+                app.db.close();
+            }
             app.log.error(err);
             process.exit(1);
         }
         console.log(`Servidor escuchando en http://localhost:${port}`);
         console.log('Configuración:');
         console.log('- Entorno:', process.env.NODE_ENV || 'development');
-        console.log('- Vault:', process.env.VAULT_ADDR || 'http://0.0.0.0:8200');
+        console.log('- Vault:', process.env.VAULT_ADDR || 'https://security:8200'); 
     });
 
-    // Manejo de cierre limpio
+    // Manejo de la señal SIGINT (Ctrl+C) para un cierre limpio
     process.on('SIGINT', () => {
-        app.db.close();
-        console.log('Conexión a SQLite cerrada');
+        if (app.db && typeof app.db.close === 'function') {
+            app.db.close();
+            console.log('Conexión a SQLite cerrada');
+        }
         app.close(() => {
-            process.exit();
+            console.log('Servidor Fastify cerrado');
+            process.exit(0);
         });
-        process.exit();
-
     });
- 
 }
 
-main();
+main(); // Llama a la función principal para iniciar la aplicación

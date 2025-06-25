@@ -1,292 +1,249 @@
-import { pipeline } from 'node:stream/promises';
-import fs from "fs";
-import path from "path";
-import sqlite3Module from "sqlite3";
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Este archivo debe acceder a la base de datos a través de fastify.db,
+// que es proporcionado por el sqlitePlugin.
 
-const sqlite3 = sqlite3Module.verbose();
+// Creamos el router de Fastify (usando el plugin system)
+export async function profileRoutes(fastify, options) { // Asegúrate de que el nombre de la función exportada sea profileRoutes
+    // Accede a la instancia de la base de datos a través de fastify.db
+    const db = fastify.db; 
 
+    // Helper para enviar errores
+    const sendError = (reply, status, message, details = {}) => {
+        console.error(`ProfileRoutes Error [${status}]:`, message, details);
+        return reply.status(status).send({ status: 'error', message: message, ...details });
+    };
 
-export async function profileRoutes(fastify, options) {
-
-    const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db')
-    const db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-            console.error('Error al conectar a la base de datos:', err.message)
-        } else {
-            console.log('Conectado a la base de datos SQLite')
-        }
-    })
-
-    /**
-     * Ejecutar el script de inicialización de la base de datos desde tools/init.sql
-     */
-    const initSQL = fs.readFileSync(path.join(__dirname, '..', 'tools', 'init.sql'), 'utf-8');
-    db.exec(initSQL, (err) => {
-        if (err) {
-            console.error('Error al inicializar la base de datos:', err.message)
-        } else {
-            console.log('Base de datos inicializada correctamente')
-        }
-    })
-
-    fastify.get('/profile', {
+    // GET /profile/:userId - Obtener el perfil de un usuario (Ruta protegida)
+    fastify.get('/profile/:userId', {
         schema: {
-            summary: 'Obtener los datos de perfil de un usuario',
-            description: 'Devuelve todos los datos neccesarios para montar el perfil del usuario en el front',
+            summary: 'Obtener el perfil de un usuario',
+            description: 'Devuelve la información de perfil de un usuario por su ID.',
+            params: {
+                type: 'object',
+                required: ['userId'],
+                properties: {
+                    userId: { type: 'integer', description: 'ID del usuario' }
+                }
+            },
             response: {
                 200: {
-                    description: 'Datos del usuario',
+                    description: 'Perfil del usuario',
                     type: 'object',
                     properties: {
-                        status: { type: 'string', example: 'ok' },
-                        data: {
-                            type: 'object',
-                            properties: {
-                                id: { type: 'integer' },
-                                username: { type: 'string' },
-                                email: { type: 'string' },
-                                full_name: { type: 'string' },
-                                last_name: { type: 'string' },
-                                favourite_color: { type: 'string' },
-                                pfp: { type: 'string' },
-                                country: { type: 'string' },
-                                bio: { type: 'string' },
-                                contacts: {
-                                  type: 'array',
-                                  items: { type: 'string' },
-                                }
-                            }
-                        }
+                        id: { type: 'integer' },
+                        username: { type: 'string' },
+                        email: { type: 'string' },
+                        full_name: { type: 'string', nullable: true },
+                        last_name: { type: 'string', nullable: true },
+                        favourite_color: { type: 'string', nullable: true },
+                        bio: { type: 'string', nullable: true },
+                        country: { type: 'string', nullable: true },
+                        avatar_url: { type: 'string', nullable: true },
+                        is_verified: { type: 'boolean' },
+                        two_factor_enabled: { type: 'boolean' },
+                        created_at: { type: 'string', format: 'date-time' },
+                        updated_at: { type: 'string', format: 'date-time', nullable: true }
                     }
                 },
-                400: {
-                    description: 'ID inválido',
+                404: {
+                    description: 'Usuario no encontrado',
                     type: 'object',
-                    properties: {
-                        status: { type: 'string' },
-                        message: { type: 'string' }
-                    }
+                    properties: { error: { type: 'string' } }
                 },
                 500: {
-                    description: 'Error del servidor',
+                    description: 'Error interno del servidor',
                     type: 'object',
-                    properties: {
-                        status: { type: 'string' },
-                        message: { type: 'string' }
-                    }
+                    properties: { error: { type: 'string' } }
                 }
+            },
+            tags: ['Profile'],
+            security: [
+                {
+                    bearerAuth: [],
+                },
+            ],
+        },
+        preHandler: async (request, reply) => { // ¡Correcto! Usar preHandler directamente con request.jwtVerify()
+            try {
+                await request.jwtVerify();
+            } catch (err) {
+                reply.status(401).send({ status: 'error', message: 'No autorizado o token inválido' });
+                throw err;
             }
         }
-    },async (request, reply) => {
-        const decoded = await request.jwtVerify();
-        const id = parseInt(decoded.id);
+    }, async (request, reply) => {
+        const { userId } = request.params;
+        try {
+            const user = await db.get(
+                `SELECT id, username, email, full_name, last_name, favourite_color, bio, country, avatar_url, is_verified, two_factor_enabled, created_at, updated_at
+                 FROM users WHERE id = ?`,
+                [userId]
+            );
 
-        if (isNaN(id)){
-            return reply.code(400).send({status: 'error', message: 'ID invalido'})
+            if (!user) {
+                return sendError(reply, 404, 'Usuario no encontrado');
+            }
+            reply.send(user);
+        } catch (err) {
+            console.error(`Error al obtener perfil del usuario ${userId}:`, err.message);
+            sendError(reply, 500, 'Error interno del servidor al obtener perfil', { details: err.message });
         }
+    });
 
-        const query = `
-            SELECT 
-              u.*, 
-              ur.related_user_id AS friend_id, 
-              u2.username AS friend_username, 
-              u2.id AS friend_user_id
-            FROM users u
-            LEFT JOIN user_relationships ur 
-              ON u.id = ur.user_id AND ur.relationship_type = 'friend'
-            LEFT JOIN users u2 
-              ON ur.related_user_id = u2.id
-            WHERE u.id = ?
-        `;
-
-        return new Promise((resolve, reject) => {
-            db.all(query, [id], (err, rows) => {
-                if (err) {
-                    console.error('Error al consultar la base de datos:', err.message)
-                    reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
-                    return reject(err)
-                }
-                
-                const user = rows[0]
-
-                const userData = {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    full_name: user.full_name,
-                    last_name: user.last_name,
-                    favourite_color: user.favourite_color,
-                    pfp: user.avatar_url,
-                    country: user.country,
-                    bio: user.bio,
-                    contacts: []
-                }
-                for (const row of rows) {
-                  if (row.contact_id)
-                    userData.contacts.push(row.contact_id)
-                }
-
-                reply.code(200).send({status: 'ok', data: userData})
-                resolve()
-            })
-        })
-    })
-
-    fastify.put('/profile', {
+    // PUT /profile/:userId - Actualizar el perfil de un usuario (Ruta protegida)
+    fastify.put('/profile/:userId', {
         schema: {
-          summary: 'Actualizar el perfil de un usuario',
-          description: 'Actualiza los datos del perfil del usuario',
-          body: {
-            type: 'object',
-            properties: {
-              username: { type: 'string' },
-              email: { type: 'string'},
-              full_name: { type: 'string' },
-              last_name: { type: 'string' },
-              favourite_color: { type: 'string' },
-              country: { type: 'string' },
-              bio: { type: 'string' },
-              avatar_url: { type: 'string' }
+            summary: 'Actualizar la información de perfil de un usuario',
+            description: 'Permite actualizar campos específicos del perfil de un usuario por su ID.',
+            params: {
+                type: 'object',
+                required: ['userId'],
+                properties: {
+                    userId: { type: 'integer', description: 'ID del usuario a actualizar' }
+                }
             },
-            additionalProperties: false
-          },
-          response: {
-            200: {
-              description: 'Usuario actualizado',
-              type: 'object',
-              properties: {
-                status: { type: 'string' },
-                message: { type: 'string' }
-              }
+            body: {
+                type: 'object',
+                properties: {
+                    username: { type: 'string', minLength: 3, maxLength: 30, nullable: true },
+                    email: { type: 'string', format: 'email', nullable: true },
+                    full_name: { type: 'string', nullable: true },
+                    last_name: { type: 'string', nullable: true },
+                    favourite_color: { type: 'string', nullable: true },
+                    bio: { type: 'string', nullable: true },
+                    country: { type: 'string', nullable: true },
+                    avatar_url: { type: 'string', nullable: true },
+                },
+                minProperties: 1 
             },
-            400: {
-              description: 'Error de validación',
-              type: 'object',
-              properties: {
-                status: { type: 'string' },
-                message: { type: 'string' }
-              }
+            response: {
+                200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } } },
+                400: { type: 'object', properties: { error: { type: 'string' }, details: { type: 'string' } } },
+                404: { type: 'object', properties: { error: { type: 'string' } } },
+                409: { type: 'object', properties: { error: { type: 'string' }, solution: { type: 'string' } } },
+                500: { type: 'object', properties: { error: { type: 'string' }, details: { type: 'string' } } }
             },
-            500: {
-              description: 'Error del servidor',
-              type: 'object',
-              properties: {
-                status: { type: 'string' },
-                message: { type: 'string' }
-              }
+            tags: ['Profile'],
+            security: [
+                {
+                    bearerAuth: [],
+                },
+            ],
+        },
+        preHandler: async (request, reply) => { // ¡Correcto! Usar preHandler directamente con request.jwtVerify()
+            try {
+                await request.jwtVerify();
+                // Opcional: Asegurarse de que el usuario solo puede actualizar su propio perfil
+                if (request.user.id !== parseInt(request.params.userId)) {
+                    reply.status(403).send({ status: 'error', message: 'No tiene permiso para actualizar este perfil.' });
+                    throw new Error('Forbidden');
+                }
+            } catch (err) {
+                reply.status(401).send({ status: 'error', message: 'No autorizado o token inválido' });
+                throw err;
             }
-          }
         }
-      }, async (request, reply) => {
-        const decoded = await request.jwtVerify();
+    }, async (request, reply) => {
+        const { userId } = request.params;
+        const updates = request.body;
 
-        const userId = parseInt(decoded.id)
-      
-        if (isNaN(userId)) {
-          return reply.code(400).send({ status: 'error', message: 'ID inválido' })
+        if (Object.keys(updates).length === 0) {
+            return sendError(reply, 400, 'No se proporcionaron datos para actualizar.');
         }
-      
-        const fields = request.body
-      
-        if (Object.keys(fields).length === 0) {
-          return reply.code(400).send({ status: 'error', message: 'No se enviaron campos para actualizar' })
-        }
-      
-        const allowedFields = [
-          'username', 'email', 'full_name', 'last_name',
-          'favourite_color', 'country', 'bio', 'avatar_url'
-        ];
-      
-        const updates = []
-        const values = []
-      
-        for (const key of allowedFields) {
-          if (fields[key] !== undefined) {
-            updates.push(`${key} = ?`)
-            values.push(fields[key])
-          }
-        }
-      
-        if (updates.length === 0) {
-          return reply.code(400).send({ status: 'error', message: 'Campos no válidos para actualizar' })
-        }
-      
-        updates.push(`updated_at = CURRENT_TIMESTAMP`)
-      
-        const query = `
-          UPDATE users
-          SET ${updates.join(', ')}
-          WHERE id = ?
-        `
-      
-        values.push(userId)
-      
-        return new Promise((resolve, reject) => {
-          db.run(query, values, function (err) {
-            if (err) {
-              console.error('Error al actualizar usuario:', err.message)
-              reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
-              return reject(err)
+
+        try {
+            const existingUser = await db.get('SELECT id FROM users WHERE id = ?', [userId]);
+            if (!existingUser) {
+                return sendError(reply, 404, 'Usuario no encontrado para actualizar.');
             }
-      
-            if (this.changes === 0) {
-              reply.code(404).send({ status: 'error', message: 'Usuario no encontrado' })
-              return resolve()
+
+            const setClauses = [];
+            const params = [];
+            const restrictedFields = ['password', 'two_factor_secret', 'is_verified', 'two_factor_enabled', 'created_at'];
+
+            for (const key in updates) {
+                if (updates[key] !== undefined && !restrictedFields.includes(key)) {
+                    setClauses.push(`${key} = ?`);
+                    params.push(updates[key]);
+                } else if (restrictedFields.includes(key)) {
+                    console.warn(`Intento de actualizar campo restringido '${key}'. Ignorando.`);
+                }
             }
-      
-            reply.code(200).send({ status: 'ok', message: 'Usuario actualizado correctamente' })
-            resolve();
-          })
-        });
-      })      
 
+            if (setClauses.length === 0) {
+                return sendError(reply, 400, 'No se proporcionaron campos válidos para actualizar.');
+            }
 
+            params.push(new Date().toISOString()); 
+            params.push(userId); 
 
-    fastify.post('/upload-avatar', async (request, reply) => {
-      const data = await request.file();
-      const decoded = await request.jwtVerify();
-      
-      const userId = parseInt(decoded.id)
-      
-      // Aquí procesas la imagen subida
-      const filename = data.filename;
-      const uploadDir = path.join(__dirname,'..', 'uploads');
+            const query = `UPDATE users SET ${setClauses.join(', ')}, updated_at = ? WHERE id = ?`;
+            const result = await db.run(query, params);
 
-      await fs.promises.mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, filename);
-        const query = `
-          UPDATE users
-          SET avatar_url = ?
-          WHERE id = ?
-        `
+            if (result.changes === 0) {
+                return sendError(reply, 500, 'Fallo al actualizar el perfil (ningún cambio realizado).');
+            }
 
-      // Ejemplo de guardar el archivo en disco (no recomendado para producción):
-      if (data.file) {
-        await pipeline(data.file, fs.createWriteStream(filePath))
-          new Promise((resolve, reject) => {//Puede no ser reactiva
-            db.run(query, [`http://localhost:3000/uploads/${filename}`,userId], function (err) {
-              if (err) {
-                console.error('Error al actualizar usuario:', err.message)
-                reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
-                return reject(err)
-              }
-        
-              if (this.changes === 0) {
-                reply.code(404).send({ status: 'error', message: 'Usuario no encontrado' })
-                return resolve()
-              }
-        
-              reply.code(200).send({ status: 'ok', message: 'Usuario actualizado correctamente' })
-              resolve();
-            })
-          });
-          reply.send({ message: 'Imagen subida con éxito', url: "/uploads/" + filename });
-      } else {
-          reply.status(400).send({ message: 'No se subió ningún archivo' });
-      }
+            reply.send({ success: true, message: 'Perfil actualizado correctamente.' });
+
+        } catch (err) {
+            console.error(`Error al actualizar perfil del usuario ${userId}:`, err.message);
+            if (err.message && err.message.includes('SQLITE_CONSTRAINT_UNIQUE')) {
+                return sendError(reply, 409, 'El email o nombre de usuario ya está en uso.', { solution: 'Por favor, elija un email o nombre de usuario diferente.' });
+            }
+            sendError(reply, 500, 'Error al actualizar perfil', { details: err.message });
+        }
+    });
+
+    // DELETE /profile/:userId - Eliminar un perfil de usuario (ej. cuenta) (Ruta protegida)
+    fastify.delete('/profile/:userId', {
+        schema: {
+            summary: 'Eliminar un perfil de usuario',
+            description: 'Elimina completamente la cuenta de un usuario por su ID.',
+            params: {
+                type: 'object',
+                required: ['userId'],
+                properties: {
+                    userId: { type: 'integer', description: 'ID del usuario a eliminar' }
+                }
+            },
+            response: {
+                200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' } } },
+                404: { type: 'object', properties: { error: { type: 'string' } } },
+                500: { type: 'object', properties: { error: { type: 'string' } } },
+            },
+            tags: ['Profile'],
+            security: [
+                {
+                    bearerAuth: [],
+                },
+            ],
+        },
+        preHandler: async (request, reply) => { // ¡Correcto! Usar preHandler directamente con request.jwtVerify()
+            try {
+                await request.jwtVerify();
+                // Opcional: Verificar que request.user.id coincide con userId para prevenir eliminación de otras cuentas
+                if (request.user.id !== parseInt(request.params.userId)) {
+                    reply.status(403).send({ status: 'error', message: 'No tiene permiso para eliminar esta cuenta.' });
+                    throw new Error('Forbidden');
+                }
+            } catch (err) {
+                reply.status(401).send({ status: 'error', message: 'No autorizado o token inválido' });
+                throw err;
+            }
+        }
+    }, async (request, reply) => {
+        const { userId } = request.params;
+        try {
+            const result = await db.run('DELETE FROM users WHERE id = ?', [userId]);
+            
+            if (result.changes === 0) {
+                return sendError(reply, 404, 'Perfil de usuario no encontrado para eliminar.');
+            }
+
+            reply.send({ success: true, message: 'Perfil de usuario eliminado correctamente.' });
+        } catch (err) { // CORREGIDO: Eliminado '=>' aquí
+            console.error(`Error al eliminar perfil del usuario ${userId}:`, err.message);
+            sendError(reply, 500, 'Error al eliminar perfil de usuario', { details: err.message });
+        }
     });
 }

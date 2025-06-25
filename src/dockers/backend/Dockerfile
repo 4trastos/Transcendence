@@ -1,20 +1,26 @@
-FROM node:18-bullseye
+    FROM node:18-bullseye
 
-WORKDIR /usr/src/app
+    WORKDIR /usr/src/app
 
-RUN apt-get update && \
-    apt-get install -y tzdata && \
-    rm -rf /var/lib/apt/lists/*
+    RUN apt-get update && \
+        apt-get install -y tzdata && \
+        rm -rf /var/lib/apt/lists/*
 
-ENV TZ=Europe/Madrid
+    ENV TZ=Europe/Madrid
 
-COPY package*.json ./
+    COPY package*.json ./
 
-RUN npm install
+    RUN npm install
 
-COPY . .
+    COPY . . 
 
-RUN mkdir -p /usr/src/app/data
+    RUN ls -R /usr/src/app
+    
+    RUN mkdir -p /usr/src/app/data && \
+        chown -R node:node /usr/src/app/data
 
-EXPOSE 3000
-CMD ["node", "app.js"]
+    USER node
+
+    EXPOSE 3000
+    CMD ["node", "app.js"]
+    

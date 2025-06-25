@@ -1,6 +1,19 @@
--- init.sql en tools/
+-- sqlite/tools/init.sql
 
--- DROP TABLE IF EXISTS two_fa_tokens;
+-- Eliminar tablas existentes para asegurar una inicialización limpia en cada arranque si el volumen está vacío
+-- Nota: En producción, querrías una estrategia de migración, no DROP IF EXISTS.
+DROP TABLE IF EXISTS two_fa_tokens;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS revoked_tokens;
+DROP TABLE IF EXISTS security_logs;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS user_relationships;
+DROP TABLE IF EXISTS games;
+DROP TABLE IF EXISTS user_profiles;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS items;
+
 
 -- Tabla de usuarios principal
 CREATE TABLE IF NOT EXISTS users (
@@ -8,40 +21,38 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP,
-    is_active BOOLEAN DEFAULT 1,
-    is_verified BOOLEAN DEFAULT 0,
-    verification_token TEXT,
-    avatar_url TEXT DEFAULT '/default-avatar.png',
-    two_factor_secret TEXT,
-    two_factor_enabled BOOLEAN DEFAULT 0
-);
-
--- Tabla de perfiles de usuario
-CREATE TABLE IF NOT EXISTS user_profiles (
-    user_id INTEGER PRIMARY KEY,
     full_name TEXT,
+    last_name TEXT,
+    favourite_color TEXT,
     bio TEXT,
     country TEXT,
-    website TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_verified BOOLEAN DEFAULT 0,
+    verification_token TEXT,
+    avatar_url TEXT DEFAULT '/images/pfp.jpg',
+    two_factor_secret TEXT,
+    two_factor_enabled BOOLEAN DEFAULT 0
 );
 
 -- Tabla de juegos
 CREATE TABLE IF NOT EXISTS games (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player1_id INTEGER NOT NULL,
-    player2_id INTEGER NOT NULL,
-    winner_id INTEGER,
-    score_player1 INTEGER DEFAULT 0,
-    score_player2 INTEGER DEFAULT 0,
+    winner_id TEXT NOT NULL, -- Referencia al username, no al ID si la FOREIGN KEY es a username
+    loser_id TEXT NOT NULL,  -- Referencia al username
+    tournament BOOLEAN,
+    score_winner INTEGER DEFAULT 0,
+    score_loser INTEGER DEFAULT 0,
+    exp_winner INTEGER DEFAULT 0,
+    exp_loser INTEGER DEFAULT 0,
     game_duration INTEGER, -- en segundos
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (player1_id) REFERENCES users(id),
-    FOREIGN KEY (player2_id) REFERENCES users(id),
-    FOREIGN KEY (winner_id) REFERENCES users(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT NULL,
+    -- Las FOREIGN KEY deberían ser a users(id) si id es el PK y el join es a ID
+    -- Si winner_id y loser_id son los usernames, entonces no pueden ser FK a users(id)
+    -- Asumo que winner_id/loser_id se refieren al 'username' de la tabla 'users'
+    FOREIGN KEY (winner_id) REFERENCES users(username), -- Esto es inusual, normalmente es a ID.
+    FOREIGN KEY (loser_id) REFERENCES users(username)   -- Si cambias users.username a UNIQUE, funciona.
 );
 
 -- Tabla de relaciones entre usuarios (amistades, bloqueos, etc.)
@@ -126,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti ON revoked_tokens(jti);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_games_players ON games(player1_id, player2_id);
+CREATE INDEX IF NOT EXISTS idx_games_players ON games(winner_id, loser_id);
 CREATE INDEX IF NOT EXISTS idx_user_relationships ON user_relationships(user_id, related_user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
