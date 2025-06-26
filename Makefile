@@ -1,5 +1,5 @@
 all: grant_permissions restart_if_needed setup
-	@docker compose -f ./src/docker-compose.yml up -d --build
+	@docker compose -f ./src/docker-compose.yml up ${c} -d --build
 	@clear
 	@./script/loading.sh 
 	@clear
