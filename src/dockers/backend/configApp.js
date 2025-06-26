@@ -49,7 +49,6 @@ export default async function configApp() {
     // Este plugin debería manejar la conexión y decorar 'app' con la instancia de la base de datos.
     app.register(sqlitePlugin, {
         dbFile: 'sqlite.db',
-        initScript: 'init.sql' 
     });
 
     // Configuración para servir archivos estáticos (por ejemplo, avatares subidos)

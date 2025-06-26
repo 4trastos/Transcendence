@@ -7,12 +7,9 @@ const sqlite3 = sqlite3Module.verbose();
 
 export class SQLiteConnection {
   db;
-  nameScript;
   
-  constructor(name, nameScript) {
-    this.nameScript = nameScript;
-    // Usar ruta absoluta consistente con el volumen compartido
-    const dbPath = path.join("/var/lib/sqlite", name); 
+  constructor(name) {
+    const dbPath = path.join("/var/lib/sqlite/", name); 
 
     const MAX_RETRIES = 10;
     const RETRY_DELAY_MS = 1000;
@@ -42,30 +39,6 @@ export class SQLiteConnection {
     };
     
     connectDb();
-  }
-
-  async executeScript() {
-    try {
-      const initSQL = fs.readFileSync(
-        path.join("/var/lib/sqlite", this.nameScript),
-        "utf-8"
-      );
-      
-      await new Promise((resolve, reject) => {
-        this.db.exec(initSQL, (err) => {
-          if (err) {
-            console.error("Error en executeScript:", err);
-            reject(err);
-          } else {
-            console.log("Script SQL ejecutado correctamente");
-            resolve();
-          }
-        });
-      });
-    } catch (err) {
-      console.error("Error al leer/ejecutar script:", err);
-      throw err;
-    }
   }
 
   close() {
