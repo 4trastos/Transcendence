@@ -21,8 +21,8 @@ export async function authRoutes(fastify, options) {
       return reply.status(status).send(response);
     };
 
-  const dbPath = path.join(__dirname, "..", "data", "sqlite.db");
-  const db = new sqlite3.Database(dbPath, (err) => {
+    const dbPath = '/var/lib/sqlite/sqlite.db';
+    const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
       console.error("Error al conectar a la base de datos:", err.message);
     } else {
@@ -77,12 +77,14 @@ export async function authRoutes(fastify, options) {
             type: "object",
             properties: {
               error: { type: "string" },
+              message: { type: "string" },
             },
           },
           409: {
             type: "object",
             properties: {
               error: { type: "string" },
+              message: { type: "string" },
               solution: { type: "string" },
             },
           },
@@ -90,6 +92,7 @@ export async function authRoutes(fastify, options) {
             type: "object",
             properties: {
               error: { type: "string" },
+              message: { type: "string" },
               details: { type: "string", nullable: true },
             },
           },
@@ -301,6 +304,7 @@ export async function authRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               error: { type: "string" },
+              message: { type: "string" },
               details: { type: "string" },
             },
           },
@@ -761,6 +765,7 @@ export async function authRoutes(fastify, options) {
             type: "object",
             properties: {
               valid: { type: "boolean", example: false },
+              message: { type: "string" },
               error: { type: "string", example: "Token no proporcionado" },
             },
           },
@@ -824,6 +829,7 @@ export async function authRoutes(fastify, options) {
             description: "Código 2FA inválido",
             type: "object",
             properties: {
+              message: { type: "string" },
               error: {
                 type: "string",
                 example: "Código 2FA inválido - debe ser 6 dígitos",
@@ -978,6 +984,7 @@ fastify.post("/send-reset-email-password", {
         type: "object",
         properties: {
           error: { type: "string", example: "Error al enviar correo" },
+          message: { type: "string" },
           details: { type: "string", example: "Email incorrecto" },
         },
       },
@@ -1069,6 +1076,7 @@ fastify.post("/send-reset-email-password", {
           description: "Error por token inválido, email incorrecto o datos faltantes",
           type: "object",
           properties: {
+            message: { type: "string" },
             error: {
               type: "string",
               example: "Token inválido o email incorrecto",
@@ -1189,6 +1197,7 @@ fastify.post("/send-reset-email-password", {
             description: "Código 2FA inválido",
             type: "object",
             properties: {
+              message: { type: "string" },
               error: {
                 type: "string",
                 example: "Código 2FA inválido - debe ser 6 dígitos",
@@ -1562,6 +1571,7 @@ fastify.post("/send-reset-email-password", {
           400: {
             type: "object",
             properties: {
+              message: { type: "string" },
               error: { type: "string" },
             },
           },
@@ -1638,6 +1648,7 @@ fastify.post("/send-reset-email-password", {
           404: {
             type: "object",
             properties: {
+              message: { type: "string" },
               error: { type: "string" },
             },
           },

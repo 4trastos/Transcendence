@@ -12,7 +12,7 @@ import sqlite3 from 'sqlite3';
 
 
 async function configDB(): Promise<Database> {
-	const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
+	const dbPath = '/var/lib/sqlite/sqlite.db';
 
 	const db = await open({
 		filename: dbPath,

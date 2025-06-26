@@ -28,7 +28,7 @@ export default async function configApp() {
 			},
 			servers: [
 			  {
-				url: 'http://localhost:3030',
+				url: 'http://localhost:3050',
 				description: 'Development server'
 			  }
 			],

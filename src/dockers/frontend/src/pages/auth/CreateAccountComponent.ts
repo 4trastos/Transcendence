@@ -199,6 +199,16 @@ export class CreateAccountComponent extends Component {
       window.location.reload();
     }, 1000);
 };
+
+
+public showInputError(input:any) {
+  input.classList.remove("input-error");
+  void input.offsetWidth;
+  input.classList.add("input-error");
+  setTimeout(() => {
+    input.classList.remove("input-error");
+  }, 3000);
+}
   //TODO: HAY UN ERROR EN EL PATH, SE ENVIA EL FORMULARIO POR URL
   private async handleCreateAcc(event: Event): Promise<void> {
     event.preventDefault(); // Prevenir el envío del formulario por defecto
@@ -214,29 +224,36 @@ export class CreateAccountComponent extends Component {
     const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
     const registerData = { username: username, email: email, password: password, enable2FA: twoFA.checked };
     
-    const response = await fetch(
-      "https://localhost:8443/backend/api/register",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(registerData),
-        credentials: "include", // Incluir cookies en la solicitud
+    try {
+      const response = await fetch(
+        "https://localhost:8443/backend/api/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(registerData),
+          credentials: "include", // Incluir cookies en la solicitud
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.qrCode) {
+          console.log(data.qrCode);
+          qrImage.src = data.qrCode;
+          componentQrTFA.classList.toggle("hidden");
+          containerRegister.classList.toggle("hidden");
+          //SI esta habilitado el QRCode debe mostar la imagen
+        } else if (data.success) {
+          window.location.reload();
+          ToastService.show("Registro exitoso!", "success");
+        }
+      } else {
+        ToastService.show("Error al enviar el formulario", "success");
       }
-    );
-    if (response.ok) {
-      const data = await response.json();
-      if (data.qrCode) {
-        console.log(data.qrCode);
-        qrImage.src = data.qrCode;
-        componentQrTFA.classList.toggle("hidden");
-        containerRegister.classList.toggle("hidden");
-        //SI esta habilitado el QRCode debe mostar la imagen
-      }
-      console.log("Registro exitoso:", data);
-      //Todo: Redirigir a la página de inicio o chat
-      //window.location.reload();
+    } catch (err) {
+      ToastService.show("Error al enviar el formulario", "success");
     }
+
   }
 }

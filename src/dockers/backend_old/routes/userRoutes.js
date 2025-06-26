@@ -14,7 +14,7 @@ const sqlite3 = sqlite3Module.verbose();
 export async function userRoutes(fastify, options) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
+    const dbPath = '/var/lib/sqlite/sqlite.db';
     const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('Error al conectar a la base de datos:', err.message);

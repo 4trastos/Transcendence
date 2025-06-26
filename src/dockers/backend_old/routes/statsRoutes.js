@@ -9,7 +9,7 @@ const __dirname = dirname(__filename);
 const sqlite3 = sqlite3Module.verbose();
 
 export async function statsRoutes(fastify, options) {
-	const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db');
+	const dbPath = '/var/lib/sqlite/sqlite.db';
 	const db = new sqlite3.Database(dbPath, (err) => {
 		if (err) {
 			console.error('Error al conectar a la base de datos:', err.message);

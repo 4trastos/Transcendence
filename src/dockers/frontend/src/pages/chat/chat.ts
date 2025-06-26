@@ -32,7 +32,7 @@ export class ChatPage extends Component {
 
     //Inicializar WebSocket
     this.socket = new WebSocket(
-      "wss://localhost:3030/api/v1/chats/connect-ws"
+      "wss://localhost:8443/api/v1/chats/connect-ws"
     );
     this.socket.addEventListener("open", () => {
       console.log("Conexión WebSocket abierta");
@@ -54,7 +54,7 @@ export class ChatPage extends Component {
 
     try {
       const res = await fetch(
-        "https://localhost:3030/api/v1/chats/user",
+        "https://localhost:8443/api/v1/chats/user",
         {
           method: "GET",
           credentials: "include",
@@ -113,7 +113,7 @@ export class ChatPage extends Component {
     if (this.element === null) return;
     try {
       const res = await fetch(
-        `https://localhost:3030/api/v1/chats/${chatId}/messages`,
+        `https://localhost:8443/api/v1/chats/${chatId}/messages`,
         {
           method: "GET",
           credentials: "include",

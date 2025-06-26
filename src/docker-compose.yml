@@ -24,7 +24,7 @@ services:
       timeout: 5s
       retries: 3
 
-  backend:   
+  backend:
     build: dockers/backend_old/.
     container_name: app
     working_dir: /usr/src/app
@@ -38,8 +38,6 @@ services:
       - "3000:3000"
     depends_on:
       security:
-        condition: service_healthy
-      sqlite:
         condition: service_healthy
     environment:
       - VAULT_ADDR=https://security:8200  # Usar nombre de servicio en lugar de IP
@@ -70,6 +68,9 @@ services:
       context: ./dockers/chat-service/
       dockerfile: Dockerfile
     container_name: chat-service
+    volumes:
+      - tls_volume:/etc/app/tls
+      - sqlite_data:/var/lib/sqlite
     env_file:
       - .env
     ports:
