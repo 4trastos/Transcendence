@@ -16,7 +16,7 @@ services:
     mem_limit: 384MB  # Aumentado de 256MB
     mem_reservation: 192MB  # Aumentado de 128MB
     memswap_limit: 512MB  # Límite de swap
-    cpu_shares: 512  # Prioridad relativa de CPU
+    #cpu_shares: 512  # Prioridad relativa de CPU
     healthcheck:
      # test: ["CMD", "sqlite3", "/var/lib/sqlite/database.db", "PRAGMA integrity_check"]
       test: ["CMD", "sqlite3", "/var/lib/sqlite/sqlite.db", "PRAGMA integrity_check"]
@@ -30,9 +30,9 @@ services:
     working_dir: /usr/src/app
     volumes:
     #  - backend_data:/usr/src/app/data
-      - sqlite_data:/usr/src/app/data
+    #  - sqlite_data:/usr/src/app/data
       - tls_volume:/etc/app/tls
-    #  - sqlite_data:/var/lib/sqlite
+      - sqlite_data:/var/lib/sqlite
     command: npm start
     ports:
       - "3000:3000"
@@ -57,7 +57,7 @@ services:
     mem_limit: 1024MB  # Aumentado a 1GB
     mem_reservation: 512MB
     memswap_limit: 1536MB  # 1.5GB
-    cpu_shares: 768
+    #cpu_shares: 768
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
       interval: 15s
@@ -111,7 +111,7 @@ services:
     mem_limit: 768MB           # Límite máximo de RAM
     mem_reservation: 384MB     # RAM reservada garantizada
     memswap_limit: 1GB         # Límite de swap
-    cpu_shares: 768            # Prioridad relativa de CPU
+    #cpu_shares: 768            # Prioridad relativa de CPU
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -133,7 +133,7 @@ services:
     mem_limit: 128MB
     mem_reservation: 64MB
     memswap_limit: 256MB
-    cpu_shares: 256
+    #cpu_shares: 256
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9113/metrics"]
       interval: 30s
@@ -154,7 +154,7 @@ services:
     mem_limit: 128MB
     mem_reservation: 64MB
     memswap_limit: 256MB
-    cpu_shares: 256
+    #cpu_shares: 256
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9253/metrics"]
       interval: 30s
@@ -183,7 +183,7 @@ services:
     mem_limit: 512MB           # Límite máximo de RAM
     mem_reservation: 256MB     # RAM reservada garantizada
     memswap_limit: 768MB       # Límite de swap
-    cpu_shares: 512            # Prioridad relativa de CPU
+    #cpu_shares: 512            # Prioridad relativa de CPU
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3040"]
       interval: 30s
@@ -311,7 +311,7 @@ services:
     mem_limit: 512MB  # Reducido a 512MB
     mem_reservation: 384MB
     memswap_limit: 768MB
-    cpu_shares: 512
+    #cpu_shares: 512
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9600/"]
       interval: 30s
@@ -408,7 +408,7 @@ services:
     mem_limit: 1.5GB
     mem_reservation: 1GB
     memswap_limit: 2GB
-    cpu_shares: 768
+    #cpu_shares: 768
 
   grafana:
     build: ./dockers/monitoring/grafana
@@ -436,7 +436,7 @@ services:
     mem_limit: 512MB
     mem_reservation: 256MB
     memswap_limit: 768MB
-    cpu_shares: 512
+    #cpu_shares: 512
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s

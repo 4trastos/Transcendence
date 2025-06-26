@@ -1,26 +1,29 @@
-    FROM node:18-bullseye
+FROM node:18-bullseye
 
-    WORKDIR /usr/src/app
+WORKDIR /usr/src/app
 
-    RUN apt-get update && \
-        apt-get install -y tzdata && \
-        rm -rf /var/lib/apt/lists/*
+# Copiar el script de inicialización al mismo lugar que el contenedor sqlite
+COPY tools/init.sql /var/lib/sqlite/init.sql
 
-    ENV TZ=Europe/Madrid
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    rm -rf /var/lib/apt/lists/*
 
-    COPY package*.json ./
+ENV TZ=Europe/Madrid
 
-    RUN npm install
+COPY package*.json ./
 
-    COPY . . 
+RUN npm install
 
-    RUN ls -R /usr/src/app
+COPY . . 
+
+RUN ls -R /usr/src/app
     
-    RUN mkdir -p /usr/src/app/data && \
-        chown -R node:node /usr/src/app/data
+RUN mkdir -p /usr/src/app/data && \
+    chown -R node:node /usr/src/app/data
 
-    USER node
+USER node
 
-    EXPOSE 3000
-    CMD ["node", "app.js"]
+EXPOSE 3000
+CMD ["node", "app.js"]
     

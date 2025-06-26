@@ -52,21 +52,28 @@ export const runQuery = (query, params) => {
 
 // Implementación corregida de withTransaction
 export async function withTransaction(operations) {
-    // ! CUIDADO: Estas funciones de transacción (beginTransaction, commit, rollback)
-    // ! no están decoradas con executeWithRetry. Asegúrate de que las llamas
-    // ! usando la instancia global 'db'.
-    await beginTransaction();
-    try {
-        const result = await operations();
-        await commit();
-        return result;
-    } catch (error) {
+    let retries = 0;
+    const MAX_RETRIES = 3;
+    
+    while (retries < MAX_RETRIES) {
         try {
-            await rollback();
-        } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError);
+            await run('BEGIN TRANSACTION');
+            const result = await operations();
+            await run('COMMIT');
+            return result;
+        } catch (error) {
+            await run('ROLLBACK');
+            
+            if (error.code === 'SQLITE_BUSY' && retries < MAX_RETRIES) {
+                retries++;
+                const delay = 200 * Math.pow(2, retries); // Backoff exponencial
+                console.warn(`Reintentando transacción (${retries}/${MAX_RETRIES})...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            throw error;
         }
-        throw error;
     }
 }
 
