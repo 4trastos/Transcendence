@@ -1,9 +1,6 @@
 FROM node:18-bullseye
 
-WORKDIR /usr/src/app
-
-# Copiar el script de inicialización al mismo lugar que el contenedor sqlite
-COPY tools/init.sql /var/lib/sqlite/init.sql
+#WORKDIR /usr/src/app
 
 RUN apt-get update && \
     apt-get install -y tzdata && \
