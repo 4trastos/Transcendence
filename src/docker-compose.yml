@@ -34,8 +34,6 @@ services:
       - tls_volume:/etc/app/tls
       - sqlite_data:/var/lib/sqlite
     command: npm start
-    ports:
-      - "3000:3000"
     depends_on:
       security:
         condition: service_healthy
@@ -49,6 +47,8 @@ services:
       - HEALTH_CHECK_PATH=/health  # Ruta explícita
     env_file:
       - .env
+    ports:
+      - "3000:3000"
     networks:
       - transcendence
     restart: unless-stopped

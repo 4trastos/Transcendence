@@ -14,6 +14,7 @@ let navbar: Navigation | null = null;
 
 let currentUser: UserJwt | null = null;
 
+//TODO: 
 export async function fetchUser(): Promise<UserJwt | null> {
   if (currentUser) return currentUser;
   try {
@@ -35,7 +36,7 @@ export async function fetchUser(): Promise<UserJwt | null> {
 	const data: {valid:boolean, decoded:UserJwt} = body;
 	return (data.valid)? data.decoded:null;
   } catch (error) {
-	console.error("Error fetching user data:", error);
+    
   }
   return null;
 }

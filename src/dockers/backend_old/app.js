@@ -14,7 +14,7 @@ async function main() {
 
     const vault = vaultLib({
         apiVersion: "v1",
-        endpoint: process.env.VAULT_ADDR || "http://0.0.0.0:8200",
+        endpoint: process.env.VAULT_ADDR || "https://0.0.0.0:8200",
         token: process.env.VAULT_TOKEN || "root",
     });
     // Rutas
@@ -97,10 +97,10 @@ async function main() {
             app.log.error(err);
             process.exit(1);
         }
-        console.log(`Servidor escuchando en http://localhost:${port}`);
+        console.log(`Servidor escuchando en https://localhost:${port}`);
         console.log('Configuración:');
         console.log('- Entorno:', process.env.NODE_ENV || 'development');
-        console.log('- Vault:', process.env.VAULT_ADDR || 'http://0.0.0.0:8200');
+        console.log('- Vault:', process.env.VAULT_ADDR || 'https://0.0.0.0:8200');
     });
 
     // Manejo de cierre limpio

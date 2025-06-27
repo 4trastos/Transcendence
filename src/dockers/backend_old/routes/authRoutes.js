@@ -155,7 +155,6 @@ export async function authRoutes(fastify, options) {
         if (enable2FA) {
           const secret = speakeasy.generateSecret({ length: 20 });
           twoFactorSecret = secret.base32;
-          twoFactorEnabled = 1; // Asegurar que se establece explícitamente
           console.log(`2FA Secret for ${email}: ${twoFactorSecret}`);
         }
 
@@ -271,6 +270,7 @@ export async function authRoutes(fastify, options) {
             username: { type: "string" },
             password: { type: "string" },
             guestMode: { type: "boolean" },
+            gameMode: { type: "boolean" }
           },
           oneOf: [
             {
@@ -304,7 +304,6 @@ export async function authRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               error: { type: "string" },
-              message: { type: "string" },
               details: { type: "string" },
             },
           },
@@ -349,7 +348,7 @@ export async function authRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const { username, password, guestMode } = request.body;
+      const { username, password, guestMode, gameMode } = request.body;
 
 
       try {
@@ -411,9 +410,9 @@ export async function authRoutes(fastify, options) {
 
         // Flujo 2FA - Versión corregida
         if (user.two_factor_enabled && user.two_factor_secret) {
-          const tempToken = jwt.sign(
+          const tempToken = fastify.jwt.sign(
             {
-              userId: user.id, // Asegurar que sea userId (no user.id)
+              id: user.id, // Asegurar que sea userId (no user.id)
               purpose: config.tempTokenPurpose, // Usar la constante de configuración
               aud: config.audience,
               iss: config.issuer,
@@ -431,16 +430,38 @@ export async function authRoutes(fastify, options) {
             twoFactorSecret: user.two_factor_secret,
           });
 
-          return reply.send({
-            requires2FA: true,
-            tempToken,
-            userId: user.id, // Enviar userId explícitamente
-            username: user.username,
-            avatar: user.avatar_url,
-            email: user.email,
-            message: "Se requiere verificación 2FA",
-            timestamp: new Date().toISOString(),
-          });
+          if (gameMode) {
+            return reply
+              .send({
+                requires2FA: true,
+                tempToken,
+                userId: user.id, // Enviar userId explícitamente
+                username: user.username,
+                avatar: user.avatar_url,
+                email: user.email,
+                message: "Se requiere verificación 2FA",
+                timestamp: new Date().toISOString(),
+              });
+          } else {
+            return reply
+              .setCookie('token', tempToken, {
+                httpOnly: true,
+                secure: false, // Set to true in production
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 3600, // 1 hour in seconds
+              })
+              .send({
+                requires2FA: true,
+                tempToken,
+                userId: user.id, // Enviar userId explícitamente
+                username: user.username,
+                avatar: user.avatar_url,
+                email: user.email,
+                message: "Se requiere verificación 2FA",
+                timestamp: new Date().toISOString(),
+              });
+          }
         }
 
         return handleStandardLogin(user, reply);
@@ -503,27 +524,6 @@ export async function authRoutes(fastify, options) {
       console.error("Error en login de invitado:", error);
       throw error;
     }
-  }
-
-  async function handle2FALogin(user, reply) {
-    const tempToken = jwt.sign(
-      {
-        userId: user.id,
-        purpose: "2fa_verification",
-        aud: "pong-client",
-        iss: "pong-app.com",
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    return reply.send({
-      success: true,
-      requires2FA: true,
-      tempToken,
-      user: { id: user.id, username: user.username },
-      message: "Se requiere verificación 2FA",
-    });
   }
 
   async function handleStandardLogin(user, reply) {
@@ -743,6 +743,7 @@ export async function authRoutes(fastify, options) {
                 properties: {
                   id: { type: "integer" },
                   user: { type: "string" },
+                  purpose: { type: "string" },
                   roles: {
                     type: "array",
                     items: { type: "string" },
@@ -1136,6 +1137,7 @@ fastify.post("/send-reset-email-password", {
   });
 
   // POST /verify-2fa
+  // POST /verify-2fa
   fastify.post(
     "/verify-2fa",
     {
@@ -1157,15 +1159,6 @@ fastify.post("/send-reset-email-password", {
               type: "string",
               description:
                 "Token temporal enviado en body o en header Authorization",
-            },
-          },
-        },
-        headers: {
-          type: "object",
-          properties: {
-            authorization: {
-              type: "string",
-              description: "Token temporal en formato Bearer",
             },
           },
         },
@@ -1197,7 +1190,6 @@ fastify.post("/send-reset-email-password", {
             description: "Código 2FA inválido",
             type: "object",
             properties: {
-              message: { type: "string" },
               error: {
                 type: "string",
                 example: "Código 2FA inválido - debe ser 6 dígitos",
@@ -1252,14 +1244,12 @@ fastify.post("/send-reset-email-password", {
     },
     async (request, reply) => {
       const { code, tempToken } = request.body;
-      const authHeader = request.headers.authorization;
+      const decoded = await request.jwtVerify();
+      const tokenToVerify = request.cookies.token;
 
       console.log("Inicio verificación 2FA:", {
         code,
         tempToken: tempToken ? `${tempToken.substring(0, 15)}...` : "undefined",
-        authHeader: authHeader
-          ? `${authHeader.substring(0, 15)}...`
-          : "undefined",
       });
 
       try {
@@ -1272,9 +1262,6 @@ fastify.post("/send-reset-email-password", {
         }
 
         // Obtener token de header o body
-        const tokenToVerify =
-          tempToken ||
-          (authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null);
         if (!tokenToVerify) {
           return reply.status(401).send({
             error: "Token temporal no proporcionado",
@@ -1284,9 +1271,9 @@ fastify.post("/send-reset-email-password", {
 
         // Verificar token temporal
         console.log("Verificando token temporal...");
-        const tokenData = verifyTempToken(tokenToVerify);
+        const tokenData = await verifyTempToken(request, decoded);
         console.log("Token verificado:", {
-          userId: tokenData.userId,
+          userId: tokenData.id,
           purpose: tokenData.purpose,
           exp: new Date(tokenData.exp * 1000).toISOString(),
         });
@@ -1328,10 +1315,10 @@ fastify.post("/send-reset-email-password", {
         };
 
         // Obtener usuario
-        const user = await getUserWithRetry(tokenData.userId);
+        const user = await getUserWithRetry(tokenData.id);
         if (!user?.two_factor_secret) {
           console.error("Error al recuperar secreto 2FA:", {
-            userId: tokenData.userId,
+            userId: tokenData.id,
             userData: user,
             time: new Date().toISOString(),
           });
@@ -1427,31 +1414,21 @@ fastify.post("/send-reset-email-password", {
             debug:
               process.env.NODE_ENV === "development"
                 ? {
-                    currentCode: speakeasy.totp({
-                      secret: secretToUse,
-                      encoding: "base32",
-                      time: verificationTime,
-                    }),
-                    timeWindow: verificationTime,
-                  }
+                  currentCode: speakeasy.totp({
+                    secret: secretToUse,
+                    encoding: "base32",
+                    time: verificationTime,
+                  }),
+                  timeWindow: verificationTime,
+                }
                 : undefined,
           });
         }
 
-        // Generar tokens finales
-        const accessToken = generateAccessToken(
-          {
-            id: user.id,
-            username: user.username,
-            two_fa_verified: true,
-            auth_method: "2fa",
-          },
-          request
-        );
 
         //const refreshToken = await generateRefreshToken(user.id, request);
         const jwt = fastify.jwt.sign(
-          { user: auth.username, roles: ["view"] },
+          { id: user.id, user: user.username, roles: ["view"] },
           { expiresIn: "1h" }
         );
 
@@ -1467,7 +1444,6 @@ fastify.post("/send-reset-email-password", {
           })
           .send({
             success: true,
-            accessToken,
             jwt,
             user: {
               id: user.id,
@@ -1494,6 +1470,7 @@ fastify.post("/send-reset-email-password", {
       }
     }
   );
+
 
   // POST /resend-2fa
   fastify.post(
@@ -1607,7 +1584,8 @@ fastify.post("/send-reset-email-password", {
         reply.send({
           success: true,
           message: "Email verificado correctamente",
-        });
+        })
+        .redirect(process.env.FRONTEND_URL);
       } catch (error) {
         console.error("Error al verificar email:", error);
         reply.status(400).send({ error: error.message });

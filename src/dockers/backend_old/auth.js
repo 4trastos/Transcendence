@@ -38,7 +38,7 @@ export const generateAccessToken = (user, request = {}) => {
         two_fa_verified: user.two_fa_verified || false
     };
 
-    return jwt.sign(payload, config.secret, {
+    return request.jwtsign(payload, config.secret, {
         expiresIn: config.accessExpiry,
         algorithm: config.algorithm
     });
@@ -112,18 +112,13 @@ export const revokeToken = async (jti) => {
 };
 
 // Verificación de token con chequeo de revocación
-export const verifyToken = async (token) => {
+export const verifyToken = async (request, token) => {
     if (!token || typeof token !== 'string') {
         throw new Error('Invalid token format');
     }
 
     try {
-        const decoded = jwt.verify(token, config.secret, {
-            algorithms: [config.algorithm],
-            issuer: config.issuer,
-            audience: config.audience,
-            clockTolerance: config.clockTolerance
-        });
+        const decoded = await request.jwtVerify();
 
         // Verificar si el token está revocado
         const revoked = await db.get(
@@ -163,14 +158,9 @@ export const verifyToken = async (token) => {
 };
 
 // Verificación de token temporal para 2FA
-export const verifyTempToken = (token) => {
+export const verifyTempToken = async (request, token) => {
     try {
-        const decoded = jwt.verify(token, config.secret, {
-            algorithms: [config.algorithm],
-            issuer: config.issuer,
-            audience: config.audience,
-            clockTolerance: config.clockTolerance
-        });
+        const decoded = await request.jwtVerify();
         
         console.log('Token temporal decodificado:', {
             decoded,
@@ -181,7 +171,7 @@ export const verifyTempToken = (token) => {
             throw new Error(`Invalid token purpose. Expected: ${config.tempTokenPurpose}`);
         }
 
-        if (!decoded.userId) {
+        if (!decoded.id) {
             throw new Error('Missing userId in temp token');
         }
 
@@ -216,7 +206,7 @@ export const authMiddleware = async (request, reply) => {
         }
 
         // Verificar token
-        request.user = await verifyToken(token);
+        request.user = await verifyToken(request, token);
         request.token = token;
 
     } catch (err) {
