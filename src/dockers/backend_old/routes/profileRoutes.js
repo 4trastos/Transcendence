@@ -12,8 +12,8 @@ const sqlite3 = sqlite3Module.verbose();
 
 export async function profileRoutes(fastify, options) {
 
-    const dbPath = path.join(__dirname, '..', 'data', 'sqlite.db')
-    const db = new sqlite3.Database(dbPath, (err) => {
+  const dbPath = '/var/lib/sqlite/sqlite.db';
+  const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('Error al conectar a la base de datos:', err.message)
         } else {
@@ -84,6 +84,7 @@ export async function profileRoutes(fastify, options) {
     },async (request, reply) => {
         const decoded = await request.jwtVerify();
         const id = parseInt(decoded.id);
+        console.log(decoded);
 
         if (isNaN(id)){
             return reply.code(400).send({status: 'error', message: 'ID invalido'})
@@ -110,24 +111,30 @@ export async function profileRoutes(fastify, options) {
                     reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
                     return reject(err)
                 }
-                
+                if (!rows || rows.length === 0) {
+                  return reply.code(404).send({ status: 'error', message: 'Usuario no encontrado o sin amigos' });
+                }
                 const user = rows[0]
 
                 const userData = {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    full_name: user.full_name,
-                    last_name: user.last_name,
-                    favourite_color: user.favourite_color,
-                    pfp: user.avatar_url,
-                    country: user.country,
-                    bio: user.bio,
-                    contacts: []
-                }
+                  id: user.id,
+                  username: user.username,
+                  email: user.email,
+                  full_name: user.full_name,
+                  last_name: user.last_name,
+                  favourite_color: user.favourite_color,
+                  pfp: user.avatar_url,
+                  country: user.country,
+                  bio: user.bio,
+                  contacts: []
+                };
+          
                 for (const row of rows) {
-                  if (row.contact_id)
-                    userData.contacts.push(row.contact_id)
+                  if (row.friend_user_id) {
+                    userData.contacts.push({
+                      username: row.friend_username
+                    });
+                  }
                 }
 
                 reply.code(200).send({status: 'ok', data: userData})

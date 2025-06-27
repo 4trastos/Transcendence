@@ -13,7 +13,7 @@ export class SQLiteConnection {
   nameScript;
   constructor(name, nameScript){
 	this.nameScript = nameScript;
-	const dbPath = path.join(__dirname, "..", "data", name);
+	const dbPath = '/var/lib/sqlite/' + name;
 
 	this.db = new sqlite3.Database(dbPath, (err) => {
 	  if (err) {
