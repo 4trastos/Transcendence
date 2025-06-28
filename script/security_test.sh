@@ -584,7 +584,7 @@ echo "<p>Escaneo automatizado de vulnerabilidades web.</p>" >> $REPORT_FILE
 echo "<div class='test-grid'>" >> $REPORT_FILE
 
 # Ejecutar escaneo ZAP
-/zap/wrk/zap_scan.sh
+/app-scripts/zap_scan.sh
 
 # Verificar reporte ZAP
 if [ -f "/zap/reports/zap_report.html" ]; then

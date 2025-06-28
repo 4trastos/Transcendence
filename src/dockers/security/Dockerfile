@@ -57,7 +57,7 @@ COPY zap/zap_scan.sh /app-scripts/zap_scan.sh
 COPY zap/get_zap_api_key.sh /app-scripts/get_zap_api_key.sh 
 COPY vault/get_vault_secrets.sh /app-scripts/get_vault_secrets.sh 
 
-COPY zap/entrypoint.sh /usr/local/bin/entrypoint.sh 
+COPY zap/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Permisos para configuraciones y scripts
 RUN chmod 644 /etc/vault/policy.hcl /etc/vault/prometheus.hcl /etc/vault/vault.hcl \
