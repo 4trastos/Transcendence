@@ -6,6 +6,7 @@ import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+import ProfileController from '../controllers/ProfileController.js';
 
 const sqlite3 = sqlite3Module.verbose();
 
@@ -32,6 +33,11 @@ export async function profileRoutes(fastify, options) {
             console.log('Base de datos inicializada correctamente')
         }
     })
+
+    const profileController = new ProfileController(db);
+
+    fastify.post('/friends/:username', profileController.addFriend);
+    fastify.delete('/friends/:username', profileController.removeFriend);
 
     fastify.get('/profile', {
         schema: {
@@ -250,8 +256,6 @@ export async function profileRoutes(fastify, options) {
           })
         });
       })      
-
-
 
     fastify.post('/upload-avatar', async (request, reply) => {
       const data = await request.file();
