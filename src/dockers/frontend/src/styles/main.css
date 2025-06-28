@@ -1,3 +1,21 @@
+
+:root {
+	--user-theme-color: #3b82f6; /* Color por defecto (azul) */
+  }
+  
+  .bg-user-theme {
+	background-color: var(--user-theme-color);
+  }
+  
+  .text-user-theme {
+	color: var(--user-theme-color);
+  }
+  
+  .border-user-theme {
+	border-color: var(--user-theme-color);
+  }
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
