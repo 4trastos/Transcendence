@@ -109,6 +109,8 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+      chat-service:
+        condition: service_started
     restart: always
     mem_limit: 768MB           # Límite máximo de RAM
     mem_reservation: 384MB     # RAM reservada garantizada
