@@ -16,9 +16,9 @@ export class ChatRepositoryAdapter implements ChatRepositoryPort {
         throw new Error("Method not implemented.");
     }
 
-    async saveChat(chat: Chat): Promise<void> {
+    async saveChat(chat: Chat): Promise<Chat> {
         //await this.chatSingleton.addChat(chat);
-        await this.chatSQLite.addChat(chat);
+        return await this.chatSQLite.addChat(chat);
     }
 
     async getChatByMember(userIds: string): Promise<Chat[]> {

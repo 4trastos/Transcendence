@@ -6,6 +6,15 @@ export interface Stat {
 	wins: number;
 	losses: number;
 }
+
+export interface SummaryUser {
+	id: string;
+	email: string;
+	username: string;
+	avatar?: string;
+	hasFriend: boolean;
+}
+
 export class User {
     username: string;
 	stats?: Stat;

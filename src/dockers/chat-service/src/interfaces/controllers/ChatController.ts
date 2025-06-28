@@ -26,10 +26,13 @@ export class ChatController {
     }
 
     async postChat(req: FastifyRequest<{Body: Chat}>, reply:FastifyReply) {
+        const decoded:{ id:string, user:string, roles: string[] } =  await req.jwtVerify();
         const chat:Chat= req.body;
-        await this.saveChat.execute(chat);
-        reply.send({});
+        chat.users.push(decoded.id);
+        reply.send(await this.saveChat.execute(chat));
     }
+
+
     async getMessagesHandler(req: FastifyRequest<{Params: ChatParams}>, reply: FastifyReply) {
         const decoded:{ id:string, user:string, roles: string[] } =  await req.jwtVerify();
 
@@ -43,7 +46,7 @@ export class ChatController {
         const decoded:{ user:string, roles: string[] } =  await req.jwtVerify();
 
         const chatId = req.params.chatId as string;
-        const chat = await this.getChat.execute(decoded.user, chatId);
+        const chat = await this.getChat.execute(chatId);
         reply.send(chat);
 
     }

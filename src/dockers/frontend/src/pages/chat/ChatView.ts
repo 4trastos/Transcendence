@@ -1,6 +1,7 @@
 import { FloatingChatComponent } from "../../components/Floating/FloatingChatComponent";
 import FloatingChatListComponent from "../../components/Floating/FloatingContactsComponent";
 import { Chat } from "../../data/Chat";
+import { SummaryUser } from "../../data/User";
 import { Component } from "../../utils/component";
 
 export default class ChatView extends Component {
@@ -76,6 +77,7 @@ export default class ChatView extends Component {
 
   private async loadChats() {
     try {
+      let users;
       let chats: Chat[] = [
         {
           id: "1",
@@ -126,16 +128,15 @@ export default class ChatView extends Component {
       let res: any;
       const env = await fetch("/env").then((res) => res.json());
       if (env.env === "production") {
-        res = (await fetch(
-          `https://localhost:8443/chats/user`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        )) as Response;
-        chats = await res.json();
+        const userResponse = await this.getUsers();
+        const chatResponse = await this.getChats();
+        if (chatResponse.length > 0)
+          chats = chatResponse;
+        if (userResponse.length > 0)
+          users = userResponse;
       }
-      if (env.env === "development" || res.status === 200) {
+
+      if (env.env === "development") {
         if (chats.length > 0) {
           const chatContainer = this.element?.querySelector(
             "#chats-floating"
@@ -153,15 +154,16 @@ export default class ChatView extends Component {
               this.floatingChats.set(chats[i].id, chatItemComponent);
               this.chatMembers.set(chats[i].id, chats[i].users);
               this.chats.set(chats[i].id, chats[i]);
-
             }
           }
         }
+
         const listContainer = this.element?.querySelector(
           "#contacts-floating"
         ) as HTMLElement;
         const listItemComponent = new FloatingChatListComponent({
           chats: chats,
+          suggestions: users,
           owner: "3",
           onClick: (id: string) => {
             const chatItem = chats.find((chat) => chat.id === id);
@@ -182,6 +184,9 @@ export default class ChatView extends Component {
             this.chats.set(chatItem.id, chatItem);
           },
         });
+
+
+
         listContainer.appendChild(listItemComponent.render());
       }
     } catch (error) {
@@ -189,6 +194,39 @@ export default class ChatView extends Component {
     }
   }
 
+  private async getChats(): Promise<Chat[]> {
+    try {
+      const res = await fetch(`https://localhost:8443/chats/user`, {
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!res.ok) {
+        return []; 
+      }
+      return await res.json();
+    } catch (err) {
+      return [];
+    }
+  }
+
+
+  private async getUsers(): Promise<SummaryUser[]> {
+    try {
+      const res = await fetch(`https://localhost:8443/backend/users`, {
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!res.ok) {
+        return []; 
+      }
+      return await res.json();
+    } catch (err) {
+      return [];
+    }
+  }
+  
   private buildChat(onlineUsers:any, chatItem: Chat): FloatingChatComponent {
     return  new FloatingChatComponent({
       id: "chat-" + chatItem.id,
@@ -216,6 +254,7 @@ export default class ChatView extends Component {
       },
     });
   }
+
   private sendMessage(chatId: string, message: string) {
     if (this.element === null) return;
     if (!this.socket) return;

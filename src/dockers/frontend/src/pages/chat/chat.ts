@@ -6,9 +6,11 @@ export class ChatPage extends Component {
   private socket: WebSocket | undefined;
   private activeChat: string | null = null;
   private userId: number = 3;
-
+  private chatList:HTMLElement | null = null;
+  private suggestions:HTMLElement | null = null;
   constructor() {
     super();
+  
     this.template = `
 		<div class="container mx-auto">
   <div id="navigation-container"></div>
@@ -45,12 +47,14 @@ export class ChatPage extends Component {
     if (sendButton) {
       sendButton.addEventListener("click", this.sendMessage.bind(this));
     }
+    this.chatList = this.element.querySelector("#chat-list");
 
     this.loadChats();
   }
 
   private async loadChats() {
     if (this.element === null) return;
+    if (!this.chatList) return;
 
     try {
       const res = await fetch(
@@ -68,15 +72,13 @@ export class ChatPage extends Component {
     }
   }
 
+
   renderChatList(chats: Chat[]) {
     if (this.element === null) return;
-    if (!this.element) return;
-
-    const chatList = this.element.querySelector("#chat-list");
-    if (!chatList) return;
+    if (!this.chatList) return;
 
     // Limpiar la lista primero
-    chatList.innerHTML = "";
+    this.chatList.innerHTML = "";
 
     // Para cada chat, crear un componente ChatItem
     chats.forEach((chat: Chat) => {
@@ -106,9 +108,12 @@ export class ChatPage extends Component {
       // Crear un elemento de lista y agregar el componente renderizado
       const listItem = document.createElement("li");
       listItem.appendChild(chatItemComponent.render());
-      chatList.appendChild(listItem);
+      if (this.chatList)
+        this.chatList.appendChild(listItem);
     });
   }
+
+
   private async openChat(chatId: string) {
     if (this.element === null) return;
     try {

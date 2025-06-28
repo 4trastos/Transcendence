@@ -49,6 +49,7 @@ export async function userRoutes(fastify, options) {
             id: { type: 'integer' },
             username: { type: 'string' },
             email: { type: 'string' },
+            avatar: { type: 'string' },
           }
         }
       },
@@ -61,16 +62,51 @@ export async function userRoutes(fastify, options) {
       }
     }
   }
-}, (request, reply) => {
-        db.all('SELECT * FROM users', [], (err, rows) => {
+}, async (request, reply) => {
+
+  try {
+
+
+      const decoded = await request.jwtVerify();
+
+      const rows = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT 
+              u.id AS id,
+              u.username AS username,
+              u.full_name AS full_name,
+              u.email AS user_email,
+              u.avatar_url AS avatar,
+              CASE 
+                  WHEN COUNT(*) > 0 THEN 'true'
+                  ELSE 'false'
+              END AS are_friends
+          FROM 
+              users u
+          LEFT JOIN 
+              user_relationships ur ON ur.user_id = u.id OR ur.related_user_id = u.id
+          WHERE 
+              ur.relationship_type = 'friend'
+              AND (ur.user_id = ? OR ur.related_user_id = ?)
+          GROUP BY 
+              u.id;
+          `, [decoded.id, decoded.id], (err, rows) => {
             if (err) {
-                console.error('Error al consultar la tabla users:', err.message);
-                reply.status(500).send('Error al consultar la tabla users');
-                return;
+              reject(new Error('Error al consultar la tabla users: ' + err.message));
+              return;
             }
-            reply.send(rows);
-        });
-    });
+            resolve(rows);
+          });
+      });
+      reply.send(rows);
+    } catch (err) {
+      console.error('Error:', err.message);
+      reply.status(500).send({ error: 'Internal Server Error', message: err.message });
+
+    }
+
+
+  });
 
     // GET /protected-test
 

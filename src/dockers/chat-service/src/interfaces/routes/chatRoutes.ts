@@ -17,7 +17,7 @@ import { SaveChat } from "../../application/use-cases/SaveChat";
 const postChatSchema = {
   body: {
     type: 'object',
-    required: ['id', 'users', 'messages', 'isGroupChat', 'title'],
+    required: ['users'],
     properties: {
       id: { type: 'string' },
       users: {

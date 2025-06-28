@@ -5,7 +5,7 @@ import { HandleException } from "../../domain/exception/HandleException";
 export class LoadChat {
     constructor(private chatRepository: ChatRepositoryPort) {}
 
-    async execute(userId: string, chatId: string): Promise<Chat> {
+    async execute(chatId: string): Promise<Chat> {
         return await this.chatRepository.getChatById(chatId).then((chat) => {
             if (!chat) {
                 throw new HandleException("Chat not found", 404);

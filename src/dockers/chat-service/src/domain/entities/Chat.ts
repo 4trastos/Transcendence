@@ -4,9 +4,9 @@ export interface Chat {
 	id: string;//uuid
 	
 	users: string[];
-	messages: Message[];
+	messages?: Message[];
 	isGroupChat: boolean;
-	title: string;
+	title?: string;
 	//created_at: Date;
 	//updated_at: Date;
 	//owner: string;

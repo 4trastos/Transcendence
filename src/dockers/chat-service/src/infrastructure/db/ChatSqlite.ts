@@ -81,15 +81,14 @@ export default class ChatSqlite {
     };
   }
 
-  async addChat(chat: Chat): Promise<void> {
-
+  async addChat(chat: Chat): Promise<Chat> {
     const result = await this.db.run(
       `INSERT INTO chats (title, is_group_chat) VALUES (?, ?)`,
       [chat.title, chat.isGroupChat]
     );
     const chatId = result.lastID;
 
-  console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, null, 2));
     for (const username of chat.users) {
       const user = await this.db.get(`SELECT id FROM users WHERE username = ?`, [username]);
       if (user) {
@@ -102,7 +101,11 @@ export default class ChatSqlite {
         [chatId, msg.sender_id, msg.content]
       );
     }
-
+    return {
+      id: result.lastID,
+      users: result.users,
+      isGroupChat: !!result.isGroupChat
+    };
   }
 
   async addMessageToChat(chatId: string, message: Message): Promise<Message> {
