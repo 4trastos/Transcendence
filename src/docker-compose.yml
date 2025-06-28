@@ -68,6 +68,7 @@ services:
       context: ./dockers/chat-service/
       dockerfile: Dockerfile
     container_name: chat-service
+    restart: always
     volumes:
       - tls_volume:/etc/app/tls
       - sqlite_data:/var/lib/sqlite

@@ -79,7 +79,7 @@ export class RecoverPasswordComponent extends Component {
       <label class="text-white">ir a,
         <a id="back-login" href="javascript:void(0)"
         class="underline font-bold text-white hover:text-blue-400">
-        iniciar sesion
+        iniciar sesión
         </a>
       </label>
     </diV>

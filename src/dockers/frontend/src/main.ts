@@ -14,6 +14,9 @@ let navbar: Navigation | null = null;
 
 let currentUser: UserJwt | null = null;
 
+
+
+
 //TODO: 
 export async function fetchUser(): Promise<UserJwt | null> {
   if (currentUser) return currentUser;
@@ -40,6 +43,7 @@ export async function fetchUser(): Promise<UserJwt | null> {
   }
   return null;
 }
+
 async function handleRoute() {
   let user: UserJwt | null = {
     id: '1',
@@ -50,9 +54,9 @@ async function handleRoute() {
   const hash = window.location.hash;
   const [route, queryString] = hash.split('?');
 
-  const env = await fetch('/env').then(res => res.json());
   user = await fetchUser();
-  console.log('user', user);
+
+  
   if (route.includes("newPassword")) {
       loadNewPasswordPage(queryString);
       return ;
@@ -77,7 +81,6 @@ async function handleRoute() {
     );
     mount(navbar, '#header');
   }
-
   switch (route) {
     case '#game':
       navbar.changeActiveItem('#game');
@@ -90,6 +93,9 @@ async function handleRoute() {
     case '#profile':
       navbar.changeActiveItem('#profile');
       loadProfilePage();
+      break;
+    default:
+      window.location.hash = "#game";
       break;
   }
 
@@ -109,18 +115,12 @@ function loadChatContainer(userId: string, avatarUrl: string) {
 }
 
 function loadProfilePage() {
-  /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
-	while (targetContainer.firstChild) {
-    targetContainer.removeChild(targetContainer.firstChild);
-  }*/
+
  const profilePage = new ProfilePage();
  mount(profilePage, '#app');
 }
 function loadGamePage(user: UserJwt) {
-  /*const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
-	while (targetContainer.firstChild) {
-    targetContainer.removeChild(targetContainer.firstChild);
-  }*/
+
   const gamePage = new GamePage(user);
   mount(gamePage, '#app');
 
@@ -153,15 +153,10 @@ function loadLoginPage() {
   
 }
 
-function loadHomePage() {
-  const targetContainer:HTMLElement = document.querySelector('#app') as HTMLElement;
-	while (targetContainer.firstChild) {
-    targetContainer.removeChild(targetContainer.firstChild);
-  }
-}
 
-
-
+/**
+ * Animacion
+ */
 document.addEventListener('change', () => {
   document.querySelectorAll(".ripple").forEach((button) => {
     (button as HTMLElement).addEventListener("click", (e: MouseEvent) => {

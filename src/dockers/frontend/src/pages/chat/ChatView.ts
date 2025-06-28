@@ -32,7 +32,7 @@ export default class ChatView extends Component {
     if (!this.element) return;
 
     this.socket = new WebSocket(
-      `ws://localhost:8443/api/v1/chats/connect-ws`
+      `ws://localhost:8443/chats/connect-ws`
     );
     this.socket.addEventListener("open", () => {
       console.log("Conexión WebSocket abierta");
@@ -127,7 +127,7 @@ export default class ChatView extends Component {
       const env = await fetch("/env").then((res) => res.json());
       if (env.env === "production") {
         res = (await fetch(
-          `https://localhost:8443/api/v1/chats/user`,
+          `https://localhost:8443/chats/user`,
           {
             method: "GET",
             credentials: "include",

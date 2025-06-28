@@ -122,7 +122,7 @@ export class LogInComponent extends Component {
 			<div class="bg-[#11162F] w-full rounded-lg">
 				<button type="submit" id="login-button" 
 					class="ripple w-full  hover:bg-white/10 text-white py-2 px-6 rounded-lg">
-					Iniciar Sesion
+					iniciar sesión
 				</button>
 			</div>
 		</div>
@@ -238,7 +238,7 @@ export class LogInComponent extends Component {
 			window.location.reload();
 			ToastService.show("¡Inicio de sesion exitoso!", "success");
 		} else {
-			ToastService.show("Error al iniciar sesion con 2FA", "error");
+			ToastService.show("Error al iniciar sesión con 2FA", "error");
 			this.showInputError(this.twoFAInput);
 		}
 	}

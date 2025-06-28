@@ -9,13 +9,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifySession from '@fastify/session';
 import fastifyCookie from '@fastify/cookie';
 import dotenv from 'dotenv';
-import vaultLib from 'node-vault';
 import fastifyBcrypt from 'fastify-bcrypt';
-import { db } from './database.js';
-import {userRoutes} from './routes/userRoutes.js';
-import {gameRoutes} from './routes/gameRoutes.js';
-import {authRoutes} from './routes/authRoutes.js';
-import {profileRoutes} from './routes/profileRoutes.js';
 import {SQLiteConnection}  from './db/SQLiteConnection.js';
 import multipart from '@fastify/multipart';
 import jwt from '@fastify/jwt';
@@ -25,6 +19,7 @@ import { fileURLToPath } from 'url';
 import sqlitePlugin from './plugins/sqlite.js'
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+import oauthPlugin from '@fastify/oauth2';
 
 
 export default async function configApp() {
@@ -156,13 +151,14 @@ export default async function configApp() {
 	app.register(fastifyCookie);
 
 	app.register(fastifySession, {
-		secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+		secret: process.env.SESSION_SECRET,
 		cookie: { 
-			secure: process.env.NODE_ENV === 'production',
+			secure: false,
 			httpOnly: true,
-			sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+			sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none',
 			maxAge: 24 * 60 * 60 * 1000
-		}
+		},
+		saveUninitialized: false,
 	});
 
 	// Headers de seguridad adicionales
@@ -188,7 +184,20 @@ export default async function configApp() {
 		].join('; '));
 		done();
 	});
+	app.register(oauthPlugin, {
+		name: 'googleOAuth2',
+		scope: ['profile', 'email'],
+		credentials: {
+			client: {
+			id: process.env.GOOGLE_CLIENT_ID,
+			secret: process.env.GOOGLE_CLIENT_SECRET,
+			},
+			auth: oauthPlugin.GOOGLE_CONFIGURATION,
+		},
+		startRedirectPath: '/auth/google',
+		callbackUri: 'http://localhost:3000/api/auth/google/callback',
 
+	});
 
 	return app;
 }

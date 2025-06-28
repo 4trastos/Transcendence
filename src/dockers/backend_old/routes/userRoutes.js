@@ -49,10 +49,6 @@ export async function userRoutes(fastify, options) {
             id: { type: 'integer' },
             username: { type: 'string' },
             email: { type: 'string' },
-            password: { type: 'string' },
-            is_verified: { type: 'boolean' },
-            two_factor_enabled: { type: 'boolean' },
-            two_factor_secret: { type: 'string', nullable: true }
           }
         }
       },

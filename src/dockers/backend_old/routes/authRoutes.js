@@ -43,6 +43,76 @@ export async function authRoutes(fastify, options) {
     }
   });
 
+  
+  
+
+  fastify.get('/auth/google/callback', async (request, reply) => {
+
+    const { state, code } = request.query;
+    console.log('State recibido:', state); // Imprime el estado recibido del callback
+    console.log('State guardado en sesión:', request.session.state); // Imprime el estado guardado en sesión
+    
+    const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+    console.log(token); // Imprime el estado recibido del callback
+
+    // Aquí podrías usar el token.access_token para pedir más info del perfil si lo necesitas.
+    // Por simplicidad, usaremos solo el token para crear un JWT.
+    
+  
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token.access_token}`,
+      },
+    });
+    if (!userInfoResponse.ok){
+      console.log(userInfoResponse)
+      reply.error();
+    }
+      const userInfo = await userInfoResponse.body.json();
+    const userPayload = {
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture,
+      access_token: token.access_token,
+      refresh_token: token.refresh_token,
+    };
+    const user = await new Promise((resolve, reject) => {
+      db.get(
+        `
+                      SELECT id, username, two_factor_secret 
+                      FROM users 
+                      WHERE email = ? 
+                      AND two_factor_secret IS NOT NULL
+                      AND two_factor_enabled = 1`,
+        [userPayload.email],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    if (!user){
+      reply.error();
+    }
+    // Crea el JWT
+  
+          const jwt = fastify.jwt.sign(
+            { id: user.id, user: user.username, roles: ["view"] },
+            { expiresIn: "1h" }
+          );
+    // Envia el JWT como cookie
+    reply
+      .setCookie('token', jwt, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 3600,
+      }); // Redirige a la app
+  });
+
+  
   // POST /register
   fastify.post(
     "/register",
