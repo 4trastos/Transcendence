@@ -130,8 +130,8 @@ export async function authRoutes(fastify, options) {
           properties: {
             username: { type: "string", minLength: 3, maxLength: 30 },
             email: { type: "string", format: "email" },
-            password: { type: "string", minLength: 8, pattern: "^(?=.*[A-Za-z])(?=.*\\d).+$" },
-            enable2FA: { type: "boolean", default: false},
+            password: { type: "string", minLength: 8 },
+            enable2FA: { type: "boolean", default: false },
           },
         },
         response: {
