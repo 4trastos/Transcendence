@@ -86,7 +86,7 @@ export async function authRoutes(fastify, options) {
     const user = await new Promise((resolve, reject) => {
       db.get(
         `
-                      SELECT id, username, two_factor_secret 
+                      SELECT id, username, two_factor_secret, favourite_color 
                       FROM users 
                       WHERE email = ? 
                       AND two_factor_secret IS NOT NULL
@@ -104,7 +104,7 @@ export async function authRoutes(fastify, options) {
     // Crea el JWT
   
           const jwt = fastify.jwt.sign(
-            { id: user.id, user: user.username, roles: ["view"] },
+            { id: user.id, user: user.username,color: user.favourite_color, roles: ["view"] },
             { expiresIn: "1h" }
           );
     // Envia el JWT como cookie
@@ -429,7 +429,8 @@ export async function authRoutes(fastify, options) {
 
       try {
         if (guestMode) {
-          return handleGuestLogin(request, reply);
+          return ;
+          //return handleGuestLogin(request, reply);
         }
 
         if (!username?.trim() || !password?.trim()) {
@@ -440,7 +441,7 @@ export async function authRoutes(fastify, options) {
 
         const user = await new Promise((resolve, reject) => {
           db.get(
-            "SELECT id, username, email, password, is_verified, two_factor_secret, two_factor_enabled, avatar_url FROM users WHERE username = ?",
+            "SELECT id, username, email, password, is_verified, two_factor_secret, two_factor_enabled, avatar_url, favourite_color FROM users WHERE username = ?",
             [username.trim()],
             (err, row) => {
               if (err) {
@@ -556,6 +557,12 @@ export async function authRoutes(fastify, options) {
   );
 
   // Funciones auxiliares separadas
+  /**
+   * @deprecated
+   * @param {*} request 
+   * @param {*} reply 
+   * @returns 
+   */
   async function handleGuestLogin(request, reply) {
     try {
       const guestUsername = `guest_${crypto.randomBytes(8).toString("hex")}`;
@@ -575,7 +582,7 @@ export async function authRoutes(fastify, options) {
       );
 
 
-		const jwt = fastify.jwt.sign({ user: auth.username, roles: ["guest"] }, { expiresIn: "1h" });
+		const jwt = fastify.jwt.sign({ user: auth.username, color: auth.favourite_color, roles: ["guest"] }, { expiresIn: "1h" });
 
       return reply
       .setCookie('token', jwt, {
@@ -607,7 +614,7 @@ export async function authRoutes(fastify, options) {
 
     // const refreshToken = await generateRefreshToken(user.id);
     const jwt = fastify.jwt.sign(
-      { id: user.id, user: user.username, roles: ["standard"] },
+      { id: user.id, user: user.username,color: user.favourite_color, roles: ["standard"] },
       { expiresIn: "1h" }
     );
 
@@ -680,6 +687,9 @@ export async function authRoutes(fastify, options) {
   );
 
   // POST /refresh-token
+  /**
+   * @deprecated
+   */
   fastify.post(
     "/refresh-token",
     {
@@ -737,7 +747,7 @@ export async function authRoutes(fastify, options) {
 
       //const newRefreshToken = await generateRefreshToken(tokenRecord.user_id);
       const jwt = fastify.jwt.sign(
-        { user: auth.username, roles: ["view"] }, //TODO: Sacar el Rol de la base de datos.
+        { user: auth.username,color: auth.favourite_color, roles: ["view"] }, //TODO: Sacar el Rol de la base de datos.
         { expiresIn: "1h" }
       );
 
@@ -1385,7 +1395,7 @@ fastify.post("/send-reset-email-password", {
               const user = await new Promise((resolve, reject) => {
                 db.get(
                   `
-                                SELECT id, username, two_factor_secret 
+                                SELECT id, username, two_factor_secret, favourite_color
                                 FROM users 
                                 WHERE id = ? 
                                 AND two_factor_secret IS NOT NULL
@@ -1527,7 +1537,7 @@ fastify.post("/send-reset-email-password", {
 
         //const refreshToken = await generateRefreshToken(user.id, request);
         const jwt = fastify.jwt.sign(
-          { id: user.id, user: user.username, roles: ["view"] },
+          { id: user.id, user: user.username, color: user.favourite_color, roles: ["view"] },
           { expiresIn: "1h" }
         );
 
