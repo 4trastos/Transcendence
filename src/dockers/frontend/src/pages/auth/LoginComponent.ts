@@ -38,9 +38,9 @@ export class LogInComponent extends Component {
 		</div>
 
 		<!-- Contenido encima -->
-		<div class="relative z-10">
+		<div class="relative z-10 w-[30rem]">
 
-	<div class="pb-6 px-[10vw]">
+	<div class="pb-6 ">
 			<h2 class="text-start text-white text-2xl font-regular mb-2 mt-2">¡Bienvenido!</h2>
 			<label class="text-start text-white  font-regular mb-2 mt-2">
 			¿No tienes una cuenta?
@@ -55,7 +55,7 @@ export class LogInComponent extends Component {
 	
 
 
-<form id="login-form" class="space-y-6 px-[10vw]">
+<form id="login-form" class="space-y-6 ">
 	<div class="space-y-4">
 
 		<!-- Usuario -->

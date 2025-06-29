@@ -32,17 +32,25 @@ export default class ChatView extends Component {
   protected async initEvents(): Promise<void> {
     if (!this.element) return;
 
-    this.socket = new WebSocket(
-      `ws://localhost:8443/chats/connect-ws`
-    );
-    this.socket.addEventListener("open", () => {
-      console.log("Conexión WebSocket abierta");
-    });
-    this.socket.addEventListener("close", () => {
-      console.log("Conexión WebSocket cerrada");
-    });
+    try {
+      this.socket = new WebSocket(
+        `wss://localhost:8443/chats/connect-ws`
+      );
+  
+      this.socket.addEventListener("open", () => {
+        console.log("Conexión WebSocket abierta");
+      });
+      this.socket.addEventListener("close", () => {
+        console.log("Conexión WebSocket cerrada");
+      });
+  
+      this.socket.addEventListener("message", this.handleMessage.bind(this));
+  
+    } catch (err) {
+      console.error(err);
+    }
 
-    this.socket.addEventListener("message", this.handleMessage.bind(this));
+
 
     await this.loadChats();
   }
@@ -78,93 +86,48 @@ export default class ChatView extends Component {
   private async loadChats() {
     try {
       let users;
-      let chats: Chat[] = [
-        {
-          id: "1",
-          active: true,
-          title: "Gym Bros",
-          avatarUrl: "",
-          isGroupChat: true,
-          users: ["1", "3", "2"],
-          messages: [
-            {
-              chatId: "3",
-              content:  "Hola",
-              sender_id: "2",
-              avatarUrl: "/images/jubin_jack.svg",
-            },
-            {
-              chatId: "3",
-              content:  "Adrian! ¿Todavia estas en casa?" ,
-              sender_id: "3",
-              avatarUrl: "/images/henry_deco.svg",
-            },
-          ],
-        },
-        {
-          id: "2",
-          active: false,
-          title: "Devid Heilo",
-          avatarUrl: '/images/devid_heilo.svg',
-          isGroupChat: false,
-          users: ["1", "3"],
-          messages: [
-            {
-              chatId: "2",
-              content: "Hola, ¿cómo estás?",
-              sender_id: "1",
-              avatarUrl: "/images/devid_heilo.svg",
-            },
-            {
-              chatId: "2",
-              content: "Bien, desarrollando un proyecto, tu?" ,
-              sender_id: "3",
-              avatarUrl: "/images/henry_deco.svg",
-
-            },
-          ],
-        },
-      ];
-      let res: any;
+      let chats: Chat[] = [];
+      
       const env = await fetch("/env").then((res) => res.json());
-      if (env.env === "production") {
+    
         const userResponse = await this.getUsers();
-        const chatResponse = await this.getChats();
+        const chatResponse: Chat[] = await this.getChats();
         if (chatResponse.length > 0)
           chats = chatResponse;
         if (userResponse.length > 0)
           users = userResponse;
+
+
+
+
+      const chatContainer = this.element?.querySelector(
+        "#chats-floating"
+      ) as HTMLElement;
+      for (let i = 0; i < chats.length; i++) {
+        if (chats[i].active) {
+          const onlineUsers = new Map<string, boolean>( );
+          chats[i].users.forEach((userId) => {
+            onlineUsers.set(userId, userId === this.userId);
+          });
+
+          const chatItemComponent = this.buildChat(onlineUsers, chats[i]);
+
+          chatContainer.appendChild(chatItemComponent.render());
+          this.floatingChats.set(chats[i].id, chatItemComponent);
+          this.chatMembers.set(chats[i].id, chats[i].users);
+          this.chats.set(chats[i].id, chats[i]);
+        }
       }
 
-      if (env.env === "development") {
-        if (chats.length > 0) {
-          const chatContainer = this.element?.querySelector(
-            "#chats-floating"
-          ) as HTMLElement;
-          for (let i = 0; i < chats.length; i++) {
-            if (chats[i].active) {
-              const onlineUsers = new Map<string, boolean>( );
-              chats[i].users.forEach((userId) => {
-                onlineUsers.set(userId, userId === this.userId);
-              });
-
-              const chatItemComponent = this.buildChat(onlineUsers, chats[i]);
-
-              chatContainer.appendChild(chatItemComponent.render());
-              this.floatingChats.set(chats[i].id, chatItemComponent);
-              this.chatMembers.set(chats[i].id, chats[i].users);
-              this.chats.set(chats[i].id, chats[i]);
-            }
-          }
-        }
 
         const listContainer = this.element?.querySelector(
           "#contacts-floating"
         ) as HTMLElement;
+
         const listItemComponent = new FloatingChatListComponent({
           chats: chats,
           suggestions: users,
-          owner: "3",
+          owner: this.userId,
           onClick: (id: string) => {
             const chatItem = chats.find((chat) => chat.id === id);
             if (!chatItem) return;
@@ -188,7 +151,7 @@ export default class ChatView extends Component {
 
 
         listContainer.appendChild(listItemComponent.render());
-      }
+
     } catch (error) {
       console.error("Error loading chats:", error);
     }
@@ -213,7 +176,7 @@ export default class ChatView extends Component {
 
   private async getUsers(): Promise<SummaryUser[]> {
     try {
-      const res = await fetch(`https://localhost:8443/backend/users`, {
+      const res = await fetch(`https://localhost:8443/backend/api/users`, {
         method: "GET",
         credentials: "include",
       });

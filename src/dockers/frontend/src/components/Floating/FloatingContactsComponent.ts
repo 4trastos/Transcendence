@@ -61,6 +61,9 @@ class ChatItemComponent extends Component {
 }
 
 
+
+
+
 interface SuggestionItemProps extends ComponentProps {
 	username: string;
 	hasFriend: boolean;
@@ -76,13 +79,20 @@ class SuggestionItemComponent extends Component {
 		this.template = this.renderTemplate();
 	}
 
+
+
 	updateStatus(online: boolean) {
 		const itemStatus = this.element?.querySelector('#chat-item-status') as HTMLElement;
 		if (!itemStatus) return;
 		itemStatus.classList.toggle('bg-green-500', online);
 		itemStatus.classList.toggle('bg-red-500', !online);
 	}
-
+	updateFriendStatus(online: boolean) {
+		const itemFriendStatus = this.element?.querySelector(`#suggestion-btn-${this.props.username}`) as HTMLElement;
+		if (!itemFriendStatus) return;
+		itemFriendStatus.innerHTML = '';
+		itemFriendStatus.classList.toggle('bg-red-500', !online);
+	}
 	renderTemplate() {
 		return `
 	<div class="flex justify-center w-full"> 
@@ -93,23 +103,32 @@ class SuggestionItemComponent extends Component {
 			<div class="flex-1 min-w-0">
 				<p class="text-white font-regular text-sm">${this.props.username}</p>
 			</div>
-			<div class="flex-shrink-0 self-center">
-			${this.props.hasFriend ? `
+			<div id="suggestion-btn-${this.props.username}" class="flex-shrink-0 self-center">
+			${!this.props.hasFriend ? `
 				<button id="add-friend-${this.props.username}" 
-					class="ripple bg-transparent border border-white text-white text-sm py-2 px-6 rounded-full hover:bg-white/10 transition">
-					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-					</svg>
+					class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
+						<svg  version="1.1" id="Capa_1" 
+							viewBox="0 0 309.059 309.059" xml:space="preserve" class="h-3 w-3">
+						<g>
+							<g>
+								<path style="fill:#FFFFFF;" d="M280.71,126.181h-97.822V28.338C182.889,12.711,170.172,0,154.529,0S126.17,12.711,126.17,28.338
+									v97.843H28.359C12.722,126.181,0,138.903,0,154.529c0,15.621,12.717,28.338,28.359,28.338h97.811v97.843
+									c0,15.632,12.711,28.348,28.359,28.348c15.643,0,28.359-12.717,28.359-28.348v-97.843h97.822
+									c15.632,0,28.348-12.717,28.348-28.338C309.059,138.903,296.342,126.181,280.71,126.181z"/>
+							</g>
+						</g>
+						</svg>
 				</button>
 				` : `
 				<button id="send-message-${this.props.username}" 
-					class="ripple bg-transparent border border-white text-white text-sm py-2 px-6 rounded-full hover:bg-white/10 transition">
+					class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
 					<svg 
 						xmlns="http://www.w3.org/2000/svg" 
 						fill="none"
+						stroke="#FFFFFF" 
 						viewBox="0 0 24 24"
 							stroke="currentColor" 
-							class="h-5 w-5">
+							class="h-3 w-3">
 					<path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
 					</svg>
 				</button>
@@ -123,7 +142,6 @@ class SuggestionItemComponent extends Component {
 	protected initEvents(): void {
 		if (!this.element) return;
 
-		this.updateStatus(this.props.online || false);
 		this.element.querySelector(`#add-friend-${this.props.username}`)?.addEventListener("click", () => {
 			this.props.onAdded();
 		});
@@ -162,17 +180,22 @@ export default class FloatingChatListComponent extends Component {
 
 <div class="rounded-lg h-fit w-fit px-[5px] bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
 
-	<div id="contacts" class=" shadow-black shadow-xl bg-[#11162F] bottom-4 right-4 w-[18rem] h-[33rem] rounded-lg  flex flex-col overflow-hidden z-50">
+	<div id="contacts" class=" shadow-black shadow-xl bg-[#11162F] bottom-4 right-4 w-[18rem] h-[33rem] space-y-4 rounded-lg  flex flex-col overflow-hidden z-50">
 		<!-- Encabezado -->
 		<div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
-			<h2 class="text-white text-sm font-ligth">Amigos</h2>
+			<h1 class="text-white text-sm font-ligth">Contactos</h1>
 		</div>
 
 		<!-- Lista -->
-		<div id="contacts-content" class="items-center px-5 pb-3 flex flex-col space-y-4"> 
+		<div id="messages-content" class="items-start px-5 pb-3 flex flex-col space-y-2"> 
+			<h2 class="text-white text-sm font-ligth">Mensajes</h2>
 			<div id="chat-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10"></div>
-			<div id="suggestion-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10"></div>
 		</div>
+		<div id="suggestions-content" class="items-start px-5 pb-3 flex flex-col space-y-2"> 
+			<h2 class="text-white text-sm font-ligth">Sugerencias</h2>
+			<div id="suggestion-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10 space-y-1"></div>
+		</div>
+
 	</div>
 </div>
 	`;
@@ -185,44 +208,58 @@ export default class FloatingChatListComponent extends Component {
 		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
 		const chatLength = this.props.chats?.length || 0;
 		this.props.chats?.forEach((chat: Chat, index) => {
-			const chatItem = new ChatItemComponent({
-				name: chat.title,
-				lastMessage: chat.messages[chat.messages.length - 1].content,
-				avatar: chat.avatarUrl || '',
-				isGroupChat: chat.isGroupChat,
-				online: true,
-				onClick: () => {
-					this.props.onClick?.(chat.id);
+			try {
+				const chatItem = new ChatItemComponent({
+					name: chat.title,
+					lastMessage: chat.messages.length !== 0  ? chat.messages[chat.messages.length - 1].content: "",
+					avatar: chat.avatarUrl || '',
+					isGroupChat: chat.isGroupChat,
+					online: true,
+					onClick: () => {
+						this.props.onClick?.(chat.id);
+					}
+				});
+	
+				chatList.appendChild(chatItem.render());
+				if (index < chatLength - 1) {
+					const hr = document.createElement('hr') as HTMLElement;
+					hr.classList.add('border-t', 'border-white', 'border-opacity-15');
+					chatList.appendChild(hr);
 				}
-			});
-
-			chatList.appendChild(chatItem.render());
-			if (index < chatLength - 1) {
-				const hr = document.createElement('hr') as HTMLElement;
-				hr.classList.add('border-t', 'border-white', 'border-opacity-15');
-				chatList.appendChild(hr);
+			} catch (err) {
+				console.error("No se pudo crear el item",  err);
 			}
+
 		});
+
+
 		this.props.suggestions?.forEach((summaryUser: SummaryUser, index) => {
 
-			const suggestionItem = new SuggestionItemComponent({
-				username: summaryUser.username,
-				avatar: summaryUser.avatar,
-				hasFriend: summaryUser.hasFriend,
-				onAdded: () => {
-					this.addFriend(summaryUser.username, () => {
-						suggestionItem.update({hasFriend:true});
-					})
-				},
-				onOpenChat: () => {
-					//TODO: creo el chat
-					this.createChat(summaryUser.username, () => {
-						suggestionItem.update({hasFriend:true});
-					})
-				}
-			});
-
+			try {
+				const suggestionComponent = new SuggestionItemComponent({
+					username: summaryUser.username,
+					avatar: summaryUser.avatar,
+					hasFriend: summaryUser.hasFriend,
+					onAdded: () => {
+						this.addFriend(summaryUser.username, () => {
+							suggestionComponent.update({hasFriend:true});
+						})
+					},
+					onOpenChat: () => {
+						//TODO: creo el chat
+						this.createChat(summaryUser.username, () => {
+							suggestionComponent.update({hasFriend: true});
+						})
+					}
+				});
+				suggestionsItem.appendChild(suggestionComponent.render());
+	
+			} catch (err) {
+				console.error("No se pudo crear el item",  err);
+			}
 		});
+
+
 		const header = this.element?.querySelector(
 			`#list-header`
 		) as HTMLElement;
@@ -236,15 +273,24 @@ export default class FloatingChatListComponent extends Component {
 			chatItem.classList.toggle("h-[33rem]");
 			chatItem.classList.toggle("h-fit");
 			chatItem
-				.querySelector(`#contacts-content`)
+				.querySelector(`#messages-content`)
+				?.classList.toggle("hidden");
+			chatItem
+				.querySelector(`#suggestions-content`)
 				?.classList.toggle("hidden");
 		});
 	}
+
+
+
 	async createChat(username: string, update: () => void) {
 		try {
-			const response = await fetch('https://localhost:8443/chats/chats', {
+			const response = await fetch('https://localhost:8443/chats/', {
 				method: 'POST',
 				credentials: "include",
+				headers: {
+					"Content-Type": "application/json",
+				},
 				body: JSON.stringify({users: [username], isGroupChat: false})
 			});
 
@@ -262,12 +308,16 @@ export default class FloatingChatListComponent extends Component {
 	}
 	async addFriend(username: string, update: () => void) {
 		try {
-			const  response = await fetch('http://localhost:3000/api/friends/' + username, {
+			const  response = await fetch('https://localhost:8443/backend/api/friends/' + username, {
 				method: 'POST',
-				credentials: "include"
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+				body: JSON.stringify({})
 			});
 			if (response.ok) {
-
+				update();
 				ToastService.show(`Se añadio a ${username} a la lista de amigos`, "success");
 			} else {
 				ToastService.show("Error al intentar añadir a " + username, "error");

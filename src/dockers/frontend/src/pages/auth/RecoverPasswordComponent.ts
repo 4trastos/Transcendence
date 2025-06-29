@@ -30,9 +30,9 @@ export class RecoverPasswordComponent extends Component {
     </div>
 
     <!-- Contenido encima -->
-    <div class="relative z-10">
+    <div class="relative z-10 w-[30rem]">
 
-	<div class="pb-6 px-[10vw]">
+	<div class="pb-6 ">
       <h2 class="text-start text-white text-2xl font-regular mb-2 mt-2">Recuperar Contraseña</h2>
       <label class="text-start text-white  font-regular mb-2 mt-2">
         Te enviaremos un enlace para cambiar tu clave.
@@ -42,7 +42,7 @@ export class RecoverPasswordComponent extends Component {
   
 
 
-<form id="send-reset-form" class="space-y-6 px-[10vw]">
+<form id="send-reset-form" class="space-y-6 ">
   <div class="space-y-4">
 
     <!-- Usuario -->

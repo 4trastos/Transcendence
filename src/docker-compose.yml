@@ -108,7 +108,7 @@ services:
       security:
         condition: service_healthy
       frontend:
-        condition: service_started
+        condition: service_healthy
       chat-service:
         condition: service_started
     restart: always

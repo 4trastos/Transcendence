@@ -102,7 +102,7 @@ export class ProfilePage extends Component {
             return;
         }
         this.userProfile = await this.getUserProfiel();
-        console.log(this.userProfile);
+
         const profile = this.element.querySelector("#profile") as HTMLElement
         const profileExit = this.element.querySelector(`#profile-exit`) as HTMLButtonElement;
         if (profileExit) {

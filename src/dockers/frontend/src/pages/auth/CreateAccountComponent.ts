@@ -29,9 +29,9 @@ export class CreateAccountComponent extends Component {
     </div>
 
         <!-- Contenido encima -->
-    <div class="relative z-10">
+    <div class="relative z-10 w-[30rem]">
 
-        <div class="pb-6 px-[10vw]">
+        <div class="pb-6">
             <h2 class="text-start text-white text-2xl font-regular mb-2 mt-2">Registro</h2>
 
         </div>
@@ -39,7 +39,7 @@ export class CreateAccountComponent extends Component {
         
 
 
-      <form id="create-account-form" class="space-y-6 px-[10vw]">
+      <form id="create-account-form" class="space-y-6">
         <div class="space-y-4">
 
           <!-- Usuario -->
@@ -249,10 +249,10 @@ public showInputError(input:any) {
           ToastService.show("Registro exitoso!", "success");
         }
       } else {
-        ToastService.show("Error al enviar el formulario", "success");
+        ToastService.show("Error al enviar el formulario", "error");
       }
     } catch (err) {
-      ToastService.show("Error al enviar el formulario", "success");
+      ToastService.show("Error al enviar el formulario", "error");
     }
 
   }
