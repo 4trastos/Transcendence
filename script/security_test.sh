@@ -49,40 +49,52 @@ run_test() {
 TOTAL_TESTS=0
 PASSED_TESTS=0
 
-# Función para analizar el reporte ZAP
+# Función para analizar el reporte ZAP CORREGIDA
 analyze_zap_report() {
   local report_file="/zap/reports/zap_report.html"
-  local error_count=0
-  local warning_count=0
+  local high_count=0
+  local medium_count=0
+  local low_count=0
   local info_count=0
   local zap_status="passed"
 
   if [ -f "$report_file" ]; then
-    error_count=$(grep -ic "risk-3" "$report_file")
-    warning_count=$(grep -ic "risk-2" "$report_file")
-    info_count=$(grep -ic "risk-1" "$report_file")
+    # Contar por nivel de riesgo usando patrones específicos de la tabla de resumen
+    high_count=$(grep -A 1 'High</td>' "$report_file" | grep -E '<td [^>]*>([0-9]+)</td>' | sed -E 's/[^0-9]*([0-9]+).*/\1/' | head -1)
+    medium_count=$(grep -A 1 'Medium</td>' "$report_file" | grep -E '<td [^>]*>([0-9]+)</td>' | sed -E 's/[^0-9]*([0-9]+).*/\1/' | head -1)
+    low_count=$(grep -A 1 'Low</td>' "$report_file" | grep -E '<td [^>]*>([0-9]+)</td>' | sed -E 's/[^0-9]*([0-9]+).*/\1/' | head -1)
+    info_count=$(grep -A 1 'Informational</td>' "$report_file" | grep -E '<td [^>]*>([0-9]+)</td>' | sed -E 's/[^0-9]*([0-9]+).*/\1/' | head -1)
 
-    if [ "$error_count" -gt 0 ] || [ "$warning_count" -gt 0 ]; then
-      zap_status="failed" # Cambiamos el estado si hay errores
+    # Convertir valores vacíos a cero
+    high_count=${high_count:-0}
+    medium_count=${medium_count:-0}
+    low_count=${low_count:-0}
+    info_count=${info_count:-0}
+
+    if [[ "$high_count" -gt 0 || "$medium_count" -gt 0 ]]; then
+      zap_status="failed"
     fi
 
-    # Añadimos la casilla de resultado de ZAP al reporte
-    if [ "$zap_status" == "passed" ]; then
-      add_test_result "Vulnerabilidades encontradas en ZAP" "passed" "✓ No se encontraron vulnerabilidades" "ZAP no encontró ninguna vulnerabilidad de gravedad alta o media."
+    # Añadir la casilla de resultado de ZAP al reporte
+    if [[ "$zap_status" == "passed" ]]; then
+      add_test_result "Vulnerabilidades encontradas en ZAP" "passed" "✓ No se encontraron vulnerabilidades" "ZAP no encontró vulnerabilidades de gravedad alta o media."
     else
-      add_test_result "Vulnerabilidades encontradas en ZAP" "failed" "✗ Vulnerabilidades encontradas" "ZAP detectó vulnerabilidades de gravedad alta o media. <a href='/zap_reports/zap_report.html' target='_blank'>Ver reporte detallado</a>"
+      add_test_result "Vulnerabilidades encontradas en ZAP" "failed" "✗ Vulnerabilidades encontradas" "ZAP detectó $high_count vulnerabilidades de alta y $medium_count de media severidad. <a href='/zap_reports/zap_report.html' target='_blank'>Ver reporte detallado</a>"
     fi
 
+    local total_alerts=$((high_count + medium_count + low_count + info_count))
+    
     echo ""
     echo "----------------------------------------"
-    echo " RESUMEN ERRORES REPORTE ZAP ($((error_count + warning_count + info_count)) encontrados)"
+    echo " RESUMEN REPORTE ZAP ($total_alerts encontrados)"
     echo "----------------------------------------"
-    echo "[❌] Errores de alta severidad: $error_count"
-    echo "[⚠️ ] Advertencias de media severidad: $warning_count"
+    echo "[❌] Errores de alta severidad: $high_count"
+    echo "[⚠️ ] Advertencias de media severidad: $medium_count"
+    echo "[🔶] Alertas de baja severidad: $low_count"
     echo "[ℹ️ ] Alertas informativas: $info_count"
     echo ""
 
-    if [ "$error_count" -gt 0 ] || [ "$warning_count" -gt 0 ]; then
+    if [[ "$high_count" -gt 0 || "$medium_count" -gt 0 ]]; then
       echo "¡Se encontraron vulnerabilidades que necesitan atención!"
       echo "Revisa el reporte completo en: $report_file"
     else
