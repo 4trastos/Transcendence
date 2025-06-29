@@ -292,7 +292,10 @@ export class ProfilePage extends Component {
             onSave: (profile: [DataProfileChange]) => {
                 this.updateProfile(profile, () => {
                     this.toggleHiddenItems("4");
-                    colorFavItem?.update({ value: this.userProfile.favourite_color });
+                    colorFavItem?.update({ 
+                        value: this.userProfile.favourite_color,
+                        avatarColor: this.userProfile.favourite_color
+                    });
                 }, () => { });
             }
         });
