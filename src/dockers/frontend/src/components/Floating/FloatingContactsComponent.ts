@@ -205,12 +205,13 @@ export default class FloatingChatListComponent extends Component {
 	`;
 	}
 
-	
-	protected initEvents(): void {
+
+	createChatList(chats?: Chat[]) {
 		if (!this.element) return;
+		if (!chats) return;
 		const chatList = this.element.querySelector('#chat-list') as HTMLElement;
-		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
 		const chatLength = this.props.chats?.length || 0;
+		chatList.innerHTML = '';
 		this.props.chats?.forEach((chat: Chat, index) => {
 			try {
 				const chatItem = new ChatItemComponent({
@@ -223,7 +224,7 @@ export default class FloatingChatListComponent extends Component {
 						this.props.onClick?.(chat.id);
 					}
 				});
-	
+
 				chatList.appendChild(chatItem.render());
 				if (index < chatLength - 1) {
 					const hr = document.createElement('hr') as HTMLElement;
@@ -236,6 +237,49 @@ export default class FloatingChatListComponent extends Component {
 
 		});
 
+	}
+	
+	createSuggestionList(suggestions?: SummaryUser[]) {
+		if (!this.element) return;
+		if (!suggestions) return;
+		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
+
+
+		suggestions?.forEach((summaryUser: SummaryUser, index) => {
+
+			try {
+				const suggestionComponent = new SuggestionItemComponent({
+					username: summaryUser.username,
+					avatar: summaryUser.avatar,
+					hasFriend: summaryUser.hasFriend,
+					onOpenChat:() => {
+						//TODO: creo el chat
+						this.createChat(summaryUser.username, (id:string) => {
+							this.props.onClick?.(id);
+							suggestionComponent.updateFriendStatus(true);
+							
+						})
+					},
+					onAdded: () => {
+						this.addFriend(summaryUser.username, () => {
+							suggestionComponent.updateFriendStatus(true);
+						})
+					},
+				});
+
+				suggestionsItem.appendChild(suggestionComponent.render());
+	
+			} catch (err) {
+				console.error("No se pudo crear el item",  err);
+			}
+		});
+
+	}
+	protected initEvents(): void {
+		if (!this.element) return;
+		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
+		this.createChatList(this.props.chats);
+		this.createSuggestionList(this.props.suggestions);
 
 		this.props.suggestions?.forEach((summaryUser: SummaryUser, index) => {
 

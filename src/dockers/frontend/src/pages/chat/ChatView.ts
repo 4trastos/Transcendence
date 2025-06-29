@@ -147,8 +147,12 @@ export default class ChatView extends Component {
             this.chatMembers.set(chatItem.id, chatItem.users);
             this.chats.set(chatItem.id, chatItem);
             const chatResponse: Chat[] = await this.getChats();
-            if (chatResponse.length > 0)
-              listItemComponent.update({chats:chatResponse});
+            if (chatResponse.length > 0){ //TODO: Actualizar solamente la lista de chats
+     
+    
+              listItemComponent.createChatList(chatResponse);
+            
+            }
           },
         });
 
