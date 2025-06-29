@@ -110,7 +110,14 @@ export default class ChatSqlite {
       [...userIdsList, userIdsList.length]
     );
 
-    if (chatExist) throw new HandleException("Ya existe un chat para estos usuarios", 409);
+    if (chatExist){
+  
+      return {
+      id: chatExist.id,
+      users: userIdsList,
+      isGroupChat: chat.isGroupChat
+    };
+  }
  
     const result = await this.db.run(
       `INSERT INTO chats (title, is_group_chat) VALUES (?, ?)`,

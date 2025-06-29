@@ -11,6 +11,7 @@ export interface Message {
 export const messageDtoSchema = {
     type: "object",
     properties: {
+        id: { type: "string" },
         sender_id: { type: "string" },
         content: { type: "string"  },
         chatId: { type: "string" },

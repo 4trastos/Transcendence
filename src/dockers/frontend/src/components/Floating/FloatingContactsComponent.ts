@@ -32,21 +32,21 @@ class ChatItemComponent extends Component {
 
 	renderTemplate() {
 		return `
-	<div class="flex justify-center w-full"> 
-      <div class="flex w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-5 cursor-pointer">
-      <div class="flex-shrink-0">
-        <img src="${this.props.avatar}" alt="${this.props.name}" class="w-7 h-7 rounded-full object-cover">
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-white font-regular text-sm">${this.props.name}</p>
-        <p 
-		class="text-gray-400 text-xs font-ligth truncate"
-		>${this.props.lastMessage}</p>
-      </div>
-      <div class="flex-shrink-0 self-center">
-        ${!this.props.isGroupChat ? `<div id="chat-item-status" class="w-1.5 h-1.5 aspect-square rounded-full "></div>` : ''}
-      </div>
-    </div></div>
+		<div class="flex justify-center w-full"> 
+		<div class="flex w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-5 cursor-pointer">
+		<div class="flex-shrink-0">
+			<img src="${this.props.avatar}" alt="${this.props.name}" class="w-7 h-7 rounded-full object-cover">
+		</div>
+		<div class="flex-1 min-w-0">
+			<p class="text-white font-regular text-sm">${this.props.name}</p>
+			<p 
+			class="text-gray-400 text-xs font-ligth truncate"
+			>${this.props.lastMessage}</p>
+		</div>
+		<div class="flex-shrink-0 self-center">
+			${!this.props.isGroupChat ? `<div id="chat-item-status" class="w-1.5 h-1.5 aspect-square rounded-full "></div>` : ''}
+		</div>
+		</div></div>
 	`;
 	}
 
@@ -88,10 +88,46 @@ class SuggestionItemComponent extends Component {
 		itemStatus.classList.toggle('bg-red-500', !online);
 	}
 	updateFriendStatus(online: boolean) {
+		if (!this.element) return;
 		const itemFriendStatus = this.element?.querySelector(`#suggestion-btn-${this.props.username}`) as HTMLElement;
 		if (!itemFriendStatus) return;
 		itemFriendStatus.innerHTML = '';
-		itemFriendStatus.classList.toggle('bg-red-500', !online);
+		itemFriendStatus.innerHTML = !online ? `
+			<button id="add-friend-${this.props.username}" 
+				class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
+					<svg  version="1.1" id="Capa_1" 
+						viewBox="0 0 309.059 309.059" xml:space="preserve" class="h-3 w-3">
+					<g>
+						<g>
+							<path style="fill:#FFFFFF;" d="M280.71,126.181h-97.822V28.338C182.889,12.711,170.172,0,154.529,0S126.17,12.711,126.17,28.338
+								v97.843H28.359C12.722,126.181,0,138.903,0,154.529c0,15.621,12.717,28.338,28.359,28.338h97.811v97.843
+								c0,15.632,12.711,28.348,28.359,28.348c15.643,0,28.359-12.717,28.359-28.348v-97.843h97.822
+								c15.632,0,28.348-12.717,28.348-28.338C309.059,138.903,296.342,126.181,280.71,126.181z"/>
+						</g>
+					</g>
+					</svg>
+			</button>
+			` : `
+			<button id="send-message-${this.props.username}" 
+				class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
+				<svg 
+					xmlns="http://www.w3.org/2000/svg" 
+					fill="none"
+					stroke="#FFFFFF" 
+					viewBox="0 0 24 24"
+						stroke="currentColor" 
+						class="h-3 w-3">
+				<path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+				</svg>
+			</button>
+			` 
+
+			this.element.querySelector(`#add-friend-${this.props.username}`)?.addEventListener("click", () => {
+				this.props.onAdded();
+			});
+			this.element.querySelector(`#send-message-${this.props.username}`)?.addEventListener("click", () => {
+				this.props.onOpenChat();
+			});
 	}
 	renderTemplate() {
 		return `
@@ -104,35 +140,7 @@ class SuggestionItemComponent extends Component {
 				<p class="text-white font-regular text-sm">${this.props.username}</p>
 			</div>
 			<div id="suggestion-btn-${this.props.username}" class="flex-shrink-0 self-center">
-			${!this.props.hasFriend ? `
-				<button id="add-friend-${this.props.username}" 
-					class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
-						<svg  version="1.1" id="Capa_1" 
-							viewBox="0 0 309.059 309.059" xml:space="preserve" class="h-3 w-3">
-						<g>
-							<g>
-								<path style="fill:#FFFFFF;" d="M280.71,126.181h-97.822V28.338C182.889,12.711,170.172,0,154.529,0S126.17,12.711,126.17,28.338
-									v97.843H28.359C12.722,126.181,0,138.903,0,154.529c0,15.621,12.717,28.338,28.359,28.338h97.811v97.843
-									c0,15.632,12.711,28.348,28.359,28.348c15.643,0,28.359-12.717,28.359-28.348v-97.843h97.822
-									c15.632,0,28.348-12.717,28.348-28.338C309.059,138.903,296.342,126.181,280.71,126.181z"/>
-							</g>
-						</g>
-						</svg>
-				</button>
-				` : `
-				<button id="send-message-${this.props.username}" 
-					class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
-					<svg 
-						xmlns="http://www.w3.org/2000/svg" 
-						fill="none"
-						stroke="#FFFFFF" 
-						viewBox="0 0 24 24"
-							stroke="currentColor" 
-							class="h-3 w-3">
-					<path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-					</svg>
-				</button>
-				` }
+			
 			</div>
 		</div>
 	</div>
@@ -141,13 +149,9 @@ class SuggestionItemComponent extends Component {
 
 	protected initEvents(): void {
 		if (!this.element) return;
+		this.updateFriendStatus(this.props.hasFriend);
 
-		this.element.querySelector(`#add-friend-${this.props.username}`)?.addEventListener("click", () => {
-			this.props.onAdded();
-		});
-		this.element.querySelector(`#send-message-${this.props.username}`)?.addEventListener("click", () => {
-			this.props.onOpenChat();
-		});
+	
 	}
 }
 
@@ -240,18 +244,20 @@ export default class FloatingChatListComponent extends Component {
 					username: summaryUser.username,
 					avatar: summaryUser.avatar,
 					hasFriend: summaryUser.hasFriend,
-					onAdded: () => {
-						this.addFriend(summaryUser.username, () => {
-							suggestionComponent.update({hasFriend:true});
+					onOpenChat:() => {
+						//TODO: creo el chat
+						this.createChat(summaryUser.username, (id:string) => {
+							this.props.onClick?.(id);
+							suggestionComponent.updateFriendStatus(true);
 						})
 					},
-					onOpenChat: () => {
-						//TODO: creo el chat
-						this.createChat(summaryUser.username, () => {
-							suggestionComponent.update({hasFriend: true});
+					onAdded: () => {
+						this.addFriend(summaryUser.username, () => {
+							suggestionComponent.updateFriendStatus(true);
 						})
-					}
+					},
 				});
+
 				suggestionsItem.appendChild(suggestionComponent.render());
 	
 			} catch (err) {
@@ -283,7 +289,7 @@ export default class FloatingChatListComponent extends Component {
 
 
 
-	async createChat(username: string, update: () => void) {
+	async createChat(username: string, update: (id:string) => void) {
 		try {
 			const response = await fetch('https://localhost:8443/chats/', {
 				method: 'POST',
@@ -294,10 +300,9 @@ export default class FloatingChatListComponent extends Component {
 				body: JSON.stringify({users: [username], isGroupChat: false})
 			});
 
-			if (response.ok) {
+			if (response.ok || response.status === 201 || response.status === 409) {
 				const body = await response.json();
-				update();
-				this.props.onClick?.(body.id);
+				update(body.id);
 
 			} else {
 				ToastService.show("Error al intentar crear el chat con " + username, "error");	
@@ -316,7 +321,7 @@ export default class FloatingChatListComponent extends Component {
 				credentials: "include",
 				body: JSON.stringify({})
 			});
-			if (response.ok) {
+			if (response.ok || response.status === 201) {
 				update();
 				ToastService.show(`Se añadio a ${username} a la lista de amigos`, "success");
 			} else {

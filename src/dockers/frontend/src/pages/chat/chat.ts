@@ -2,6 +2,9 @@ import { ChatItem } from "../../components/ChatItem/ChatItem";
 import { Chat } from "../../data/Chat";
 import { Component } from "../../utils/component";
 
+/**
+ * @deprecated
+ */
 export class ChatPage extends Component {
   private socket: WebSocket | undefined;
   private activeChat: string | null = null;

@@ -119,7 +119,6 @@ export default class ChatView extends Component {
         }
       }
 
-
         const listContainer = this.element?.querySelector(
           "#contacts-floating"
         ) as HTMLElement;
@@ -128,8 +127,10 @@ export default class ChatView extends Component {
           chats: chats,
           suggestions: users,
           owner: this.userId,
-          onClick: (id: string) => {
-            const chatItem = chats.find((chat) => chat.id === id);
+          onClick: async (id: string) => {
+
+            console.log("Abro el chat" + id);
+            const chatItem = chats.find((chat) => Number(chat.id) === Number(id));
             if (!chatItem) return;
 
             if (this.element?.querySelector(`#chat-${id}`)) return;
@@ -145,6 +146,9 @@ export default class ChatView extends Component {
             this.floatingChats.set(chatItem.id, chatItemComponent);
             this.chatMembers.set(chatItem.id, chatItem.users);
             this.chats.set(chatItem.id, chatItem);
+            const chatResponse: Chat[] = await this.getChats();
+            if (chatResponse.length > 0)
+              listItemComponent.update({chats:chatResponse});
           },
         });
 
