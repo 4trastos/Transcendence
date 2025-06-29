@@ -50,6 +50,7 @@ export async function userRoutes(fastify, options) {
             username: { type: 'string' },
             email: { type: 'string' },
             avatar: { type: 'string' },
+            hasFriend: { type: 'boolean' },
           }
         }
       },
@@ -71,26 +72,27 @@ export async function userRoutes(fastify, options) {
 
       const rows = await new Promise((resolve, reject) => {
         db.all(`
-          SELECT 
+          SELECT DISTINCT
               u.id AS id,
               u.username AS username,
               u.full_name AS full_name,
-              u.email AS user_email,
+              u.email AS email,
               u.avatar_url AS avatar,
               CASE 
-                  WHEN COUNT(*) > 0 THEN 'true'
-                  ELSE 'false'
-              END AS are_friends
+                  WHEN 
+                      (ur.user_id = ? OR ur.related_user_id = ?)
+                      AND ur.relationship_type = 'friend'
+                  THEN 1
+                  ELSE 0
+              END AS hasFriend
           FROM 
               users u
           LEFT JOIN 
-              user_relationships ur ON ur.user_id = u.id OR ur.related_user_id = u.id
-          WHERE 
-              ur.relationship_type = 'friend'
-              AND (ur.user_id = ? OR ur.related_user_id = ?)
-          GROUP BY 
-              u.id;
-          `, [decoded.id, decoded.id], (err, rows) => {
+              user_relationships ur 
+              ON ur.user_id = u.id OR ur.related_user_id = u.id
+          WHERE
+            u.id != ?
+          `, [decoded.id, decoded.id, decoded.id], (err, rows) => {
             if (err) {
               reject(new Error('Error al consultar la tabla users: ' + err.message));
               return;
@@ -98,7 +100,16 @@ export async function userRoutes(fastify, options) {
             resolve(rows);
           });
       });
-      reply.send(rows);
+
+
+      const mappedUsers = rows.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        hasFriend: user.hasFriend === 1,
+      }));
+      reply.send(mappedUsers);
     } catch (err) {
       console.error('Error:', err.message);
       reply.status(500).send({ error: 'Internal Server Error', message: err.message });

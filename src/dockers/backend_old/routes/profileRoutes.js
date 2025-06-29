@@ -41,7 +41,7 @@ export async function profileRoutes(fastify, options) {
 
     fastify.get('/profile', {
         schema: {
-            summary: 'Obtener los datos de perfil de un usuario',
+            summary: 'Obtener los datos de perfil del usuario autorizado',
             description: 'Devuelve todos los datos neccesarios para montar el perfil del usuario en el front',
             response: {
                 200: {
@@ -148,6 +148,122 @@ export async function profileRoutes(fastify, options) {
             })
         })
     })
+
+
+    fastify.get('/profile/:id', {
+      schema: {
+          summary: 'Obtener los datos de perfil de un usuario',
+          description: 'Devuelve los datos del usuario resumido',
+          params: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer' }
+            },
+          },
+          response: {
+            200: {
+                description: 'Datos del usuario',
+                type: 'object',
+                properties: {
+                    status: { type: 'string', example: 'ok' },
+                    data: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'integer' },
+                            username: { type: 'string' },
+                            email: { type: 'string' },
+                            full_name: { type: 'string' },
+                            last_name: { type: 'string' },
+                            favourite_color: { type: 'string' },
+                            pfp: { type: 'string' },
+                            country: { type: 'string' },
+                            bio: { type: 'string' },
+                            contacts: {
+                              type: 'array',
+                              items: { type: 'string' },
+                            }
+                        }
+                    }
+                }
+            },
+            400: {
+                description: 'ID inválido',
+                type: 'object',
+                properties: {
+                    status: { type: 'string' },
+                    message: { type: 'string' }
+                }
+            },
+            500: {
+                description: 'Error del servidor',
+                type: 'object',
+                properties: {
+                    status: { type: 'string' },
+                    message: { type: 'string' }
+                }
+            }
+        }
+      }
+  },async (request, reply) => {
+    const id = request.params.id;
+
+      if (isNaN(id)){
+          return reply.code(400).send({status: 'error', message: 'ID invalido'})
+      }
+
+      const query = `
+          SELECT 
+            u.*, 
+            ur.related_user_id AS friend_id, 
+            u2.username AS friend_username, 
+            u2.id AS friend_user_id
+          FROM users u
+          LEFT JOIN user_relationships ur 
+            ON u.id = ur.user_id AND ur.relationship_type = 'friend'
+          LEFT JOIN users u2 
+            ON ur.related_user_id = u2.id
+          WHERE u.id = ?
+      `;
+
+      return new Promise((resolve, reject) => {
+          db.all(query, [id], (err, rows) => {
+              if (err) {
+                  console.error('Error al consultar la base de datos:', err.message)
+                  reply.code(500).send({ status: 'error', message: 'Error interno del servidor' })
+                  return reject(err)
+              }
+              if (!rows || rows.length === 0) {
+                return reply.code(404).send({ status: 'error', message: 'Usuario no encontrado o sin amigos' });
+              }
+              const user = rows[0]
+
+              const userData = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                full_name: user.full_name,
+                last_name: user.last_name,
+                favourite_color: user.favourite_color,
+                pfp: user.avatar_url,
+                country: user.country,
+                bio: user.bio,
+                contacts: []
+            };
+        
+              for (const row of rows) {
+                if (row.friend_user_id) {
+                  userData.contacts.push({
+                    username: row.friend_username
+                  });
+                }
+              }
+
+              reply.code(200).send({status: 'ok', data: userData})
+              resolve()
+          })
+      })
+  })
+
 
     fastify.put('/profile', {
         schema: {

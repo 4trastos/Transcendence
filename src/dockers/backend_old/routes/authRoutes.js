@@ -18,7 +18,13 @@ export async function authRoutes(fastify, options) {
     const sendError = (reply, status, error, details = {}) => {
       const response = { success: false, error, ...details };
       console.error(`Login error [${status}]:`, response);
-      return reply.status(status).send(response);
+      return reply.status(status)
+      .clearCookie("token", {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: false
+      }).send(response);
     };
 
     const dbPath = '/var/lib/sqlite/sqlite.db';
@@ -853,12 +859,35 @@ export async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
         const decoded = await request.jwtVerify();
-        console.log(decoded);
-        reply.send({
+
+        const query = `
+        SELECT * FROM users u WHERE u.id = ?;
+        `
+
+        const result = await new Promise((resolve, reject) => {
+          db.get(query, [decoded.id], (err, row) => {
+            if (err){
+       
+              reject(err);
+            } else {
+              resolve(row);
+            }
+          });
+        });
+
+        if (!result) {
+          return sendError(reply, 404, "Usuario no encontrado", {
+            solution: "Verifique este regístrado",
+          });
+        }
+
+        console.log(result);
+        reply
+        .send({
           valid: true,
           decoded:decoded,
           expiresAt: new Date(decoded.exp * 1000).toISOString(),
-        });c
+        });
     }
   );
 
