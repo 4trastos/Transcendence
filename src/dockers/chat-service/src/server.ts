@@ -35,7 +35,9 @@ async function main() {
 	// Instancia del adaptador WebSocket
 	fastify.register(fastifyWebsocket);
 	fastify.register(chatWebSocketRoutes, {userTemplate: new UserTemplate(),db: dbInstance});
-	fastify.register(chatRoutes, {userTemplate: new UserTemplate(), db: dbInstance});
+	fastify.register(chatRoutes, {
+		prefix: '/api/v1/chats',
+		userTemplate: new UserTemplate(), db: dbInstance});
 
 	fastify.listen({ port: 3050, host: '0.0.0.0' }, (err:any, address:any) => {
 		if (err) {

@@ -35,7 +35,7 @@ export class ListenMessage {
 			let chat: Chat | undefined;
 			try {
 
-				if (msg_json.status.includes("close")){
+				if (msg_json.status && msg_json.status.includes("close")) {
 					return;
 				}
 				chat = await this.chatRepository.getChatById(msg_json.chatId);

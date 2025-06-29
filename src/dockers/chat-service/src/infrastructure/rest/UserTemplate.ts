@@ -2,12 +2,12 @@ import { User } from "../../domain/entities/User";
 import UserRepositoryStore from "./UserRepositoryStore";
 
 class UserTemplate implements UserRepositoryStore {
-	private url = process.env.URI_USER_SERVICE || "http://localhost:3000/api/profile";
+	private url = process.env.URI_USER_SERVICE || "http://app:3000/api/profile";
 
     public constructor() {} // Evita instanciar directamente
 
 	public async getUserById(userId: string, jwt:string): Promise<User> {
-		const body = await fetch(this.url, {
+		const body = await fetch(this.url + `/${userId}`, {
 			headers: {
 				Cookie: `token=${jwt}`
 			}

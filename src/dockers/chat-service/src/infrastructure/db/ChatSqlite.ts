@@ -1,6 +1,7 @@
 import { openDb } from './database';
 import { Chat } from '../../domain/entities/Chat';
 import { Message } from '../../domain/entities/Message';
+import { HandleException } from '../../domain/exception/HandleException';
 
 export default class ChatSqlite {
 
@@ -82,6 +83,35 @@ export default class ChatSqlite {
   }
 
   async addChat(chat: Chat): Promise<Chat> {
+
+    console.log(chat);
+
+    const userIds = await Promise.all(chat.users.map(username => 
+      this.db.get(`SELECT id FROM users WHERE username = ?`, [username])
+  ));
+
+    const userIdsList = userIds.map(user => user?.id).filter(id => id !== undefined);
+    
+    if (userIdsList.length !== chat.users.length) {
+      throw new HandleException("Algunos usuarios no existen", 404);
+    }
+
+
+
+    const chatExist = await this.db.get(
+      `
+      SELECT c.id
+      FROM chats c
+      JOIN chat_users cu ON c.id = cu.chat_id
+      WHERE cu.user_id IN (${userIdsList.map(() => '?').join(', ')})
+      GROUP BY c.id
+      HAVING COUNT(DISTINCT cu.user_id) = ?
+      `,
+      [...userIdsList, userIdsList.length]
+    );
+
+    if (chatExist) throw new HandleException("Ya existe un chat para estos usuarios", 409);
+ 
     const result = await this.db.run(
       `INSERT INTO chats (title, is_group_chat) VALUES (?, ?)`,
       [chat.title, chat.isGroupChat]
@@ -89,22 +119,24 @@ export default class ChatSqlite {
     const chatId = result.lastID;
 
     console.log(JSON.stringify(result, null, 2));
-    for (const username of chat.users) {
-      const user = await this.db.get(`SELECT id FROM users WHERE username = ?`, [username]);
-      if (user) {
-        await this.db.run(`INSERT INTO chat_users (chat_id, user_id) VALUES (?, ?)`, [chatId, user.id]);
-      }
-    }
-    for (const msg of chat.messages) {
-      await this.db.run(
-        `INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)`,
-        [chatId, msg.sender_id, msg.content]
+    const userInsertPromises = userIdsList.map(userId =>
+      this.db.run(`INSERT INTO chat_users (chat_id, user_id) VALUES (?, ?)`, [chatId, userId])
+    );
+    await Promise.all(userInsertPromises);
+
+    if (chat.messages) {
+      const messageInsertPromises = chat.messages.map(msg =>
+        this.db.run(
+          `INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)`,
+          [chatId, msg.sender_id, msg.content]
+        )
       );
+      await Promise.all(messageInsertPromises);
     }
     return {
-      id: result.lastID,
-      users: result.users,
-      isGroupChat: !!result.isGroupChat
+      id: chatId,
+      users: userIdsList,
+      isGroupChat: chat.isGroupChat
     };
   }
 

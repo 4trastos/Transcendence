@@ -28,7 +28,7 @@ export class ChatController {
     async postChat(req: FastifyRequest<{Body: Chat}>, reply:FastifyReply) {
         const decoded:{ id:string, user:string, roles: string[] } =  await req.jwtVerify();
         const chat:Chat= req.body;
-        chat.users.push(decoded.id);
+        chat.users.push(decoded.user);
         reply.send(await this.saveChat.execute(chat));
     }
 

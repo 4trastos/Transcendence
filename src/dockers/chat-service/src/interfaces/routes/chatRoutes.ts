@@ -54,7 +54,7 @@ export default async function chatRoutes(fastify: FastifyInstance, data: {userTe
     const getChat = new LoadChat(messageRepo);
     const chatController = new ChatController(getMessages, getChat, getChatById, saveChat);
 
-    fastify.get("/api/v1/chats/:chatId/messages", {
+    fastify.get("/:chatId/messages", {
 		//preHandler: roleGuard(['view', 'admin'], userRepository),
 		schema: {
 		  params: {
@@ -77,7 +77,7 @@ export default async function chatRoutes(fastify: FastifyInstance, data: {userTe
 		},
 	  },chatController.getMessagesHandler.bind(chatController));
 
-    fastify.get("/api/v1/chats/:chatId",{
+    fastify.get("/:chatId",{
 		//preHandler: roleGuard(['view', 'admin'], userRepository),
 		schema: {
 		  params: {
@@ -100,7 +100,7 @@ export default async function chatRoutes(fastify: FastifyInstance, data: {userTe
 		},
 	  } ,chatController.getChatHandler.bind(chatController));
 
-    fastify.get("/api/v1/chats/user",{
+    fastify.get("/user",{
 		//preHandler: roleGuard(['view', 'admin'], userRepository),
 		schema: {
 		  response: {
@@ -117,6 +117,6 @@ export default async function chatRoutes(fastify: FastifyInstance, data: {userTe
 	  }, chatController.getChatsByIdHandler.bind(chatController));
 
 
-	  fastify.post('/api/v1/chats', {schema: postChatSchema},  chatController.postChat.bind(chatController));
+	  fastify.post('/', {schema: postChatSchema},  chatController.postChat.bind(chatController));
     //fastify.get('/chats/connect-ws', { websocket: true }, chatController.handleWebSocketConnection.bind(chatController));
 }
