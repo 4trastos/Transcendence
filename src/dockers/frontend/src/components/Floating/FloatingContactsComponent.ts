@@ -245,6 +245,7 @@ export default class FloatingChatListComponent extends Component {
 		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
 
 
+		suggestionsItem.innerHTML = '';
 		suggestions?.forEach((summaryUser: SummaryUser, index) => {
 
 			try {
@@ -277,38 +278,8 @@ export default class FloatingChatListComponent extends Component {
 	}
 	protected initEvents(): void {
 		if (!this.element) return;
-		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
 		this.createChatList(this.props.chats);
 		this.createSuggestionList(this.props.suggestions);
-
-		this.props.suggestions?.forEach((summaryUser: SummaryUser, index) => {
-
-			try {
-				const suggestionComponent = new SuggestionItemComponent({
-					username: summaryUser.username,
-					avatar: summaryUser.avatar,
-					hasFriend: summaryUser.hasFriend,
-					onOpenChat:() => {
-						//TODO: creo el chat
-						this.createChat(summaryUser.username, (id:string) => {
-							this.props.onClick?.(id);
-							suggestionComponent.updateFriendStatus(true);
-						})
-					},
-					onAdded: () => {
-						this.addFriend(summaryUser.username, () => {
-							suggestionComponent.updateFriendStatus(true);
-						})
-					},
-				});
-
-				suggestionsItem.appendChild(suggestionComponent.render());
-	
-			} catch (err) {
-				console.error("No se pudo crear el item",  err);
-			}
-		});
-
 
 		const header = this.element?.querySelector(
 			`#list-header`
