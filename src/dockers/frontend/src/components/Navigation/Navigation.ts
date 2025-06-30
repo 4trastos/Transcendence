@@ -65,7 +65,7 @@ export class Navigation extends Component {
 
 renderTemplate(): string {
   return `
-<nav class="w-full text-white flex justify-center">
+<nav class="w-full bg-user-theme text-white flex justify-center">
   <div class="relative inline-flex">
     <ul id="ul-items" class="flex justify-center space-x-16 pt-4 mb-3">
       ${this.renderNavItems()}
