@@ -145,7 +145,7 @@ export class RecoverPasswordComponent extends Component {
 
     try {
       const response = await fetch(
-        "https://localhost:8443/backend/api/send-reset-email-password",
+        "/backend/api/send-reset-email-password",
         {
           method: "POST",
           headers: {

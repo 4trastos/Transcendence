@@ -61,7 +61,7 @@ export class ChatPage extends Component {
 
     try {
       const res = await fetch(
-        "https://localhost:8443/chats/user",
+        "/chats/user",
         {
           method: "GET",
           credentials: "include",
@@ -121,7 +121,7 @@ export class ChatPage extends Component {
     if (this.element === null) return;
     try {
       const res = await fetch(
-        `https://localhost:8443/chats/${chatId}/messages`,
+        `/chats/${chatId}/messages`,
         {
           method: "GET",
           credentials: "include",

@@ -226,7 +226,7 @@ public showInputError(input:any) {
     
     try {
       const response = await fetch(
-        "https://localhost:8443/backend/api/register",
+        "/backend/api/register",
         {
           method: "POST",
           headers: {

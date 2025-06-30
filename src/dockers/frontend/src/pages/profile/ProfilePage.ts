@@ -88,7 +88,7 @@ export class ProfilePage extends Component {
     }
 
     async getUserProfiel(): Promise<UserProfile> {
-        const rs = await fetch("https://localhost:8443/backend/api/profile", {
+        const rs = await fetch("/backend/api/profile", {
             method: "GET",
             credentials: "include"
         });
@@ -128,7 +128,7 @@ export class ProfilePage extends Component {
 
     }
     async exitSession() {
-        const response = await fetch ('https://localhost:8443/backend/api/logout', {
+        const response = await fetch ('/backend/api/logout', {
             method: 'POST',
             credentials: 'include'
         });
@@ -162,7 +162,7 @@ export class ProfilePage extends Component {
             },
             onSave: async (profile: DataProfileChange[], id:string) => {
                 await this.updateAvatar(profile[1], async (url) => {
-                    this.headerItem?.update({ avatar: "https://localhost:8443/backend" + url });
+                    this.headerItem?.update({ avatar: "/backend" + url });
                     await this.updateProfile(profile, () => {
                         this.toggleHiddenItems(id);
                         this.headerItem?.update({ value: this.userProfile.username, hasEdit: true });
@@ -345,7 +345,7 @@ export class ProfilePage extends Component {
         formData.append('image', data.value);
 
         try {
-            const response = await fetch('https://localhost:8443/backend/api/upload-avatar', {
+            const response = await fetch('/backend/api/upload-avatar', {
                 method: 'POST',
                 body: formData,
                 credentials: "include",
@@ -370,7 +370,7 @@ export class ProfilePage extends Component {
             if (key)
                 updateDto[key] = item.value;
         }
-        const response = await fetch("https://localhost:8443/backend/api/profile", {
+        const response = await fetch("/backend/api/profile", {
             method: "PUT",
             headers: {
                 "accept": "application/json",
@@ -390,7 +390,7 @@ export class ProfilePage extends Component {
 
     async updatePassword(profile: [DataPasswordChange], callBack: () => void, onError: (msg: string) => void) {
         const updateCredential = { currentPassword: profile[0].password, newPassword: profile[0].newPassword };
-        const response = await fetch("https://localhost:8443/backend/api/change-password", {
+        const response = await fetch("/backend/api/change-password", {
             method: "PUT",
             headers: {
                 "accept": "application/json",

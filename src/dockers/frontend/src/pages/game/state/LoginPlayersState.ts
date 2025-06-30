@@ -18,6 +18,7 @@ export class LoginPlayersState implements GameState {
 			onCompleted(data: any[]) {
 				//TODO: Data contendra los username de cada Player
 				context.updatePlayers(data);
+				console.log("Players: ", data);
 				context.setState(new HandleTournamentState(context));
 			},
 			onSelected(idx) {

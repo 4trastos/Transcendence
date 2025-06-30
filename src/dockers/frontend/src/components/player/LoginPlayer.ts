@@ -108,7 +108,7 @@ export class LoginPlayerComponent extends Component {
 		//La direccion tiene que se la del frontEnd.
 		try {
 			const response = await fetch(
-				"https://localhost:8443/backend/api/login",
+				"/backend/api/login",
 				{
 					method: "POST",
 					headers: {

@@ -306,7 +306,7 @@ export default class FloatingChatListComponent extends Component {
 
 	async createChat(username: string, update: (id:string) => void) {
 		try {
-			const response = await fetch('https://localhost:8443/chats/', {
+			const response = await fetch('/chats/', {
 				method: 'POST',
 				credentials: "include",
 				headers: {
@@ -328,7 +328,7 @@ export default class FloatingChatListComponent extends Component {
 	}
 	async addFriend(username: string, update: () => void) {
 		try {
-			const  response = await fetch('https://localhost:8443/backend/api/friends/' + username, {
+			const  response = await fetch('/backend/api/friends/' + username, {
 				method: 'POST',
 				headers: {
 					"Content-Type": "application/json",

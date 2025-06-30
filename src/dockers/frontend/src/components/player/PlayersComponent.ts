@@ -112,8 +112,8 @@ export class PlayersComponent extends Component {
 		//Hacer los cambios la memoria y cabiar a current
 		this.props.players = this.props.players.map((item) => ({
 			...item,
-			nick: username,
-			avatar: avatar,
+			nick: item.idx === currentPlayer.idx ? username: item.nick ,
+			avatar: item.idx === currentPlayer.idx ? avatar: item.avatar,
 			isCurrent: item.idx === currentPlayer.idx ? false : item.isCurrent,
 			hasLogged: item.idx === currentPlayer.idx ? true : item.hasLogged
 		}));

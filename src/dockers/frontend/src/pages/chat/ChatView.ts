@@ -167,7 +167,7 @@ export default class ChatView extends Component {
 
   private async getChats(): Promise<Chat[]> {
     try {
-      const res = await fetch(`https://localhost:8443/chats/user`, {
+      const res = await fetch(`/chats/user`, {
         method: "GET",
         credentials: "include",
       });
@@ -184,7 +184,7 @@ export default class ChatView extends Component {
 
   private async getUsers(): Promise<SummaryUser[]> {
     try {
-      const res = await fetch(`https://localhost:8443/backend/api/users`, {
+      const res = await fetch(`/backend/api/users`, {
         method: "GET",
         credentials: "include",
       });
