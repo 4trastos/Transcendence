@@ -3,7 +3,8 @@ import { db } from './database.js';
 
 // Configuración mejorada
 export const config = {
-    secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+    //secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+    secret: process.env.JWT_SECRET ,
     algorithm: 'HS256',
     issuer: 'pong-app.com',
     audience: 'pong-client',

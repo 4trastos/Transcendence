@@ -46,6 +46,11 @@ path "sys/policies/acl/transcendence" {
   capabilities = ["read"]
 }
 
+# Acceso a metadata
+path "secret/metadata/transcendence/*" {
+  capabilities = ["list"]
+}
+
 # Monitorización
 path "sys/metrics" {
   capabilities = ["read", "list"]

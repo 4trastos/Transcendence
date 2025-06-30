@@ -13,3 +13,6 @@ vault kv put secret/transcendence/auth \
   jwt_expires_in="1h" \
   refresh_expires_in="7d" \
   twofa_expires="15m"
+
+vault kv put secret/transcendence/oauth \
+  google_client_secret="$(openssl rand -base64 32)"

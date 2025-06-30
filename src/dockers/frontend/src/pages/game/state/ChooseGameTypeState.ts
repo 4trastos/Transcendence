@@ -16,11 +16,7 @@ export class ChooseGameTypeState implements GameState {
 					<button id="btn-torneo" class="w-full h-full rounded-lg bg-[#11162F] hover:bg-white/30 p-1">Torneo</button>
 				</div>
 				</div>
-				<div class=" p-[1px] rounded-lg bg-gradient-animate">
-				<div class="bg-[#11162F] w-[8rem] h-full rounded-lg"> 
-					<button id="btn-amistoso" class="ripple w-full h-full rounded-lg bg-[#11162F] hover:bg-white/30 p-1">Amistoso</button>
-				</div>
-				</div>
+				
 			</div>
 		</div>
 	`;

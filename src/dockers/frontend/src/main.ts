@@ -7,6 +7,10 @@ import { mount } from './utils/component';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { AuthPage } from './pages/auth/AuthPage';
 import { NewPasswordPage } from './pages/auth/NewPasswordComponent';
+// Establecer color del tema del usuario desde localStorage o usar color por defecto
+const userColor = localStorage.getItem('user-theme-color') || '#3b82f6';
+document.documentElement.style.setProperty('--user-theme-color', userColor);
+
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute); // Ejecutar al cargar también
 
