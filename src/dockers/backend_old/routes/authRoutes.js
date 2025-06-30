@@ -59,23 +59,25 @@ export async function authRoutes(fastify, options) {
     console.log('State guardado en sesión:', request.session.state); // Imprime el estado guardado en sesión
     
     const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
-    console.log(token); // Imprime el estado recibido del callback
+    console.log("TOKEN: " + JSON.stringify(token, null, 2)); // Imprime el estado recibido del callback
+    console.log("ACCESS_TOKEN: " + token.access_token); // Imprime el estado recibido del callback
+    console.log("ACCESS_TOKEN: " + token.token.access_token); // Imprime el estado recibido del callback
+    console.log("TOKEN KEYS:", Object.keys(token));
 
     // Aquí podrías usar el token.access_token para pedir más info del perfil si lo necesitas.
     // Por simplicidad, usaremos solo el token para crear un JWT.
-    
-  
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      method: 'GET',
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: {
-        Authorization: `Bearer ${token.access_token}`,
+        Authorization: `Bearer ${token.token.access_token}`,
       },
     });
     if (!userInfoResponse.ok){
-      console.log(userInfoResponse)
-      reply.error();
+      console.log(await userInfoResponse.json())
+      reply.status(404).send({
+        message: "Error al obtener la informacion del usuario"
+      });
     }
-      const userInfo = await userInfoResponse.body.json();
+    const userInfo = await userInfoResponse.json();
     const userPayload = {
       email: userInfo.email,
       name: userInfo.name,
@@ -83,6 +85,7 @@ export async function authRoutes(fastify, options) {
       access_token: token.access_token,
       refresh_token: token.refresh_token,
     };
+    console.log(userPayload);
     const user = await new Promise((resolve, reject) => {
       db.get(
         `
@@ -99,7 +102,8 @@ export async function authRoutes(fastify, options) {
       );
     });
     if (!user){
-      reply.error();
+    return reply.status(400).send({ error: "No se encontraron usuario" });
+
     }
     // Crea el JWT
   
@@ -130,7 +134,11 @@ export async function authRoutes(fastify, options) {
           properties: {
             username: { type: "string", minLength: 3, maxLength: 30 },
             email: { type: "string", format: "email" },
-            password: { type: "string", minLength: 8 },
+            password: {
+              type: "string",
+              minLength: 8,
+              pattern: "^(?=.*[A-Za-z])(?=.*\\d).+$"
+            },
             enable2FA: { type: "boolean", default: false },
           },
         },
@@ -914,6 +922,7 @@ export async function authRoutes(fastify, options) {
             currentPassword: {
               type: "string",
               minLength: 8,
+              pattern: "^(?=.*[A-Za-z])(?=.*\\d).+$"
             },
             newPassword: {
               type: "string",
@@ -1163,11 +1172,10 @@ fastify.post("/send-reset-email-password", {
         required: ["password"],
         properties: {
           password: {
-            type: "string",
-            minLength: 8,
-            pattern: "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
-            description: "Nueva contraseña (mínimo 8 caracteres, incluye letras y números)",
-          },
+              type: "string",
+              minLength: 8,
+              pattern: "^(?=.*[A-Za-z])(?=.*\\d).+$"
+            },
         },
       },
       response: {

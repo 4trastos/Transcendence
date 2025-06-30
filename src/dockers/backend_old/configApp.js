@@ -195,6 +195,21 @@ export default async function configApp() {
 			},
 			auth: oauthPlugin.GOOGLE_CONFIGURATION,
 		},
+		generateStateFunction: (request) => {
+			const state = request.query.customCode || crypto.randomBytes(16).toString('hex');
+			request.session.state = state
+			return state
+		},
+		// custom function to check the state is valid
+		checkStateFunction: (request, callback) => {
+				console.log('CHECK state:', request.query.state, 'vs saved:', request.session.state);
+
+			if (request.query.state === request.session.state) {
+				callback()
+				return
+			}
+			callback(new Error('Invalid state'))
+		},
 		startRedirectPath: '/auth/google',
 		callbackUri: 'http://localhost:3000/api/auth/google/callback',
 
