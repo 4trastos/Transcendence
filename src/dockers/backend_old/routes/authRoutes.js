@@ -107,6 +107,7 @@ export async function authRoutes(fastify, options) {
     }
     // Crea el JWT
   
+    //TODO: Tambien se pueden crear usuarios:
           const jwt = fastify.jwt.sign(
             { id: user.id, user: user.username,color: user.favourite_color, roles: ["view"] },
             { expiresIn: "1h" }
