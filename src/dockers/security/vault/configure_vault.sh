@@ -51,7 +51,7 @@ echo "Secretos iniciales creados/actualizados."
 echo "Configurando método de autenticación AppRole..."
 vault auth enable approle || true
 vault write auth/approle/role/transcendence-app \
-    secret_id_ttl=0 \
+    secret_id_ttl="24h" \
     token_ttl=1h \
     token_max_ttl=2h \
     policies="transcendence" \
@@ -134,5 +134,21 @@ else
     echo "❌ Error al crear token para ZAP Reporter."
     exit 1
 fi
+
+#10 Mover TODOS los secretos a Vault:
+vault kv put secret/transcendence/oauth \
+  google_client_id="1016434618199-4smnonv5e6qqedmone3vrtqgngn8shnb.apps.googleusercontent.com" \
+  google_client_secret="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"
+
+vault kv put secret/transcendence/email \
+  user="adrianherrera.r.e@gmail.com" \
+  pass="vmzz ezsu crtz evsg" \
+  host="mailserver" \
+  port=1025
+
+vault kv put secret/transcendence/app \
+  session_secret="veevsgzsuevsgcrtevsgzevsgevsgmzzevsg" \
+  bcrypt_salt_rounds=12
+
 
 echo "Configuración inicial de Vault completada exitosamente."

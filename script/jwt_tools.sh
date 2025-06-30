@@ -10,7 +10,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuración
-JWT_SECRET="a-string-secret-at-least-256-bits-long"
+#JWT_SECRET="a-string-secret-at-least-256-bits-long"
 API_URL="http://localhost:3000/api"
 
 # Función para mostrar errores
