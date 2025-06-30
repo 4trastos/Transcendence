@@ -141,7 +141,7 @@ help: grant_permissions
 	@./script/display_help.sh
 
 jwt: grant_permissions
-	@./script/jwt_tools.sh jwt
+	@./script/jwt_tools.sh jwt 
 
 verify: grant_permissions
 	@./script/verify_user.sh $(user)

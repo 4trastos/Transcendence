@@ -105,7 +105,8 @@ export default async function configApp() {
 	collectDefaultMetrics({ timeout: 5000 });
 
 	app.register(jwt, {
-		secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+		//secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+		secret: process.env.JWT_SECRET || "a-string-secret-at-least-256-bits-long",
 		algorithm: 'HS256',
 		issuer: 'pong-app.com',
 		audience: 'pong-client',
