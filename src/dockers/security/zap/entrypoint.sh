@@ -62,10 +62,6 @@ export VAULT_CACERT='/etc/vault/tls/ca.crt'
 
 # 5. Preparar certificados para otros servicios (Nginx, ZAP)
 echo "Preparando certificados compartidos..."
-# Los certificados ya están en tls_volume en /etc/vault/tls/.
-# Nginx los leerá desde /etc/nginx/ssl/server.crt y /etc/nginx/ssl/server.key
-# porque el mismo tls_volume está montado en ambas rutas.
-# Renombramos para que Nginx encuentre los nombres de archivo esperados.
 cat /etc/vault/tls/cert.pem /etc/vault/tls/ca.crt > /etc/vault/tls/server.crt
 cp /etc/vault/tls/key.pem /etc/vault/tls/server.key
 
@@ -145,24 +141,11 @@ else
     vault operator unseal $UNSEAL_KEY
     echo "Vault desbloqueado."
 
-    # ! --- LLAMADA AL SCRIPT DE CONFIGURACIÓN COMPLETO (configure_vault.sh) ---
-    # Se ejecuta configure_vault.sh en cada arranque para asegurar que las políticas,
-    # secretos y roles estén actualizados en caso de cambios en los archivos de configuración.
     /app-scripts/configure_vault.sh
     # ! ---------------------------------------------------------------------
 
     backup_vault_credentials # Realizar backup en cada arranque (se sobrescribirá el anterior)
 fi
-
-# ! --- OPCIONAL: LLAMADA AL SCRIPT DE ACTUALIZACIÓN DE SECRETOS (update_dynamic_secrets.sh) ---
-# Si queremos que los secretos como jwt_secret, db_user, etc. se randomicen en CADA ARRANQUE,
-# podemos DESCOMENTAR la siguiente línea.
-# PERO CUIDADO: Esto generará nuevas credenciales en cada inicio del contenedor,
-# lo que podría romper otros servicios que esperan credenciales estables.
-# Si estos secretos deben ser estables o rotarse manualmente, NO descomentes esto.
-# /app-scripts/update_dynamic_secrets.sh
-# ! -------------------------------------------------------------------------------------------
-
 
 # =============================================
 # CONFIGURACIÓN DE ZAP

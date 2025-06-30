@@ -39,7 +39,7 @@ vault kv put secret/transcendence/database \
 
 vault kv put secret/transcendence/api_keys \
     zap_api_key="${ZAP_API_KEY:-my_zap_api_key}" \
-    jwt_secret="$(openssl rand -base64 32)"
+    jwt_secret="skwkD5gSIYNOWxyyLjSprTq9UvviwFyez6zK018ss6s="
 
 vault kv put secret/transcendence/auth \
     jwt_expires_in="1h" \
