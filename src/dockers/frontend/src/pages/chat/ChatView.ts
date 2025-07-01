@@ -198,33 +198,37 @@ export default class ChatView extends Component {
     }
   }
   
-  private buildChat(onlineUsers:any, chatItem: Chat): FloatingChatComponent {
-    return  new FloatingChatComponent({
-      id: "chat-" + chatItem.id,
-      onLine: false,
-      title: chatItem?.title,
-      messages: chatItem?.messages,
-      avatarUrl: chatItem?.avatarUrl,
-      currentUserAvatar: this.currentAvatarUrl,
-      currentUser: this.userId,
-      onlineUser: onlineUsers,
-      onExit: () => {
-        this.socket?.send(
-          JSON.stringify({
-            sender_id: this.userId,
-            chatId: chatItem.id,
-            status: "close",
-          })
-        );
-        this.floatingChats.delete(chatItem.id);
-        this.chatMembers.delete(chatItem.id);
-        this.chats.delete(chatItem.id);
-      },
-      onSendMessage: (message: string) => {
-        this.sendMessage(chatItem.id, message);
-      },
-    });
-  }
+  private buildChat(onlineUsers: any, chatItem: Chat): FloatingChatComponent {
+  return new FloatingChatComponent({
+    id: "chat-" + chatItem.id,
+    onLine: false,
+    title: chatItem?.title,
+    messages: chatItem?.messages,
+    chatAvatar:
+      chatItem.avatarUrl ||
+      chatItem.participants?.find((u) => u.id !== this.userId)?.avatarUrl ||
+      "https://via.placeholder.com/40",
+    currentUserAvatar: this.currentAvatarUrl,
+    currentUser: this.userId,
+    onlineUser: onlineUsers,
+    onExit: () => {
+      this.socket?.send(
+        JSON.stringify({
+          sender_id: this.userId,
+          chatId: chatItem.id,
+          status: "close",
+        })
+      );
+      this.floatingChats.delete(chatItem.id);
+      this.chatMembers.delete(chatItem.id);
+      this.chats.delete(chatItem.id);
+    },
+    onSendMessage: (message: string) => {
+      this.sendMessage(chatItem.id, message);
+    },
+  });
+}
+
 
   private sendMessage(chatId: string, message: string) {
     if (this.element === null) return;

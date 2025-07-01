@@ -68,8 +68,22 @@ export class ChatPage extends Component {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const data: Chat[] = await res.json();
+      const rawData = await res.json();
+      const data: Chat[] = rawData.map((dto: any) =>
+      new Chat(
+        dto.id,
+        dto.active ?? false,
+        dto.title ?? "",
+        dto.users ?? [],
+        dto.isGroupChat ?? false,
+        new Date(dto.createdAt ?? Date.now()),
+        new Date(dto.updatedAt ?? Date.now()),
+        dto.messages ?? [],
+        dto.participants ?? [] // ✅ aquí usamos el nuevo campo si existe
+      )
+      );
       this.renderChatList(data);
+
     } catch (err) {
       console.error("Error al cargar chats:", err);
     }
