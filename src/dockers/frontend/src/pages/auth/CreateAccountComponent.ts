@@ -193,12 +193,18 @@ export class CreateAccountComponent extends Component {
 
   }
 
-  handleScanComplete ()  {
+  handleScanComplete() {
+  const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
+
+  // Mostrar mensaje solo si el QR realmente existe y está visible
+  if (qrImage?.src && !qrImage.src.includes("placeholder") && !qrImage.classList.contains("hidden")) {
     ToastService.show("Configuración 2FA completada. Debes verificar tu cuenta antes de iniciar sesión.", "success");
     setTimeout(() => {
       window.location.reload();
     }, 1000);
-};
+  }
+}
+
 
 
 public showInputError(input:any) {
@@ -223,6 +229,14 @@ public showInputError(input:any) {
   const containerRegister = this.element?.querySelector("#container-register") as HTMLElement;
   const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
 
+
+  const emailRules = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRules.test(email)) {
+    ToastService.show("El correo electrónico no es válido.", "error");
+    const emailInput = this.element?.querySelector("#input-email") as HTMLInputElement;
+    this.showInputError(emailInput);
+    return;
+  }
   const passwordRules = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
   if (!passwordRules.test(password)) {
     ToastService.show("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.", "error");
@@ -253,6 +267,7 @@ public showInputError(input:any) {
         qrImage.src = data.qrCode;
         componentQrTFA.classList.toggle("hidden");
         containerRegister.classList.toggle("hidden");
+        return ;
       } else if (data.success) {
         ToastService.show("Registro exitoso!", "success");
         window.location.reload();
