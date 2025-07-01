@@ -44,6 +44,45 @@ if [ ! -f "${CERT_DIR}/prometheus.crt" ]; then
   fi
 fi
 
+# Configuración de autenticación
+WEB_CONFIG="/etc/prometheus/web-config.yml"
+
+# Generar contraseña si no existe
+PASSWORD_FILE="/prometheus/data/admin_password"
+if [ ! -f "$PASSWORD_FILE" ]; then
+  echo "🔐 Generando contraseña robusta para Prometheus..."
+  # Generar una contraseña que sea segura para shell y Python
+  ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16) # Simplificado para evitar caracteres problemáticos
+  echo "$ADMIN_PASSWORD" > "$PASSWORD_FILE"
+  chmod 600 "$PASSWORD_FILE"
+  
+  # Generar hash BCrypt usando Python de forma más robusta
+  # Se usa printf %s para evitar problemas con saltos de línea y se cita el script Python
+  HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$ADMIN_PASSWORD', bcrypt.gensalt(rounds=10)).decode('utf-8'))")
+  
+  echo "================================================"
+  echo "🔑 USUARIO: Admin"
+  echo "🔑 CONTRASEÑA: $ADMIN_PASSWORD"
+  echo "🔑 HASH BCrypt: $HASH"
+  echo "================================================"
+else
+  ADMIN_PASSWORD=$(cat "$PASSWORD_FILE")
+  # Generar hash BCrypt usando Python de forma más robusta
+  HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$ADMIN_PASSWORD', bcrypt.gensalt(rounds=10)).decode('utf-8'))")
+fi
+
+# Crear archivo de configuración web
+cat > "$WEB_CONFIG" <<EOF
+tls_server_config:
+  cert_file: "${CERT_DIR}/prometheus.crt"
+  key_file: "${CERT_DIR}/prometheus.key"
+
+basic_auth_users:
+  Admin: "$HASH"
+EOF
+
+echo "🛡️  Autenticación básica configurada con BCrypt"
+
 echo "🌀 Iniciando Prometheus..."
 exec /usr/local/bin/prometheus \
   --config.file="/etc/prometheus/prometheus.yml" \

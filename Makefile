@@ -159,4 +159,7 @@ elastic-password:
 grafana:
 	@docker exec -it grafana cat /var/lib/grafana/admin_password
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password grafana
+prometheus:
+	@docker exec -it prometheus cat /prometheus/data/admin_password
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password grafana prometheus
