@@ -86,6 +86,7 @@ export class ProfileItemComponent extends Component {
 							<button class="w-6 h-6 rounded-full bg-blue-500" data-color="#3b82f6"></button>
 							<button class="w-6 h-6 rounded-full bg-green-500" data-color="#22c55e"></button>
 							<button class="w-6 h-6 rounded-full bg-purple-500" data-color="#a855f7"></button>
+							<button class="w-6 h-6 rounded-full border border-white bg-transparent" data-color="transparent" title="Transparente"></button>
 						</div>`}
 				</div>
 	
@@ -124,9 +125,7 @@ protected initEvents(): void {
 					b.classList.remove("ring", "ring-white")
 				);
 				btn.classList.add("ring", "ring-white");
-
 				selectedColor = btn.getAttribute("data-color")!;
-				document.documentElement.style.setProperty('--user-theme-color', selectedColor);
 			});
 		});
 	}
@@ -143,7 +142,9 @@ protected initEvents(): void {
 
 	const pTitle = this.element.querySelector(`#p-title-${this.props.id}`);
 	const pSub = this.element.querySelector(`#p-sub-${this.props.id}`);
-	if (pTitle) pTitle.textContent = this.props.field;
+	if (pTitle && this.props.field && this.props.field.toLowerCase() !== "avatar") {
+ 		pTitle.textContent = this.props.field;
+	}
 	if (pSub) pSub.textContent = this.props.value;
 
 	//  Aplicar color inicial si ya está guardado
@@ -199,6 +200,7 @@ protected initEvents(): void {
 				btn.innerHTML = "Editar";
 
 				if (this.props.field === "Color" && selectedColor) {
+					document.documentElement.style.setProperty('--user-theme-color', selectedColor);
 					this.props.onSave([{
 						field: this.props.field,
 						value: selectedColor,

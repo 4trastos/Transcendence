@@ -117,7 +117,7 @@ export class FloatingChatComponent extends Component {
 	<div id="${this.props.id}-header" class="relative flex items-center space-x-2 px-4 py-2  text-white">
 		<div id="${this.props.id}-avatar">
 			<!-- Aquí puedes poner una imagen o ícono -->
-			<img src="${this.props.chatAvatar}" alt="Avatar" class="w-7 h-7 rounded-lg" />
+			<img src="${this.props.chatAvatar}" alt="" class="w-7 h-7 rounded-lg" />
 		</div>
 		
 		<div>
