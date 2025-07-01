@@ -192,18 +192,19 @@ export async function authRoutes(fastify, options) {
 
       // Validaciones básicas
       if (!username || !email || !password) {
-        return reply.status(400).send({ error: "Faltan campos requeridos" });
+        return reply.status(400).send({ message: "Faltan campos requeridos" });
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return reply.status(400).send({ error: "Formato de email inválido" });
+        return reply.status(400).send({ message: "Formato de email inválido" });
       }
+      // Validación robusta de contraseña (mayúscula, número, mínimo 8 caracteres)
+      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+        return reply.status(400).send({
+      message: "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número."
+      });
+}
 
-      if (password.length < 8) {
-        return reply
-          .status(400)
-          .send({ error: "La contraseña debe tener al menos 8 caracteres" });
-      }
 
       try {
         // Verificar usuario existente (con manejo de errores mejorado)
