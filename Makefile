@@ -156,4 +156,7 @@ elastic-password:
 	@docker exec elasticsearch cat /usr/share/elasticsearch/secrets/elastic_password
 	@docker exec -it logstash curl -X POST -H "Content-Type: application/json" -d '{"time": 1678886400000, "level": 30, "msg": "Test HTTP log from curl"}' http://logstash:8082
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password
+grafana:
+	@docker exec -it grafana cat /var/lib/grafana/admin_password
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password grafana

@@ -26,6 +26,25 @@ if [ ! -f "/etc/grafana/ssl/grafana.crt" ]; then
   chmod 440 /etc/grafana/ssl/*
 fi
 
+# Generar contraseña robusta si no existe
+ADMIN_PASSWORD_FILE="/var/lib/grafana/admin_password"
+if [ ! -f "$ADMIN_PASSWORD_FILE" ]; then
+  echo "🔐 Generando contraseña robusta para Grafana..."
+  ADMIN_PASSWORD=$(openssl rand -base64 20 | tr -dc 'a-zA-Z0-9!@#$%^&*()_+-=')
+  echo "$ADMIN_PASSWORD" > "$ADMIN_PASSWORD_FILE"
+  chmod 600 "$ADMIN_PASSWORD_FILE"
+  
+  # Mostrar contraseña generada
+  echo "================================================"
+  echo "🔑 CONTRASEÑA DE ADMINISTRADOR GENERADA: $ADMIN_PASSWORD"
+  echo "================================================"
+else
+  ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
+fi
+
+# Configurar Grafana con la contraseña generada
+export GF_SECURITY_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+
 # Esperar a Prometheus
 echo "Esperando a Prometheus..."
 until curl -s http://prometheus:9090/-/healthy >/dev/null; do

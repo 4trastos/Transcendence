@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # Configuración
 #JWT_SECRET="a-string-secret-at-least-256-bits-long"
-API_URL="http://localhost:3000/api"
+API_URL="https://localhost:8443/backend/api"
 
 # Función para mostrar errores
 show_error() {
@@ -118,7 +118,7 @@ jwt_process() {
     
     # Usar archivo temporal para capturar respuesta
     temp_file=$(mktemp)
-    http_code=$(curl -s -o "$temp_file" -w "%{http_code}" \
+    http_code=$(curl -k -s -o "$temp_file" -w "%{http_code}" \
         -X POST "$API_URL/login" \
         -H "Content-Type: application/json" \
         -d "{\"username\":\"$username\",\"password\":\"$password\"}")
@@ -160,7 +160,7 @@ jwt_process() {
         
         # Enviar verificación 2FA con timeout
         temp_file=$(mktemp)
-        http_code=$(curl -m 30 -s -o "$temp_file" -w "%{http_code}" \
+        http_code=$(curl -k -m 30 -s -o "$temp_file" -w "%{http_code}" \
             -X POST "$API_URL/verify-2fa" \
             -H "Content-Type: application/json" \
             -d "{\"userId\":\"$userId\", \"code\":\"$code2fa\", \"tempToken\":\"$tempToken\"}")
