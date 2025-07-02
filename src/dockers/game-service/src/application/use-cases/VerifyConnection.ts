@@ -7,7 +7,7 @@ export default class VerifyConnection {
 		this.userRepository = userRepository;
 	}
 	
-	async execute(connection:any, req:any, onStatusChange: (req:any, status: string) => void): Promise<void> {
+	async execute(connection:any, req:any, onStatusChange: (req:any, status: string) => void): Promise<User> {
 		const decoded:{ id:string, user: string, roles: string[] } =  await req.jwtVerify();
 		let userId = decoded.id;
 		if (!decoded.id) {
@@ -28,5 +28,6 @@ export default class VerifyConnection {
 		const wsUser = ({ user: user, websocket: connection });
 		connection.send(JSON.stringify({ message: `Conexión establecida, userId: ${user.id}`}));
 		onStatusChange(req,"open");
+		return user;
 	}
 }

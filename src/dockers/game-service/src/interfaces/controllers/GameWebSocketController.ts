@@ -1,6 +1,7 @@
 import VerifyConnection from "../../application/use-cases/VerifyConnection";
 import CloseSession from "../../application/use-cases/CloseSession";
 import { v4 as uuidv4 } from 'uuid';
+import { User } from "../../domain/entities/User";
 
 export class GameWebSocketController {
 	private closeSession: CloseSession;
@@ -112,10 +113,11 @@ export class GameWebSocketController {
 		try {
 
 			//Verifico que el usuario esta registrado antes de conectarse
-			//const userId = this.verifyConnection.execute(connection, req, this.onStatusChange.bind(this));
+			const user:User = await this.verifyConnection.execute(connection, req, this.onStatusChange.bind(this));
 
+			
 			console.log('Jugador en matchmaking...');
-			this.matchmakingQueue.push({ connection: connection, userId: '3' });
+			this.matchmakingQueue.push({ connection: connection, userId: user.username });
 
 			// Escucha cierre de conexión
 			connection.on('close', () => {
