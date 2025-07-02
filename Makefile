@@ -131,8 +131,8 @@ security:
 	@docker exec security chmod +x /tmp/security_test.sh
 	@docker exec security /tmp/security_test.sh
 	@echo "Reportes disponibles en:"
-	@echo "- Resumen de seguridad: https://localhost/zap_reports/security_report.html"
-	@echo "- Reporte detallado de ZAP: https://localhost/zap_reports/zap_report.html"
+	@echo "- Resumen de seguridad: https://localhost:8443/zap_reports/security_report.html"
+	@echo "- Reporte detallado de ZAP: https://localhost:8443/zap_reports/zap_report.html"
 
 token:
 	@docker exec -it security cat /vault/data/ui_token.txt
