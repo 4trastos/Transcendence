@@ -21,7 +21,7 @@ scrape_configs:
   - job_name: 'nginx'
     metrics_path: '/metrics'
     static_configs:
-     - targets: ['nginx-exporter:9113']
+      - targets: ['nginx-exporter:9113']
 
   - job_name: 'vault'
     scheme: https
@@ -47,7 +47,7 @@ scrape_configs:
   - job_name: 'kibana'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['kibana-exporter:9201']  # Apuntar al exporter, no directamente a Kibana
+      - targets: ['kibana-exporter:9201']
 
   - job_name: 'prometheus'
     static_configs:
@@ -55,7 +55,7 @@ scrape_configs:
     scheme: https
     tls_config:
       insecure_skip_verify: true
-  
+
   - job_name: 'grafana'
     metrics_path: /metrics
     scheme: https
@@ -64,6 +64,6 @@ scrape_configs:
       insecure_skip_verify: true
     basic_auth:
       username: admin
-      password: admin
+      password_file: /grafana_data/admin_password
     static_configs:
       - targets: ['grafana:3000']

@@ -17,8 +17,8 @@ RUN apt-get update && \
 # Copia los archivos de tu proyecto al contenedor
 
 COPY /src /app/src
-COPY /data /app/data
-COPY /tools /app/tools
+#COPY /data /app/data
+#COPY /tools /app/tools
 
 COPY /tsconfig.json /app/
 COPY /package.json /app/

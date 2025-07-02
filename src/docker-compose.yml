@@ -415,6 +415,7 @@ services:
       - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs
       - es_certs:/etc/prometheus/ssl
+      - grafana_data:/grafana_data:ro
     command:
       - '--web.config.file=/etc/prometheus/web-config.yml'
     environment:
