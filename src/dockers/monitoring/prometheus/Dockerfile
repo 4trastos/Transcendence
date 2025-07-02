@@ -3,7 +3,8 @@ FROM debian:bullseye-slim
 # Instalar dependencias
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl ca-certificates openssl && \
+        curl ca-certificates openssl python3 python3-pip && \
+    pip3 install bcrypt && \
     rm -rf /var/lib/apt/lists/*
 
 # Instalar Prometheus

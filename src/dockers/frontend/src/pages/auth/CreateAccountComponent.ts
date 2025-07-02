@@ -193,12 +193,18 @@ export class CreateAccountComponent extends Component {
 
   }
 
-  handleScanComplete ()  {
+  handleScanComplete() {
+  const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
+
+  // Mostrar mensaje solo si el QR realmente existe y está visible
+  if (qrImage?.src && !qrImage.src.includes("placeholder") && !qrImage.classList.contains("hidden")) {
     ToastService.show("Configuración 2FA completada. Debes verificar tu cuenta antes de iniciar sesión.", "success");
     setTimeout(() => {
       window.location.reload();
     }, 1000);
-};
+  }
+}
+
 
 
 public showInputError(input:any) {
@@ -211,49 +217,72 @@ public showInputError(input:any) {
 }
   //TODO: HAY UN ERROR EN EL PATH, SE ENVIA EL FORMULARIO POR URL
   private async handleCreateAcc(event: Event): Promise<void> {
-    event.preventDefault(); // Prevenir el envío del formulario por defecto
-    const formData = new FormData(event.target as HTMLFormElement);
-    const username = formData.get("username") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const twoFA = this.element?.querySelector('#tfa-checkbox') as HTMLInputElement;
-    const componentQrTFA = this.element?.querySelector('#component-qr-twofa') as HTMLElement;
-    const containerRegister = this.element?.querySelector(
-      "#container-register"
-    ) as HTMLElement;
-    const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
-    const registerData = { username: username, email: email, password: password, enable2FA: twoFA.checked };
-    
-    try {
-      const response = await fetch(
-        "/backend/api/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(registerData),
-          credentials: "include", // Incluir cookies en la solicitud
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.qrCode) {
-          console.log(data.qrCode);
-          qrImage.src = data.qrCode;
-          componentQrTFA.classList.toggle("hidden");
-          containerRegister.classList.toggle("hidden");
-          //SI esta habilitado el QRCode debe mostar la imagen
-        } else if (data.success) {
-          window.location.reload();
-          ToastService.show("Registro exitoso!", "success");
-        }
+  event.preventDefault(); // Prevenir el envío del formulario por defecto
+
+  const formData = new FormData(event.target as HTMLFormElement);
+  const username = formData.get("username") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  const twoFA = this.element?.querySelector('#tfa-checkbox') as HTMLInputElement;
+  const componentQrTFA = this.element?.querySelector('#component-qr-twofa') as HTMLElement;
+  const containerRegister = this.element?.querySelector("#container-register") as HTMLElement;
+  const qrImage = this.element?.querySelector('#qr-image') as HTMLImageElement;
+
+
+  const emailRules = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRules.test(email)) {
+    ToastService.show("El correo electrónico no es válido.", "error");
+    const emailInput = this.element?.querySelector("#input-email") as HTMLInputElement;
+    this.showInputError(emailInput);
+    return;
+  }
+  const passwordRules = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+  if (!passwordRules.test(password)) {
+    ToastService.show("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.", "error");
+    return;
+  }
+
+  const registerData = {
+    username,
+    email,
+    password,
+    enable2FA: twoFA.checked
+  };
+
+  try {
+    const response = await fetch("/backend/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(registerData),
+      credentials: "include",
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+
+      if (data.qrCode) {
+        qrImage.src = data.qrCode;
+        componentQrTFA.classList.toggle("hidden");
+        containerRegister.classList.toggle("hidden");
+        return ;
+      } else if (data.success) {
+        ToastService.show("Registro exitoso!", "success");
+        window.location.reload();
+      }
+    } else {
+      const errorData = await response.json();
+      if (errorData?.message) {
+        ToastService.show(errorData.message, "error");
       } else {
         ToastService.show("Error al enviar el formulario", "error");
       }
-    } catch (err) {
-      ToastService.show("Error al enviar el formulario", "error");
     }
-
+  } catch (err) {
+    ToastService.show("Error al enviar el formulario", "error");
   }
+}
+
 }

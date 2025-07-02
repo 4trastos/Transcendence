@@ -1,6 +1,6 @@
 
 :root {
-	--user-theme-color: #3b82f6; /* Color por defecto (azul) */
+	--user-theme-color: transparent; /* Color por defecto (azul) */
   }
   
   .bg-user-theme {

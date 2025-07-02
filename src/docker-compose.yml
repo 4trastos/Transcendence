@@ -47,8 +47,8 @@ services:
       - HEALTH_CHECK_PATH=/health  # Ruta explícita
     env_file:
       - .env
-    ports:
-      - "3000:3000"
+    #ports:
+    #  - "3000:3000"
     networks:
       - transcendence
     restart: unless-stopped
@@ -74,8 +74,8 @@ services:
       - sqlite_data:/var/lib/sqlite
     env_file:
       - .env
-    ports:
-      - "3050:3050"
+    #ports:
+    #  - "3050:3050"
     networks:
       - transcendence
 
@@ -128,8 +128,8 @@ services:
     container_name: nginx-exporter
     command:
       - '-nginx.scrape-uri=http://php:8080/nginx_status'
-    ports:
-      - "9113:9113"
+    #ports:
+    #  - "9113:9113"
     networks:
       - transcendence
     depends_on:
@@ -149,8 +149,8 @@ services:
     container_name: php-fpm-exporter
     environment:
       - PHP_FPM_SCRAPE_URI=tcp://php:9001/status  # Cambiado a "php" (nombre del servicio)
-    ports:
-      - "9253:9253"
+    #ports:
+    #  - "9253:9253"
     depends_on:
       - php
     networks:
@@ -179,8 +179,8 @@ services:
       - NODE_ENV=production
       - NODE_OPTIONS=--max-old-space-size=384  # Limita el heap de Node.js
       - GENERATE_SOURCEMAP=false  # Reduce uso de memoria durante build
-    ports:
-      - "3040:3040"
+    #ports:
+    #  - "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped
@@ -272,8 +272,8 @@ services:
   elasticsearch-exporter:
     image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
     container_name: elasticsearch_exporter
-    ports:
-      - "9114:9114"
+    #ports:
+    #  - "9114:9114"
     environment:
       - ES_URI=https://elasticsearch:9200
       - ES_USERNAME=elastic
@@ -308,8 +308,8 @@ services:
       - es_certs:/usr/share/elasticsearch/config/certs:ro
       - ls_config:/usr/share/logstash/config
       - ls_pipeline:/usr/share/logstash/pipeline
-    ports:
-      - "5000:5000"
+    #ports:
+    #  - "5000:5000"
     networks:
       - transcendence
     mem_limit: 512MB  # Reducido a 512MB
@@ -333,8 +333,8 @@ services:
     environment:
       - LOGSTASH_URL=https://logstash:9600/_node/stats
       - VERIFY_SSL=false
-    ports:
-      - "9811:9811"
+    #ports:
+    #  - "9811:9811"
     depends_on:
       - logstash
     networks:
@@ -373,8 +373,8 @@ services:
     volumes:
       - es_secrets:/usr/share/elasticsearch/secrets
       - es_certs:/usr/share/elasticsearch/config/certs:ro
-    ports:
-      - "9201:9201"
+    #ports:
+    #  - "9201:9201"
     depends_on:
       - kibana
     networks:
@@ -465,7 +465,7 @@ services:
     ports:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
-
+  
 volumes:
   sqlite_data:
     name: sqlite_data

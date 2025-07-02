@@ -2,8 +2,8 @@ FROM grafana/grafana:9.5.0
 
 USER root
 
-# Instalar dependencias (¡agrega sqlite aquí!)
-RUN apk add --no-cache openssl curl sqlite
+# Instalar dependencias
+RUN apk add --no-cache openssl curl sqlite jq
 
 # Crear directorios necesarios
 RUN mkdir -p /etc/grafana/ssl /prometheus/certs && \

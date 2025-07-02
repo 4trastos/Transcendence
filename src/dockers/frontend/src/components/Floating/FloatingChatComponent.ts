@@ -117,11 +117,13 @@ export class FloatingChatComponent extends Component {
 	<div id="${this.props.id}-header" class="relative flex items-center space-x-2 px-4 py-2  text-white">
 		<div id="${this.props.id}-avatar">
 			<!-- Aquí puedes poner una imagen o ícono -->
-			<img src="${this.props.chatAvatar}" alt="Avatar" class="w-7 h-7 rounded-lg" />
+			<img src="${this.props.chatAvatar || 'https://via.placeholder.com/40'}" class="w-7 h-7 rounded-full" />
 		</div>
 		
 		<div>
-			<div id="title-${this.props.id}" class="text-sm font-ligth"></div>
+			<div id="title-${this.props.id}" class="text-sm font-light">
+        ${this.props.title}
+      </div>
 			<div id="status-${this.props.id}" class="text-gray-400 text-xs"> En línea</div>
 			
 		</div>
@@ -175,7 +177,19 @@ export class FloatingChatComponent extends Component {
       ) as HTMLDivElement;
 
 	  this.updateStatus();
-
+    if (!this.props.chatAvatar && this.props.messages?.length) {
+      const firstOtherUserMessage = this.props.messages.find(
+        msg => msg.sender_id !== this.props.currentUser
+      );
+      if (firstOtherUserMessage && firstOtherUserMessage.avatarUrl) {
+        const avatarImg = this.element?.querySelector(
+          `#${this.props.id}-avatar img`
+        ) as HTMLImageElement;
+        if (avatarImg) {
+          avatarImg.src = firstOtherUserMessage.avatarUrl;
+        }
+      }
+    }
       let count = 0;
       if (this.props.messages) {
         count = this.props.messages.length;
