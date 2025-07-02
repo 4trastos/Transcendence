@@ -1,4 +1,5 @@
 import { GameStarter, GameState } from "./GameSate";
+import { MatchMakingState } from "./MatchMakingState";
 import { SelectPlayersState } from "./SelectPlayersState";
 
 export class ChooseGameTypeState implements GameState {
@@ -8,7 +9,7 @@ export class ChooseGameTypeState implements GameState {
 	const container = document.createElement("div");
 	container.className = "animate-expand-from-center flex items-center justify-center px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]";
 	container.innerHTML = `
-		<div class="reveal-content bg-[#11162F] p-6 space-y-4 text-white justify-center items-center text-center space-y-4">
+		<div class="reveal-content bg-[#11162F] p-6 text-white justify-center items-center text-center space-y-4">
 			<h2 class="reveal-content-child" >🎮 Elige el tipo de juego</h2>
 			<div class="reveal-content-child space-x-2 flex flex-row justify-center items-center">
 				<div class="p-[1px] rounded-lg bg-gradient-animate">
@@ -16,7 +17,11 @@ export class ChooseGameTypeState implements GameState {
 					<button id="btn-torneo" class="w-full h-full rounded-lg bg-[#11162F] hover:bg-white/30 p-1">Torneo</button>
 				</div>
 				</div>
-				
+				<div class="p-[1px] rounded-lg bg-gradient-animate">
+					<div class="bg-[#11162F] w-[8rem] h-full rounded-lg"> 
+						<button id="btn-1vs1-remote" class="w-full h-full rounded-lg bg-[#11162F] hover:bg-white/30 p-1">1vs1 Remote</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	`;
@@ -26,6 +31,12 @@ export class ChooseGameTypeState implements GameState {
 	  this.context.setState(new SelectPlayersState(this.context));
 	});
 
+	container.querySelector('#btn-1vs1-remote')?.addEventListener('click', () => {
+	  this.context.setGameType('1vs1');
+	  //Debe Acceder a la cola /matchmaking
+	  //Luego debe cambiar a partida iniciada. Pero notificar a Game que debe renderizarse en remoto.
+	  this.context.setState(new MatchMakingState(this.context));
+	});
 	return container;
   }
 

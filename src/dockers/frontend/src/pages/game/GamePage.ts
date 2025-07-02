@@ -3,263 +3,356 @@ import { Component, ComponentProps, mount } from "../../utils/component";
 import { GameData, GameStarter, MatchData } from "./state/GameSate";
 
 export class GamePage extends Component {
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
-  private player1Score = 0;
-  private player2Score = 0;
-  private player1CanHit = true;
-  private player2CanHit = true;
-  private gameState: GameStarter;
-  private player1: any;
-  private player2: any;
-  private ball: any;
-  private matchData?: MatchData;
+	private canvas: HTMLCanvasElement | null = null;
+	private ctx: CanvasRenderingContext2D | null = null;
+	private player1Score = 0;
+	private player2Score = 0;
+	private player1CanHit = true;
+	private player2CanHit = true;
 
-  constructor(user: UserJwt) {
-    super();
-    this.template = this.renderTemplate();
-    this.gameState = new GameStarter({
-      userJwt: user,
-      onComplete: (data: MatchData) => {
-        this.matchData = data;
-        const p1 = this.element?.querySelector("#player_1");
-        const p2 = this.element?.querySelector("#player_2");
-        if (p1)
-          p1.textContent = data.players? data.players[0] : "";
-        if (p2)
-          p2.textContent = data.players? data.players[1] : "";
 
-        this.resetScore();
-        //this.gameLoop();
-        this.toggleDisplay();
-        //TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
-        console.log("Datos del juego completos: INICIAMOS");
-      }
-    });
-  }
+	private gameState: GameStarter;
+	private player1: any;
+	private player2: any;
+	private ball: any;
+	private matchData?: MatchData;
 
-  renderTemplate() {
-    return `
+	private server: any;
+	private animationId: any;
+	private gameLoop: any;
+
+	constructor(user: UserJwt) {
+		super();
+		this.template = this.renderTemplate();
+		this.gameLoop = () => {
+			this.movePaddles();
+			this.draw();
+			this.moveBall();
+			this.animationId = requestAnimationFrame(this.gameLoop);
+		}
+		this.gameState = new GameStarter({
+			userJwt: user,
+			/**
+			 * 
+			 * @param data Se encarga de traspasar las configuraciones de la partida proveniente de GameStarter, 
+			 * @param server En caso de que se conecte a un Servidor este se encarga de pasar el socket
+			 */
+			onComplete: (data: MatchData, server: any) => { //Esta funcion es de inicializacion, tanto de remoto como de local.
+
+				if (server) {
+					this.matchData = data;
+					this.server = server;
+					this.stop();
+					this.resetScore();
+					this.toggleDisplay();
+
+					//Me subscribo a eventos del servidor para actualizar el frontend
+					this.server.onmessage = (msg: any) => {
+						const update = JSON.parse(msg.data);//TODO: Escucho los movimientos
+						if (update.status === 'init') {
+							this.stop();
+							this.draw();
+						} else if (update.status === 'started') {
+							this.ball.x = update.ball.x;
+							this.ball.y = update.ball.y;
+							// Opcionalmente: otros datos como scores o posiciones de jugadores
+							this.player1.y = update.player1.y;
+							this.player2.y = update.player2.y;
+							this.player1Score = update.player1Score;
+							this.player2Score = update.player2Score;
+							this.updateScore();
+							this.draw();
+						} else if (update.status === 'finished') {
+							this.resetScore();
+							this.toggleDisplay();
+							//TODO: Actualizo la base de datos
+						}
+					}
+				}
+
+				if (data.gameType === 'torneo') {
+					this.matchData = data;
+					const p1 = this.element?.querySelector("#player_1");
+					const p2 = this.element?.querySelector("#player_2");
+					if (p1)
+						p1.textContent = data.players ? data.players[0] : "";
+					if (p2)
+						p2.textContent = data.players ? data.players[1] : "";
+					//this.gameLoop();
+					this.stop();
+					this.start();
+					this.toggleDisplay();
+					this.resetScore();
+				}
+
+				//TODO puedo generar o hacer que se reinicien los puntos haga animaciones o inicialice de alguna forma visual el Juego,
+				console.log("Datos del juego completos: INICIAMOS");
+			}
+		});
+	}
+
+	renderTemplate() {
+		return `
 <div class="w-screen h-screen my-12 xl:my-0 flex flex-col justify-center items-center">
-  <div id="game" class="bg-[#11162F] shadow-[0_0_20px_rgba(0,0,0,0.3)]  shadow-xl relative overflow-hidden z-50">
-      </div>
-        <div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
-      </div>
+	<div id="game" class="bg-[#11162F] shadow-[0_0_20px_rgba(0,0,0,0.3)]  shadow-xl relative overflow-hidden z-50">
+			</div>
+				<div id="state-game-container" class="absolute inset-0 flex items-center justify-center">
+			</div>
 
-    <div id="game-table"  class=" w-fit h-fit  flex flex-col overflow-hidden    px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-        <!-- Encabezado -->
-        <div class ="bg-[#11162F] w-fit rounded items-center justify-center">
+		<div id="game-table"  class=" w-fit h-fit  flex flex-col overflow-hidden    px-[5px] rounded bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+				<!-- Encabezado -->
+				<div class ="bg-[#11162F] w-fit rounded items-center justify-center">
 
-          <div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
-            <div class="flex flex-row items-center gap-4" > 
-            <h2 id="player_1" class="pointer-events-none text-white text-sm font-semibold">Player 1</h2>
-            <h2 id="points_1" class="pointer-events-none text-white text-sm font-bold">0</h2>
-            <hr id="divider" class="h-4 border-xl border-white border-opacity-15" />
+					<div id="list-header" class="justify-center items-center relative flex p-4 border-b border-white items-center border-opacity-10">
+						<div class="flex flex-row items-center gap-4" > 
+						<h2 id="player_1" class="pointer-events-none text-white text-sm font-semibold">Player 1</h2>
+						<h2 id="points_1" class="pointer-events-none text-white text-sm font-bold">0</h2>
+						<hr id="divider" class="h-4 border-xl border-white border-opacity-15" />
 
-              <h2 id="player_2" class="pointer-events-none text-white text-sm font-semibold">Player 2</h2>
-              <h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
-            </div>
-          </div>
+							<h2 id="player_2" class="pointer-events-none text-white text-sm font-semibold">Player 2</h2>
+							<h2 id="points_2" class="pointer-events-none text-white text-sm font-bold">0</h2>
+						</div>
+					</div>
 
-          <!-- Canvas -->
-          <div class="relative overflow-auto flex items-center justify-center">
-            <canvas id="pong" width="800" height="400" class="z-0"></canvas>
-          </div>
+					<!-- Canvas -->
+					<div class="relative overflow-auto flex items-center justify-center">
+						<canvas id="pong" width="800" height="400" class="z-0"></canvas>
+					</div>
 
-        </div>
-    </div>
+				</div>
+		</div>
 
 </div>
-    `;
-  }
-  protected async initEvents(): Promise<void> {
-    this.canvas = this.element?.querySelector("#pong") as HTMLCanvasElement;
-    this.ctx = this.canvas?.getContext("2d");
-
-    if (!this.canvas || !this.ctx) {
-      console.error("No canvas context found.");
-      return;
-    }
-
-    const paddleWidth = 15, paddleHeight = 100, ballSize = 10;
-
-    this.player1 = { x: 0, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
-    this.player2 = { x: this.canvas.width - paddleWidth, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
-    this.ball = { x: this.canvas.width / 2, y: this.canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 0, color: "white" };
-
-    const keyDownHandler = (e: KeyboardEvent) => {
-      if (e.key === "w") this.player1.dy = -8;
-      else if (e.key === "s") this.player1.dy = 8;
-      if (e.key === "i") this.player2.dy = -8;
-      else if (e.key === "k") this.player2.dy = 8;
-    };
-
-    const keyUpHandler = (e: KeyboardEvent) => {
-      if (["w", "s"].includes(e.key)) this.player1.dy = 0;
-      if (["i", "k"].includes(e.key)) this.player2.dy = 0;
-    };
-
-    document.addEventListener("keydown", keyDownHandler);
-    document.addEventListener("keyup", keyUpHandler);
-
-   const gameLoop= () =>{
-      this.movePaddles();
-      this.draw();
-      this.moveBall();
-      requestAnimationFrame(gameLoop);
-  }
-    this.buildState();
-    gameLoop();
-  this.toggleDisplay();
-  }
-  toggleDisplay() {
-    if (!this.element) return;
-    const element = this.element?.querySelector('#game-table');
-    if (!element) return;
-    element.classList.toggle("hidden");
-  }
+		`;
+	}
 
 
-  buildState() {
-    if (!this.element) return;
+	protected async initEvents(): Promise<void> {
+		this.canvas = this.element?.querySelector("#pong") as HTMLCanvasElement;
+		this.ctx = this.canvas?.getContext("2d");
 
-    this.element?.getElementsByClassName
-    const stateGame = this.element?.querySelector(
-          "#state-game-container"
-        ) as HTMLElement;
+		if (!this.canvas || !this.ctx) {
+			console.error("No canvas context found.");
+			return;
+		}
 
-    stateGame.appendChild(this.gameState.render());
-  }
+		const paddleWidth = 15, paddleHeight = 100, ballSize = 10;
 
-  protected drawPaddle(paddle:any) {
-      if (!this.ctx || !this.canvas) return;
+		this.player1 = { x: 0, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
+		this.player2 = { x: this.canvas.width - paddleWidth, y: this.canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", dy: 0 };
+		this.ball = { x: this.canvas.width / 2, y: this.canvas.height / 2, radius: ballSize, speed: 4, dx: 4, dy: 0, color: "white" };
 
-    const ctx = this.ctx;
+		const keyDownHandler = (e: KeyboardEvent) => {
+			if (e.key === "w") {
+				this.player1.dy = -8;
+				if (this.server) {
+					this.server.send(JSON.stringify({
+						type: 'update',
+						player: this.player1,
+						id: this.matchData?.players?.at(0) || ""
+					}));
+				}
+			}
+			else if (e.key === "s") {
+				this.player1.dy = 8;
+				if (this.server) {
+					this.server.send(JSON.stringify({
+						type: 'update',
+						player: this.player1,
+						id: this.matchData?.players?.at(0)
+					}));
+				}
+			}
+			if (e.key === "i") this.player2.dy = -8;
+			else if (e.key === "k") this.player2.dy = 8;
+		};
 
-    // Crear un gradiente lineal desde arriba hacia abajo de la paleta
-    const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
-    gradient.addColorStop(0, '#E615F2');  // Color arriba
-    gradient.addColorStop(1, '#1ADEF9');  // Color abajo
+		const keyUpHandler = (e: KeyboardEvent) => {
+			if (["w", "s"].includes(e.key)) {
+				this.player1.dy = 0;
+				if (this.server) {
+					this.server.send(JSON.stringify({
+						type: 'update',
+						player: this.player1,
+						id: this.matchData?.players?.at(0)
+					}));
+				}
+			}
+			if (["i", "k"].includes(e.key)) {
+				this.player2.dy = 0
+				if (this.server) {
+					this.server.send(JSON.stringify({
+						type: 'update',
+						player: this.player1,
+						id: this.matchData?.players?.at(0)
+					}));
+				}
+			};
+		};
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-  }
-  draw() {
-    if (!this.ctx || !this.canvas) return;
+		document.addEventListener("keydown", keyDownHandler);
+		document.addEventListener("keyup", keyUpHandler);
 
-    this.ctx.fillStyle = "#11162F";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.ctx.fillStyle = "#EEEEEE";
-    this.ctx.fillRect(this.canvas.width / 2 - 8, 0, 8, this.canvas.height);
+		this.buildState();
+		this.toggleDisplay();
+	}
 
-    this.drawPaddle(this.player1);
-  
-    this.drawPaddle(this.player2);
+	start() {
+		this.animationId = requestAnimationFrame(this.gameLoop);
+	}
 
-    this.ctx.fillStyle = this.ball.color;
-    this.ctx.beginPath();
-    this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, 2 * Math.PI);
-    this.ctx.fill();
-  }
+	stop() {
+		cancelAnimationFrame(this.animationId);
+	}
+	toggleDisplay() {
+		if (!this.element) return;
+		const element = this.element?.querySelector('#game-table');
+		if (!element) return;
+		element.classList.toggle("hidden");
+	}
 
-  movePaddles() {
-    this.player1.y += this.player1.dy;
-    this.player2.y += this.player2.dy;
 
-    this.player1.y = Math.max(0, Math.min(this.canvas!.height - this.player1.height, this.player1.y));
-    this.player2.y = Math.max(0, Math.min(this.canvas!.height - this.player2.height, this.player2.y));
-  }
+	buildState() {
+		if (!this.element) return;
 
-  moveBall() {
-    this.ball.x += this.ball.dx;
-    this.ball.y += this.ball.dy;
+		this.element?.getElementsByClassName
+		const stateGame = this.element?.querySelector(
+			"#state-game-container"
+		) as HTMLElement;
 
-    if (this.ball.y - this.ball.radius < 0 || this.ball.y + this.ball.radius > this.canvas!.height) {
-      this.ball.dy = -this.ball.dy;
-    }
+		stateGame.appendChild(this.gameState.render());
+	}
 
-    if (
-      this.ball.x - this.ball.radius < this.player1.x + this.player1.width &&
-      this.ball.y > this.player1.y && this.ball.y < this.player1.y + this.player1.height && this.player1CanHit
-    ) {
-      this.ball.dy > 0 ? this.ball.dx++ : this.ball.dy--;
-      this.player1.dy > 0 ? this.ball.dx++ : this.player1.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
-      this.ball.dx = -this.ball.dx;
-      this.player1CanHit = false;
-      this.player2CanHit = true;
-    }
+	protected drawPaddle(paddle: any) {
+		if (!this.ctx || !this.canvas) return;
 
-    if (
-      this.ball.x + this.ball.radius > this.player2.x &&
-      this.ball.y > this.player2.y && this.ball.y < this.player2.y + this.player2.height && this.player2CanHit
-    ) {
-      this.ball.dx > 0 ? this.ball.dx++ : this.ball.dy--;
-      this.player2.dy > 0 ? this.ball.dx++ : this.player2.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
-      this.ball.dx = -this.ball.dx;
-      this.player1CanHit = true;
-      this.player2CanHit = false;
-    }
+		const ctx = this.ctx;
 
-    // Score
-    if (this.ball.x - this.ball.radius < 0) {
-      this.player2Score++;
-      this.updateScore();
-      this.resetBall();
-    } else if (this.ball.x + this.ball.radius > this.canvas!.width) {
-      this.player1Score++;
-      this.updateScore();
-      this.resetBall();
-    }
-  }
+		// Crear un gradiente lineal desde arriba hacia abajo de la paleta
+		const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
+		gradient.addColorStop(0, '#E615F2');  // Color arriba
+		gradient.addColorStop(1, '#1ADEF9');  // Color abajo
 
-  resetBall() {
-    this.ball.x = this.canvas!.width / 2;
-    this.ball.y = this.canvas!.height / 2;
-    this.ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
-    this.ball.dy = 0
-    this.player1CanHit = true;
-    this.player2CanHit = true;
-  }
+		ctx.fillStyle = gradient;
+		ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+	}
+	draw() {
+		if (!this.ctx || !this.canvas) return;
 
-  resetScore(){
-    const p1 = this.element?.querySelector("#points_1");
-    const p2 = this.element?.querySelector("#points_2");
-    if (p1)
-      p1.textContent = String(0);
-    if (p2)
-      p2.textContent = String(0);
-    this.player1Score = 0;
-    this.player2Score = 0;
-    return;
+		this.ctx.fillStyle = "#11162F";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-  }
-  updateScore() {
-    if (!this.matchData) return;
-    const p1 = this.element?.querySelector("#points_1");
-    const p2 = this.element?.querySelector("#points_2");
-    if (this.matchData.status==='started' && (this.player2Score >= 3 || this.player1Score >= 3) && this.matchData.players) {
-      if (this.player1Score >= 3)
-        this.matchData.winner = this.matchData.players[0];
-      else if (this.player2Score >= 3)
-        this.matchData.winner = this.matchData.players[1];
+		this.ctx.fillStyle = "#EEEEEE";
+		this.ctx.fillRect(this.canvas.width / 2 - 8, 0, 8, this.canvas.height);
 
-      this.matchData.status = "finished";
-      this.resetScore();
-      this.gameState.setMatchData(this.matchData);
-      console.log("Juego finalizado");
-      this.toggleDisplay();
+		this.drawPaddle(this.player1);
 
-      return;
-    }
-    if (p1)
-      p1.textContent = String(this.player1Score);
-    if (p2)
-      p2.textContent = String(this.player2Score);
-  }
+		this.drawPaddle(this.player2);
+
+		this.ctx.fillStyle = this.ball.color;
+		this.ctx.beginPath();
+		this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, 2 * Math.PI);
+		this.ctx.fill();
+	}
+
+	movePaddles() {
+		this.player1.y += this.player1.dy;
+		this.player2.y += this.player2.dy;
+
+		this.player1.y = Math.max(0, Math.min(this.canvas!.height - this.player1.height, this.player1.y));
+		this.player2.y = Math.max(0, Math.min(this.canvas!.height - this.player2.height, this.player2.y));
+	}
+
+	moveBall() {
+		this.ball.x += this.ball.dx;
+		this.ball.y += this.ball.dy;
+
+		if (this.ball.y - this.ball.radius < 0 || this.ball.y + this.ball.radius > this.canvas!.height) {
+			this.ball.dy = -this.ball.dy;
+		}
+
+		if (
+			this.ball.x - this.ball.radius < this.player1.x + this.player1.width &&
+			this.ball.y > this.player1.y && this.ball.y < this.player1.y + this.player1.height && this.player1CanHit
+		) {
+			this.ball.dy > 0 ? this.ball.dx++ : this.ball.dy--;
+			this.player1.dy > 0 ? this.ball.dx++ : this.player1.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
+			this.ball.dx = -this.ball.dx;
+			this.player1CanHit = false;
+			this.player2CanHit = true;
+		}
+
+		if (
+			this.ball.x + this.ball.radius > this.player2.x &&
+			this.ball.y > this.player2.y && this.ball.y < this.player2.y + this.player2.height && this.player2CanHit
+		) {
+			this.ball.dx > 0 ? this.ball.dx++ : this.ball.dy--;
+			this.player2.dy > 0 ? this.ball.dx++ : this.player2.dx < 0 ? this.ball.dy-- : this.ball.dy = this.ball.dy;
+			this.ball.dx = -this.ball.dx;
+			this.player1CanHit = true;
+			this.player2CanHit = false;
+		}
+
+		// Score
+		if (this.ball.x - this.ball.radius < 0) {
+			this.player2Score++;
+			this.updateScore();
+			this.resetBall();
+		} else if (this.ball.x + this.ball.radius > this.canvas!.width) {
+			this.player1Score++;
+			this.updateScore();
+			this.resetBall();
+		}
+	}
+
+	resetBall() {
+		this.ball.x = this.canvas!.width / 2;
+		this.ball.y = this.canvas!.height / 2;
+		this.ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+		this.ball.dy = 0
+		this.player1CanHit = true;
+		this.player2CanHit = true;
+	}
+
+	resetScore() {
+		const p1 = this.element?.querySelector("#points_1");
+		const p2 = this.element?.querySelector("#points_2");
+		if (p1)
+			p1.textContent = String(0);
+		if (p2)
+			p2.textContent = String(0);
+		this.player1Score = 0;
+		this.player2Score = 0;
+		return;
+	}
+
+
+	updateScore() {
+		if (!this.matchData) return;
+		const p1 = this.element?.querySelector("#points_1");
+		const p2 = this.element?.querySelector("#points_2");
+		if (!this.server && this.matchData.status === 'started' && (this.player2Score >= 3 || this.player1Score >= 3) && this.matchData.players) {
+			if (this.player1Score >= 3)
+				this.matchData.winner = this.matchData.players[0];
+			else if (this.player2Score >= 3)
+				this.matchData.winner = this.matchData.players[1];
+			this.matchData.status = "finished";
+			this.resetScore();
+			this.gameState.setMatchData(this.matchData);
+			console.log("Juego finalizado");
+			this.toggleDisplay();
+			this.stop();
+			return;
+		}
+		if (p1)
+			p1.textContent = String(this.player1Score);
+		if (p2)
+			p2.textContent = String(this.player2Score);
+	}
 }
 
 interface GamePageProps extends ComponentProps {
-  userId: string;
-  gameId: string;
+	userId: string;
+	gameId: string;
 }

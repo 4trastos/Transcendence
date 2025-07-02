@@ -77,6 +77,7 @@ export class HandleTournamentState implements GameState {
 
 		}
   }
+  
   getTwoRandomStrings(arr: string[]): [string, string] {
 	const shuffled = [...arr].sort(() => Math.random() - 0.5);
 	return [shuffled[0], shuffled[1]];

@@ -5,14 +5,14 @@ import { ChooseGameTypeState } from "./ChooseGameTypeState";
 
 export interface GameStarterProps extends ComponentProps {
     userJwt: UserJwt;
-	  onComplete?: (data: GameData) => void;
+	  onComplete?: (data: GameData, server?: any) => void;
 }
 export interface GameState {
   render(): HTMLElement;
   next(): void;
 }
 export interface GameData {
-  gameType?: string;
+  gameType?: "torneo" | "1vs1";
   winners?:{winner:string, round:number}[];
   playersCount?: number;
   players?: string[];
@@ -20,6 +20,7 @@ export interface GameData {
 }
 
 export interface MatchData {
+  gameType?: "torneo" | "1vs1";
   players?: string[];
   status?: string;
   winner?: string;
@@ -69,7 +70,7 @@ export class GameStarter extends Component {
     this.state = state;
     this.update();
   }
-  public setGameType(type: string) {
+  public setGameType(type: "torneo" | "1vs1") {
     this.gameData.gameType = type;
   }
 
@@ -105,9 +106,11 @@ export class GameStarter extends Component {
   public getGameData(): GameData {
     return this.gameData;
   }
-  public completeGameSetup() {
+  public completeGameSetup(server?:any) {
     if (this.props.onComplete) {
-      this.props.onComplete(this.matchData);
+      //Tener cuidado que no reaccione
+      this.matchData.gameType = this.gameData.gameType;
+      this.props.onComplete(this.matchData, server);
     }
   }
   // Lógica principal para renderizar el estado actual
