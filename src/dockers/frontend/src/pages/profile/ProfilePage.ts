@@ -110,6 +110,37 @@ export class ProfilePage extends Component {
                 await this.exitSession();
             });
         }
+        const deleteBtn = this.element.querySelector("#profile-delete") as HTMLButtonElement;
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", async () => {
+                const confirmed = confirm("¿Estás seguro de que quieres eliminar tu cuenta?");
+                if (!confirmed) return;
+                try {
+                    const res = await fetch(`/backend/api/users/me`, {
+                        method: "DELETE",
+                        credentials: "include"
+                    });
+
+                    if (res.ok) {
+                        alert("Cuenta eliminada correctamente.");
+                    
+                        await fetch('/backend/api/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                    
+                        window.location.href = "/";
+                    }
+                     else {
+                        const errorData = await res.json();
+                        alert("Error al eliminar la cuenta: " + errorData.error);
+                    }
+                } catch (error) {
+                    alert("Error de conexión al intentar eliminar la cuenta.");
+                    console.error(error);
+                }
+            });
+        }
         //Los datos cargados seran los adqueridos de la base de datos, de momento somo Manolo
         if (profile) {
             const divImg = this.element.querySelector("#div-img") as HTMLElement

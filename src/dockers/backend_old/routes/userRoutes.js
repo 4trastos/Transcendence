@@ -118,9 +118,47 @@ export async function userRoutes(fastify, options) {
 
 
   });
+  fastify.delete('/users/me', async (request, reply) => {
+    const decoded = await request.jwtVerify();
+    
+    const userId = decoded.id;
 
-    // GET /protected-test
+    if (!userId) {
+        return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
 
+    console.log("→ Intentando borrar usuario con ID:", userId);
+
+    const dbPath = '/var/lib/sqlite/sqlite.db';
+    const db = new sqlite3.Database(dbPath);
+
+    db.run(`DELETE FROM users WHERE id = ?`, [userId], function (err) {
+        if (err) {
+            console.error('→ Error al eliminar usuario:', err.message);
+            db.close();
+            return reply.status(500).send({ success: false, error: 'Database error' });
+        }
+
+        console.log("→ Cambios realizados en la base:", this.changes);
+
+        if (this.changes === 0) {
+            db.close();
+            return reply.status(404).send({ success: false, error: 'User not found' });
+        }
+
+        console.log(`→ Usuario con ID ${userId} eliminado`);
+        db.close();  // ✅ cerrar solo aquí
+
+        return reply
+            .clearCookie("token", {
+                path: "/",
+                httpOnly: true,
+                sameSite: "lax",
+                secure: false
+            })
+            .send({ success: true, message: 'User deleted successfully' });
+    });
+});
 
 }
 

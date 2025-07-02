@@ -1045,7 +1045,7 @@ export async function authRoutes(fastify, options) {
             : "NULL",
         });
 
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        const isMatch = await fastify.bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
           return sendError(reply, 401, "Credenciales inválidas", {
             details: "La contraseña es incorrecta",
