@@ -1,7 +1,7 @@
 import fastifyWebsocket from "@fastify/websocket";
 import configApp from "./app.config";
 import UserTemplate from "./infrastructure/rest/UserTemplate";
-import chatWebSocketRoutes from "./interfaces/routes/gameWebSocketRoutes";
+import gameWebSocketRoutes from "./interfaces/routes/gameWebSocketRoutes";
 import fs from "fs";
 import path from "path";
 
@@ -12,9 +12,9 @@ async function main() {
 
 	// Instancia del adaptador WebSocket
 	fastify.register(fastifyWebsocket);
-	fastify.register(chatWebSocketRoutes, {userTemplate: new UserTemplate()});
+	fastify.register(gameWebSocketRoutes, {prefix: '/game',userTemplate: new UserTemplate()});
 
-	fastify.listen({ port: 3050, host: '0.0.0.0' }, (err:any, address:any) => {
+	fastify.listen({ port: 3060, host: '0.0.0.0' }, (err:any, address:any) => {
 		if (err) {
 			fastify.log.error(err);
 			process.exit(1);

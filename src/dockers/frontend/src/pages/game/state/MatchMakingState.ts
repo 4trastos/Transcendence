@@ -20,13 +20,13 @@ export class MatchMakingState implements GameState {
 		this.container.id = "matchmaking-state";
 
 		//Me conecto por WebSocket
-		const matchSocket = new WebSocket('http://localhost:3050/matchmaking');//Hay que finalizar la sesion?
+		const matchSocket = new WebSocket('/game/matchmaking');//Hay que finalizar la sesion?
 
 		matchSocket.onmessage = (msg) => {
 			const data = JSON.parse(msg.data);
 			if (data.type === 'match_found') {
 				//Aqui debo recopilar los datos de los jugadores
-				const partidaSocket = new WebSocket(`http://localhost:3050/match/${data.matchId}`);
+				const partidaSocket = new WebSocket(`/game/match/${data.matchId}`);
 				
 				partidaSocket.onopen = () => {
 					console.log('Conectado a la partida 🎮');

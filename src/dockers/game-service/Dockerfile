@@ -24,7 +24,7 @@ COPY /tsconfig.json /app/
 COPY /package.json /app/
 
 RUN npm install
-EXPOSE 3050
+EXPOSE 3060
 
 
 # Usa un comando para mantener el contenedor en ejecución, en caso de que necesites interactuar con él

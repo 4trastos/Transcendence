@@ -79,6 +79,22 @@ services:
     networks:
       - transcendence
 
+
+  game-service:
+    build:
+      context: ./dockers/game-service/
+      dockerfile: Dockerfile
+    container_name: game-service
+    restart: always
+    volumes:
+      - tls_volume:/etc/app/tls
+      - sqlite_data:/var/lib/sqlite
+    env_file:
+      - .env
+    #ports:
+    #  - "3050:3050"
+    networks:
+      - transcendence
   php:
     build: dockers/php/.
     container_name: php
