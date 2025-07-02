@@ -26,7 +26,7 @@ export default class VerifyConnection {
 			//throw new HandleException("No se tiene permiso para la conexion", 401, "Unauthorized");
 		}
 		const wsUser = ({ user: user, websocket: connection });
-		connection.send(JSON.stringify({ message: `Conexión establecida, userId: ${user.id}`}));
+		//connection.send(JSON.stringify({ message: `Conexión establecida, userId: ${user.id}`}));
 		onStatusChange(req,"open");
 		return user;
 	}

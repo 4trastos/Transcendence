@@ -20,6 +20,8 @@ export class GamePage extends Component {
 	private server: any;
 	private animationId: any;
 	private gameLoop: any;
+	private idRemotePlayer1: any;
+	private idRemotePlayer2: any;
 
 	constructor(user: UserJwt) {
 		super();
@@ -49,13 +51,11 @@ export class GamePage extends Component {
 					//Me subscribo a eventos del servidor para actualizar el frontend
 					this.server.onmessage = (msg: any) => {
 						const update = JSON.parse(msg.data);//TODO: Escucho los movimientos
-						if (update.status === 'init') {
-							this.stop();
-							this.draw();
-						} else if (update.status === 'started') {
+					if (update.status === 'started') {
 							this.ball.x = update.ball.x;
 							this.ball.y = update.ball.y;
-							// Opcionalmente: otros datos como scores o posiciones de jugadores
+							this.idRemotePlayer1 = update.idPlayer1;
+							this.idRemotePlayer2 = update.idPlayer2;
 							this.player1.y = update.player1.y;
 							this.player2.y = update.player2.y;
 							this.player1Score = update.player1Score;
@@ -145,47 +145,144 @@ export class GamePage extends Component {
 		const keyDownHandler = (e: KeyboardEvent) => {
 			if (e.key === "w") {
 				this.player1.dy = -8;
-				if (this.server) {
-					this.server.send(JSON.stringify({
-						type: 'update',
-						player: this.player1,
-						id: this.matchData?.players?.at(0) || ""
-					}));
+
+
+
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player2.dy = -8;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
 				}
+
+
+		
 			}
 			else if (e.key === "s") {
 				this.player1.dy = 8;
-				if (this.server) {
-					this.server.send(JSON.stringify({
-						type: 'update',
-						player: this.player1,
-						id: this.matchData?.players?.at(0)
-					}));
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player2.dy = 8;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
 				}
 			}
-			if (e.key === "i") this.player2.dy = -8;
-			else if (e.key === "k") this.player2.dy = 8;
+			if (e.key === "i") {
+				this.player2.dy = -8;
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player1.dy = -8;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
+				}
+
+			}
+			else if (e.key === "k") {
+				this.player2.dy = 8;
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player1.dy = 8;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
+				}
+			}
 		};
 
 		const keyUpHandler = (e: KeyboardEvent) => {
 			if (["w", "s"].includes(e.key)) {
 				this.player1.dy = 0;
-				if (this.server) {
-					this.server.send(JSON.stringify({
-						type: 'update',
-						player: this.player1,
-						id: this.matchData?.players?.at(0)
-					}));
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player2.dy = 0;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
 				}
 			}
 			if (["i", "k"].includes(e.key)) {
-				this.player2.dy = 0
-				if (this.server) {
-					this.server.send(JSON.stringify({
-						type: 'update',
-						player: this.player1,
-						id: this.matchData?.players?.at(0)
-					}));
+				this.player2.dy = 0;
+				const playerId = this.matchData?.players?.at(0);
+				if (this.server && playerId) {
+					this.player1.dy = 0;
+					let playerToSend = null;
+				
+					if (this.idRemotePlayer1 === playerId) {
+						playerToSend = this.player1;
+					} else if (this.idRemotePlayer2 === playerId) {
+						playerToSend = this.player2;
+					}
+				
+					if (playerToSend) {
+						this.server.send(JSON.stringify({
+							type: 'update',
+							player: playerToSend,
+							id: playerId
+						}));
+					}
 				}
 			};
 		};

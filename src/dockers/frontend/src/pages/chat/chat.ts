@@ -34,10 +34,11 @@ export class ChatPage extends Component {
 
   protected initEvents(): void {
     if (!this.element) return;
+    const hostIP = window.location.host;
 
     //Inicializar WebSocket
     this.socket = new WebSocket(
-      "wss://localhost:8443/chats/connect-ws"
+      `wss://${hostIP}/chats/connect-ws`
     );
     this.socket.addEventListener("open", () => {
       console.log("Conexión WebSocket abierta");

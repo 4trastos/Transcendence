@@ -18,24 +18,27 @@ export class MatchMakingState implements GameState {
 
 	render(): HTMLElement {
 		this.container.id = "matchmaking-state";
+		const hostIP = window.location.host;
 
 		//Me conecto por WebSocket
-		const matchSocket = new WebSocket('/game/matchmaking');//Hay que finalizar la sesion?
+		const matchSocket = new WebSocket(`wss://${hostIP}/game/matchmaking`);//Hay que finalizar la sesion?
 
 		matchSocket.onmessage = (msg) => {
 			const data = JSON.parse(msg.data);
 			if (data.type === 'match_found') {
 				//Aqui debo recopilar los datos de los jugadores
-				const partidaSocket = new WebSocket(`/game/match/${data.matchId}`);
+				const partidaSocket = new WebSocket(`wss://${hostIP}/game/match/${data.matchId}`);
 				
 				partidaSocket.onopen = () => {
 					console.log('Conectado a la partida 🎮');
-					this.displayTournamentState(partidaSocket);
 				};
 
 				partidaSocket.addEventListener('message', (event) =>  {
 					const update = JSON.parse(event.data);
-					if (update.status === 'finished') {
+					if (update.status === 'init') {
+						this.displayTournamentState(partidaSocket, [update.idPlayer1, update.idPlayer2] );
+
+					} else if (update.status === 'finished') {
 						partidaSocket.close();
 
 						console.log(update)
@@ -59,6 +62,7 @@ export class MatchMakingState implements GameState {
 						this.container.appendChild(resultGame.render());
 					}
 				});
+
 			} else { 
 				matchSocket.close();
 			}
@@ -92,20 +96,21 @@ export class MatchMakingState implements GameState {
 
 
 
-	displayTournamentState(server: any) {
+	displayTournamentState(server: any, players: string[]) {
 		if ((!this.player)) {
 			this.context.setState(new ChooseGameTypeState(this.context));
 			return;
 		}
 
+		
 		console.log(this.player);
 		this.container.innerHTML = '';
 		const matchGame = new MatchGameComponent({
-		players: [this.player, ""],
+		players: [this.player, players.findLast(it => it !== this.player) || "None"],
 		onDestroy: ()=>{
 			this.context.setMatchData({
 				status:'started',
-				players: [this.player],
+				players: [this.player, players.findLast(it => it !== this.player) || "None"],
 			});
 			this.context.completeGameSetup(server);
 		}

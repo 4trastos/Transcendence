@@ -32,9 +32,10 @@ export default class ChatView extends Component {
   protected async initEvents(): Promise<void> {
     if (!this.element) return;
 
+		const host = window.location.host;
     try {
       this.socket = new WebSocket(
-        `wss://localhost:8443/chats/connect-ws`
+        `wss://${host}/chats/connect-ws`
       );
   
       this.socket.addEventListener("open", () => {

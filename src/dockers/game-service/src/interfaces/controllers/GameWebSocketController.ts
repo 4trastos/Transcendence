@@ -91,7 +91,7 @@ export class GameWebSocketController {
 			game_duration: 0
 		};
 		const response = await fetch(
-			"/backend/api/games",
+			"http://app:3000/backend/api/games",
 			{
 				method: "POST",
 				headers: {
@@ -172,7 +172,7 @@ export class GameWebSocketController {
 	async handleMatch(connection: any, req: any) {
 		try {
 			const { matchId } = req.params;
-			const jwt = req.cokkies.token;
+			const jwt = req.cookies.token;
 
 			//this.verifyConnection.execute(connection, req, this.onStatusChange.bind(this));
 			const partida = this.matches.get(matchId);
@@ -183,11 +183,20 @@ export class GameWebSocketController {
 			this.matches.set(matchId, partida);
 			partida.jugadores.add(connection);
 
-			partida.jugadores.forEach((jugadorSocket) => {
-				if (jugadorSocket.readyState === 1) {
-					jugadorSocket.send(JSON.stringify({ type: 'init' }));
-				}
-			});
+			const payload = {
+				status: 'init',
+				ball: { x: partida.ball.x, y: partida.ball.y },
+				player1: partida.player1, // Puedes reemplazar esto con posiciones reales
+				player2: partida.player2,
+				idPlayer1: partida.idPlayer1,
+				idPlayer2: partida.idPlayer2,
+				player1Score: partida.player1Score,
+				player2Score: partida.player2Score,
+				winner: '',
+			};
+			if (connection.readyState === 1) {
+				connection.send(JSON.stringify(payload));
+			}
 
 			partida.intervalId = setInterval(() => {
 				this.moveBall(partida);
@@ -198,46 +207,52 @@ export class GameWebSocketController {
 					ball: { x: partida.ball.x, y: partida.ball.y },
 					player1: partida.player1, // Puedes reemplazar esto con posiciones reales
 					player2: partida.player2,
+					idPlayer1: partida.idPlayer1,
+					idPlayer2: partida.idPlayer2,
 					player1Score: partida.player1Score,
 					player2Score: partida.player2Score,
 					winner: '',
 				};
 
-				if (payload.player2Score >= 3 || payload.player1Score >= 3) {
+ 				if (payload.player2Score >= 3 || payload.player1Score >= 3) {
 					if (payload.player1Score >= 3)
-						payload.winner = payload.player1;
+						payload.winner = partida.idPlayer1;
 					else if (payload.player2Score >= 3)
-						payload.winner = payload.player2;
+						payload.winner = partida.idPlayer2;
 					payload.status = 'finished',
 					this.saveGame(payload, jwt);
 					//TODO: Finalizo la sesion para este jugador.
-					partida.jugadores.delete(connection);
-					if (partida.jugadores.size === 0) {
-						clearInterval(partida.intervalId); // Detener game loop
-						this.matches.delete(matchId);
-						console.log(`🗑️ Partida ${matchId} eliminada`);
-					}
+		
 				}
 				partida.jugadores.forEach((jugadorSocket) => {
 					if (jugadorSocket.readyState === 1) {
 						jugadorSocket.send(JSON.stringify(payload));
+						if (payload.status === 'finished') {
+							partida.jugadores.delete(jugadorSocket);
+							if (partida.jugadores.size === 0) {
+								clearInterval(partida.intervalId); // Detener game loop
+								this.matches.delete(matchId);
+								console.log(`🗑️ Partida ${matchId} eliminada`);
+							}
+						}
 					}
 				});
+			
 
 			}, 1000 / 60); // 60 FPS
 
 
 			connection.on('message', (msg) => {
 				const movment = JSON.parse(msg);
-				console.log(`📨 Acción en partida ${matchId}:`, movment);
+				console.log(`📨 Acción en partida ${matchId}:`, movment, partida.idPlayer1, partida.idPlayer2);
 				// Reenviar a los demás jugadores
 				partida.jugadores.forEach((jugadorSocket) => {
 					if (jugadorSocket.readyState === 1) {
-						if (Number(partida.idPlayer1) === Number(movment.id)) {
-							partida.player1 = movment.player;
-						} else if (Number(partida.idPlayer2) === Number(movment.id)) {
+						if ((partida.idPlayer2) === (movment.id)) {
 							partida.player2 = movment.player
-						}
+						} else if ((partida.idPlayer1) === (movment.id)) {
+							partida.player1 = movment.player;
+						} 
 					}
 				});
 
