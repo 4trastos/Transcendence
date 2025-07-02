@@ -32,7 +32,7 @@ if [ ! -f "$ADMIN_PASSWORD_FILE" ]; then
   echo "🔐 Generando contraseña robusta para Grafana..."
   ADMIN_PASSWORD=$(openssl rand -base64 20 | tr -dc 'a-zA-Z0-9!@#$%^&*()_+-=')
   echo "$ADMIN_PASSWORD" > "$ADMIN_PASSWORD_FILE"
-  chmod 600 "$ADMIN_PASSWORD_FILE"
+  chmod 644 "$ADMIN_PASSWORD_FILE"
   
   # Mostrar contraseña generada
   echo "================================================"
