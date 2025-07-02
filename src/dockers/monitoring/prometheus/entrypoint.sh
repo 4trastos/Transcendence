@@ -4,10 +4,10 @@ set -e
 echo "🚀 [START] Inicializando Prometheus..."
 
 CERT_DIR="/etc/prometheus/certs"
-mkdir -p "${CERT_DIR}" /prometheus/data
-chown -R nobody:nogroup "${CERT_DIR}" /prometheus
-chmod -R 750 "${CERT_DIR}"
-chmod 755 /prometheus/data
+#mkdir -p "${CERT_DIR}" /prometheus/data
+#chown -R nobody:nogroup "${CERT_DIR}" /prometheus
+#chmod -R 750 "${CERT_DIR}"
+#chmod 755 /prometheus/data
 
 # Generar certificados si no existen
 if [ ! -f "${CERT_DIR}/prometheus.crt" ]; then
@@ -28,8 +28,8 @@ if [ ! -f "${CERT_DIR}/prometheus.crt" ]; then
     -CA "${CERT_DIR}/ca.crt" -CAkey "${CERT_DIR}/ca.key" -CAcreateserial \
     -out "${CERT_DIR}/prometheus.crt" -days 3650 -sha256
 
-  chmod 600 "${CERT_DIR}"/*.key
-  chmod 644 "${CERT_DIR}"/*.crt
+  #chmod 600 "${CERT_DIR}"/*.key
+  #chmod 644 "${CERT_DIR}"/*.crt
 fi
 
 echo "🌀 Iniciando Prometheus..."

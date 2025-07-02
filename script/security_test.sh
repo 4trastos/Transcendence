@@ -648,3 +648,5 @@ if [ -f "$ERROR_FILE" ]; then
     rm "$ERROR_FILE"  # Eliminamos el archivo si no hay errores
   fi
 fi
+
+chmod 644 $REPORT_FILE
