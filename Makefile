@@ -1,4 +1,4 @@
-all: grant_permissions restart_if_needed setup
+all: grant_permissions setup
 	@docker compose -f ./src/docker-compose.yml up ${c} -d --build
 	@clear
 	@./script/loading.sh 
@@ -16,50 +16,6 @@ grant_permissions:
 
 kill_docker:
 	@./script/kill_docker.sh
-
-restart_if_needed:
-	@if [ ! -d "$(HOME)/goinfre/data" ]; then \
-		echo "No se encuentra el directorio $(HOME)/goinfre/data. Comprobando el estado de Docker..."; \
-		if docker ps -q > /dev/null; then \
-			echo "Docker se está ejecutando. Deteniendo Docker..."; \
-			$(MAKE) kill_docker; \
-		else \
-			echo "Docker no se está ejecutando. No es necesario detenerlo."; \
-		fi; \
-		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Ejecutándose en macOS. Iniciando Docker..."; \
-			open /Applications/Docker.app; \
-		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Ejecutando en Linux. Iniciando Docker..."; \
-			sudo systemctl start docker; \
-		fi; \
-		echo "Esperando que Docker se inicie..."; \
-		sleep 10; \
-		while ! docker ps > /dev/null 2>&1; do \
-			echo "Esperando que Docker esté listo..."; \
-			sleep 5; \
-		done; \
-		echo "Docker está listo."; \
-	elif ! docker ps -q > /dev/null; then \
-		echo "Docker no se está ejecutando. Iniciando Docker..."; \
-		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Ejecutándose en macOS. Iniciando Docker..."; \
-			open /Applications/Docker.app; \
-		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Ejecutando en Linux. Iniciando Docker..."; \
-			sudo systemctl start docker; \
-		fi; \
-		echo "Esperando que Docker se inicie..."; \
-		sleep 10; \
-		while ! docker ps > /dev/null 2>&1; do \
-			echo "Esperando que Docker esté listo..."; \
-			sleep 5; \
-		done; \
-		echo "Docker está listo."; \
-	else \
-		echo "El directorio $(HOME)/goinfre/data existe. No es necesario reiniciar Docker."; \
-	fi
-
 
 down:
 	@docker compose -f ./src/docker-compose.yml down

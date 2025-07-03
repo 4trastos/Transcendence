@@ -1,20 +1,5 @@
 -- sqlite/tools/init.sql
 
--- Eliminar tablas existentes para asegurar una inicialización limpia en cada arranque si el volumen está vacío
--- Nota: En producción, querrías una estrategia de migración, no DROP IF EXISTS.
-DROP TABLE IF EXISTS two_fa_tokens;
-DROP TABLE IF EXISTS refresh_tokens;
-DROP TABLE IF EXISTS revoked_tokens;
-DROP TABLE IF EXISTS security_logs;
-DROP TABLE IF EXISTS password_resets;
-DROP TABLE IF EXISTS user_sessions;
-DROP TABLE IF EXISTS user_relationships;
-DROP TABLE IF EXISTS games;
-DROP TABLE IF EXISTS user_profiles;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS items;
-
-
 -- Tabla de usuarios principal
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

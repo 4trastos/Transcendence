@@ -314,7 +314,7 @@ export class ProfilePage extends Component {
             position: "uniq",
             classItem: " w-full ",
             avatarType: "card",
-            avatarColor: "#FFFF23",
+            avatarColor: "",
             hasEdit: true,
             onEdit: (id:string) => {
                 this.toggleHiddenItems(id);
