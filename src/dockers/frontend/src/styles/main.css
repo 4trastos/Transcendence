@@ -1,3 +1,211 @@
+
+:root {
+	--user-theme-color: transparent; /* Color por defecto (azul) */
+  }
+  
+  .bg-user-theme {
+	background-color: var(--user-theme-color);
+  }
+  
+  .text-user-theme {
+	color: var(--user-theme-color);
+  }
+  
+  .border-user-theme {
+	border-color: var(--user-theme-color);
+  }
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
+
+.input-error {
+  animation: shake 0.3s;
+  border: 1px solid red;
+}
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect {
+	position: absolute;
+	border-radius: 9999px;
+	background-color: rgba(255, 255, 255, 0.4);
+	transform: scale(0);
+	animation: ripple-animation 600ms linear;
+	pointer-events: none;
+}
+
+@keyframes ripple-animation {
+	to {
+	transform: scale(4);
+	opacity: 0;
+	}
+}
+
+
+
+@keyframes gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+
+.bg-gradient-animate {
+  background: linear-gradient(45deg, #E615F2, #1ADEF9, #E615F2);
+  background-size: 300% 300%;
+  animation: gradient-move 6s ease infinite;
+}
+
+
+@keyframes slide-in {
+	from { opacity: 0; transform: translateX(100%); }
+	to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fade-out {
+	from { opacity: 1; transform: translateX(0); }
+	to { opacity: 0; transform: translateX(100%); }
+}
+.animate-slide-in {
+	animation: slide-in 0.4s ease-out forwards;
+}
+.animate-fade-out {
+	animation: fade-out 0.4s ease-in forwards;
+}
+
+
+@keyframes expand-from-center {
+	from {
+		transform: scaleX(0);
+		opacity: 0;
+	}
+	to {
+		transform: scaleX(1);
+		opacity: 1;
+	}
+}
+
+.animate-expand-from-center {
+	transform-origin: center;
+	animation: expand-from-center 0.4s ease-out forwards;
+}
+
+
+
+
+@keyframes reveal-from-center {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+.reveal-content {
+	transform: scaleX(0);
+	transform-origin: center;
+	animation: reveal-from-center 0.3s ease-out 0.3s forwards;
+}
+
+@keyframes reveal-child {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.reveal-content-child {
+	opacity: 0;
+	animation: reveal-child 0.3s ease-out 0.5s forwards;
+}
+
+@keyframes expand-horizontal {
+	from {
+		width: 0;
+		opacity: 0;
+	}
+	to {
+		width: 100%;
+		opacity: 1;
+	}
+}
+@keyframes expand-horizontal-update {
+	from {
+		width: 0;
+		opacity: 0;
+	}
+	to {
+		width: 100%;
+		opacity: 1;
+	}
+}
+
+@keyframes  contract-horizontal {
+	from {
+		width: 100%;
+		opacity: 1;
+	}
+	to {
+		width: 0;
+		opacity: 0;
+	}
+}
+
+
+
+.animate-expand-horizontal {
+	animation: expand-horizontal 0.5s ease-out 0.5s forwards;
+	opacity: 0;
+	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
+	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
+}
+.animate-expand-horizontal-update {
+	animation: expand-horizontal-update 0.5s ease-out  forwards;
+  opacity: 0;
+	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
+	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
+}
+
+.animate-contract-horizontal-update {
+	animation: contract-horizontal 0.5s ease-out  forwards;
+  opacity: 0;
+	overflow: hidden; /* Para evitar contenido desbordado durante la animación */
+	white-space: nowrap; /* Opcional si es texto y no quieres saltos de línea */
+}
+
+
+
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+  }

@@ -1,0 +1,29 @@
+groups:
+- name: infrastructure
+  rules:
+  - alert: HighCPUUsage
+    expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Alto uso de CPU en {{ $labels.instance }}"
+      description: "El uso de CPU es {{ $value }}%"
+
+  - alert: ServiceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Servicio caído: {{ $labels.job }}"
+      description: "El servicio {{ $labels.job }} en {{ $labels.instance }} está inactivo"
+
+  - alert: LowMemory
+    expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Baja memoria disponible en {{ $labels.instance }}"
+      description: "Sólo queda {{ printf \"%.2f\" $value }} de memoria disponible"

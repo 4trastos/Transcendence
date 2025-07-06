@@ -10,8 +10,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuración
-JWT_SECRET="tu_super_secreto_complejo_aqui"
-API_URL="http://localhost:3000/api"
+#JWT_SECRET="a-string-secret-at-least-256-bits-long"
+API_URL="https://localhost:8443/backend/api"
 
 # Función para mostrar errores
 show_error() {
@@ -91,20 +91,6 @@ read_password() {
     echo ""
 }
 
-# Función para verificar el token
-verify_token_with_curl() {
-    local token=$1
-    echo -e "\n${CYAN} Verificando token a través del endpoint /api/validate...${NC}"
-    
-    response=$(curl -s -X POST "$API_URL/validate-token" \
-        -H "Content-Type: application/json" \
-        -d "{\"token\":\"$token\"}")
-    
-    echo -e "\n${GREEN} Resultado de la verificación:${NC}"
-    echo -e "${MAGENTA}----------------------------${NC}"
-    echo "$response" | python -m json.tool 2>/dev/null || echo "$response"
-}
-
 # Generar y verificar token
 parse_json() {
     local json="$1"
@@ -132,7 +118,7 @@ jwt_process() {
     
     # Usar archivo temporal para capturar respuesta
     temp_file=$(mktemp)
-    http_code=$(curl -s -o "$temp_file" -w "%{http_code}" \
+    http_code=$(curl -k -s -o "$temp_file" -w "%{http_code}" \
         -X POST "$API_URL/login" \
         -H "Content-Type: application/json" \
         -d "{\"username\":\"$username\",\"password\":\"$password\"}")
@@ -147,7 +133,7 @@ jwt_process() {
     rm -f "$temp_file"
     
     # Extraer token con método nativo
-    token=$(parse_json "$response" "accessToken")
+    token=$(parse_json "$response" "token")
     
     # Después de recibir la respuesta que requiere 2FA
     if [[ "$response" == *"requires2FA"* ]]; then
@@ -174,7 +160,7 @@ jwt_process() {
         
         # Enviar verificación 2FA con timeout
         temp_file=$(mktemp)
-        http_code=$(curl -m 30 -s -o "$temp_file" -w "%{http_code}" \
+        http_code=$(curl -k -m 30 -s -o "$temp_file" -w "%{http_code}" \
             -X POST "$API_URL/verify-2fa" \
             -H "Content-Type: application/json" \
             -d "{\"userId\":\"$userId\", \"code\":\"$code2fa\", \"tempToken\":\"$tempToken\"}")
@@ -197,41 +183,34 @@ jwt_process() {
     
     echo -e "\n${GREEN} Respuesta del servidor:${NC}"
     echo -e "${MAGENTA}-----------------------${NC}"
-    echo "$response"  # Mostramos el JSON crudo
+    echo "$response"
     
     echo -e "\n${GREEN} Token generado:${NC}"
     echo -e "${MAGENTA}---------------${NC}"
     echo "$token"
 
-    # Preguntar qué hacer a continuación
+    # Menú simplificado con solo dos opciones
     while true; do
-        echo -e "${BLUE}¿Qué deseas hacer ahora?${NC}"
-        options=("Verificar_token" "Hacer_petición_protegida" "Salir")
-        select opt in "${options[@]}"; do
-            case $REPLY in
-                1)
-                    verify_token_with_curl "$token"
-                    break
-                    ;;
-                2)
-                    echo -e "\n${CYAN}️ Realizando petición protegida...${NC}"
-                    response=$(curl -s "$API_URL/protected-test" \
-                        -H "Authorization: Bearer $token")
-                    
-                    echo -e "\n${GREEN} Respuesta protegida:${NC}"
-                    echo -e "${MAGENTA}--------------------${NC}"
-                    echo "$response" | python -m json.tool 2>/dev/null || echo "$response"
-                    break
-                    ;;
-                3)
-                    echo -e "\n${GREEN} ¡Hasta pronto!${NC}\n"
-                    exit 0
-                    ;;
-                *)
-                    echo -e "\n${RED}⚠️ Opción no válida${NC}"
-                    ;;
-            esac
-        done
+        echo -e "\n${BLUE}¿Qué deseas hacer ahora?${NC}"
+        echo "1) Copiar_token_para_jwt.io"
+        echo "2) Salir"
+        read -p "#? " choice
+
+        case $choice in
+            1)
+                # Mostrar instrucciones para jwt.io
+                echo -e "\n${CYAN}Visita: https://jwt.io"
+                echo -e "Pega este token en la página para verificar su contenido:${NC}"
+                echo -e "${MAGENTA}$token${NC}"
+                ;;
+            2)
+                echo -e "\n${GREEN} ¡Hasta pronto!${NC}\n"
+                exit 0
+                ;;
+            *)
+                echo -e "\n${RED}⚠️ Opción no válida${NC}"
+                ;;
+        esac
     done
 }
 

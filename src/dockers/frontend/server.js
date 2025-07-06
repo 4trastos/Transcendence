@@ -18,6 +18,10 @@ fastify.register(fastifyStatic, {
 fastify.get('/env', async (request, reply) => {
   return { env: process.env.NODE_ENV || 'development' };
 });
+
+
+
+
 // Redirigir todas las rutas no encontradas al index.html (SPA)
 fastify.setNotFoundHandler((request, reply) => {
   reply.sendFile('index.html');

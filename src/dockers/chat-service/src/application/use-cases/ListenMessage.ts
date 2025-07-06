@@ -22,17 +22,22 @@ export class ListenMessage {
 	async execute(connection:any, req: any, onStatusChange: (req:any, status:string)=>void): Promise<void> {
 
 	   connection.on('message', async (message) => {
-		const decoded:{ user:string, roles: string[] } =  await req.jwtVerify();
-		let userId = decoded.user;
+		const decoded:{ id:string, user:string, roles: string[] } =  await req.jwtVerify();
+		let userId = decoded.id;
 			if (!userId) {
 				console.log("No estas autorizado para conectarte, create una cuenta");
 				onStatusChange(req,"close");
 				connection.close();
-				throw new HandleException("No se tiene permiso para la conexion", 401, "Unauthorized");
+				console.error("No se tiene permiso para la conexion", 401, "Unauthorized");
+				return;
 			}
 			const msg_json: Message = JSON.parse(message.toString());
 			let chat: Chat | undefined;
 			try {
+
+				if (msg_json.status && msg_json.status.includes("close")) {
+					return;
+				}
 				chat = await this.chatRepository.getChatById(msg_json.chatId);
 				if (!chat) {
 					console.log("El chat no existe", msg_json.chatId);
@@ -47,12 +52,12 @@ export class ListenMessage {
 					connection.close();
 					return;
 				}
-				if (!chat.users.includes(wsUsr.user.id)) {
+				console.log(JSON.stringify(chat.users, null, 2) +", User: " + JSON.stringify(wsUsr.user, null, 2) , )
+				if (!chat.users.includes(wsUsr.user.id + "")) {
 					connection.send(JSON.stringify({error: "No tienes acceso para enviar mensajes a este chat"}))
 					return ;
 				}
-			}
-			catch (error) {
+			} catch (error) {
 				console.error("Error al obtener el chat: ", error);
 				connection.send(JSON.stringify({error: "El chat no existe"}));
 				return ;
@@ -61,13 +66,14 @@ export class ListenMessage {
 				console.log("El chat no existe");
 				connection.send(JSON.stringify({error: `El chatId ${msg_json.chatId} no existe,`}))
 				return ;
-			} else {
+			} else{
+				console.log("Guardando mensage " + JSON.stringify(msg_json, null, 2));
 				msg_json.created_at = new Date();
 				await this.chatRepository.saveMessage(msg_json.chatId, msg_json);
 			}
 			try {
-				console.log(`Enviando mensaje: ${msg_json.content.text}`);
-				this.chatMessage(userId, chat, msg_json.content.text);
+				console.log(`Enviando mensaje: ${msg_json.content}`);
+				this.chatMessage(userId, chat, msg_json.content);
 			} catch (error) {
 				console.error("Error al enviar el mensaje: ", error);
 				connection.send(JSON.stringify({error: "Error al enviar el mensaje"}));
@@ -85,7 +91,7 @@ export class ListenMessage {
 			if (sessions.length > 0) {
 				sessions.forEach(client => {
 					if (userId == client.user.id) 
-						console.log("No se envia el mensaje al usuario que lo envio", userId);
+						console.log("No se envia el mensaje al usuario que lo envió", userId);
 					else if (client.user == null)
 						throw Error("No se guardo el cliente en la session");
 					else if (chat.users.includes(client.user.id) && client.websocket.readyState === 1)

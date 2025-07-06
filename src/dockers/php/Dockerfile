@@ -1,5 +1,4 @@
 # Etapa 1: Compilar ModSecurity-nginx
-#FROM ubuntu:latest AS modsecurity_builder
 FROM debian:12 AS modsecurity_builder
 
 # Instalar dependencias de compilación
@@ -38,6 +37,7 @@ RUN set -x && git clone --depth 1 https://github.com/SpiderLabs/ModSecurity.git 
 
 # Descargar el módulo de Nginx para ModSecurity
 RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git /tmp/ModSecurity-nginx
+#COPY ModSecurity-nginx /tmp/ModSecurity-nginx
 
 # Descargar y compilar Nginx con el módulo de ModSecurity
 RUN set -x && apt-get update && apt-get install -y wget \

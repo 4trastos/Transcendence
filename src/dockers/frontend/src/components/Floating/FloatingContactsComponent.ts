@@ -1,5 +1,10 @@
 import { Chat } from "../../data/Chat";
+import { SummaryUser, User } from "../../data/User";
 import { Component, ComponentProps } from "../../utils/component";
+import { ToastService } from "../../utils/toast";
+
+
+
 
 interface ItemChatProps extends ComponentProps {
 	name: string;
@@ -13,41 +18,41 @@ interface ItemChatProps extends ComponentProps {
 class ChatItemComponent extends Component {
 	protected props: ItemChatProps;
 	constructor(props: ItemChatProps) {
-	super(props);
-	this.props = props;
-	this.template = this.renderTemplate();
-  }
+		super(props);
+		this.props = props;
+		this.template = this.renderTemplate();
+	}
 
-  updateStatus(online: boolean) {
-	const itemStatus = this.element?.querySelector('#chat-item-status') as HTMLElement;
-	if (!itemStatus) return;
-	itemStatus.classList.toggle('bg-green-500', online);
-	itemStatus.classList.toggle('bg-red-500', !online);
-  }
+	updateStatus(online: boolean) {
+		const itemStatus = this.element?.querySelector('#chat-item-status') as HTMLElement;
+		if (!itemStatus) return;
+		itemStatus.classList.toggle('bg-green-500', online);
+		itemStatus.classList.toggle('bg-red-500', !online);
+	}
 
-  renderTemplate() {
-	return `
-	<div class="flex justify-center w-full"> 
-      <div class="flex w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-5 cursor-pointer">
-      <div class="flex-shrink-0">
-        <img src="${this.props.avatar}" alt="${this.props.name}" class="w-7 h-7 rounded-full object-cover">
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-white font-regular text-sm">${this.props.name}</p>
-        <p 
-		class="text-gray-400 text-xs font-ligth truncate"
-		>${this.props.lastMessage}</p>
-      </div>
-      <div class="flex-shrink-0 self-center">
-        ${!this.props.isGroupChat ? `<div id="chat-item-status" class="w-1.5 h-1.5 aspect-square rounded-full "></div>`: ''}
-      </div>
-    </div></div>
+	renderTemplate() {
+		return `
+		<div class="flex justify-center w-full"> 
+		<div class="flex w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-5 cursor-pointer">
+		<div class="flex-shrink-0">
+			<img src="${this.props.avatar}" alt="${this.props.name}" class="w-7 h-7 rounded-full object-cover">
+		</div>
+		<div class="flex-1 min-w-0">
+			<p class="text-white font-regular text-sm">${this.props.name}</p>
+			<p 
+			class="text-gray-400 text-xs font-ligth truncate"
+			>${this.props.lastMessage}</p>
+		</div>
+		<div class="flex-shrink-0 self-center">
+			${!this.props.isGroupChat ? `<div id="chat-item-status" class="w-1.5 h-1.5 aspect-square rounded-full "></div>` : ''}
+		</div>
+		</div></div>
 	`;
 	}
 
 	protected initEvents(): void {
 		if (!this.element) return;
-		
+
 		this.updateStatus(this.props.online || false);
 		this.element.addEventListener("click", () => {
 			this.props.onClick();
@@ -55,19 +60,116 @@ class ChatItemComponent extends Component {
 	}
 }
 
-interface FloatingChatListProps extends ComponentProps {
-  chats?: Chat[];
-  owner?: string;
-  onClick?: (chatId: string) => void;
+
+
+
+
+interface SuggestionItemProps extends ComponentProps {
+	username: string;
+	hasFriend: boolean;
+	avatar?: string;
+	onAdded: () => void;
+	onOpenChat: () => void;
 }
-export default class FloatingChatListComponent extends Component{
+class SuggestionItemComponent extends Component {
+	protected props: SuggestionItemProps;
+	constructor(props: SuggestionItemProps) {
+		super(props);
+		this.props = props;
+		this.template = this.renderTemplate();
+	}
+
+
+
+	updateStatus(online: boolean) {
+		const itemStatus = this.element?.querySelector('#chat-item-status') as HTMLElement;
+		if (!itemStatus) return;
+		itemStatus.classList.toggle('bg-green-500', online);
+		itemStatus.classList.toggle('bg-red-500', !online);
+	}
+	updateFriendStatus(online: boolean) {
+		if (!this.element) return;
+		const itemFriendStatus = this.element?.querySelector(`#suggestion-btn-${this.props.username}`) as HTMLElement;
+		if (!itemFriendStatus) return;
+		itemFriendStatus.innerHTML = '';
+		itemFriendStatus.innerHTML = !online ? `
+			<button id="add-friend-${this.props.username}" 
+				class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
+					<svg  version="1.1" id="Capa_1" 
+						viewBox="0 0 309.059 309.059" xml:space="preserve" class="h-3 w-3">
+					<g>
+						<g>
+							<path style="fill:#FFFFFF;" d="M280.71,126.181h-97.822V28.338C182.889,12.711,170.172,0,154.529,0S126.17,12.711,126.17,28.338
+								v97.843H28.359C12.722,126.181,0,138.903,0,154.529c0,15.621,12.717,28.338,28.359,28.338h97.811v97.843
+								c0,15.632,12.711,28.348,28.359,28.348c15.643,0,28.359-12.717,28.359-28.348v-97.843h97.822
+								c15.632,0,28.348-12.717,28.348-28.338C309.059,138.903,296.342,126.181,280.71,126.181z"/>
+						</g>
+					</g>
+					</svg>
+			</button>
+			` : `
+			<button id="send-message-${this.props.username}" 
+				class="ripple bg-transparent border border-white text-white text-sm p-2 rounded-full hover:bg-white/10 transition">
+				<svg 
+					xmlns="http://www.w3.org/2000/svg" 
+					fill="none"
+					stroke="#FFFFFF" 
+					viewBox="0 0 24 24"
+						stroke="currentColor" 
+						class="h-3 w-3">
+				<path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+				</svg>
+			</button>
+			` 
+
+			this.element.querySelector(`#add-friend-${this.props.username}`)?.addEventListener("click", () => {
+				this.props.onAdded();
+			});
+			this.element.querySelector(`#send-message-${this.props.username}`)?.addEventListener("click", () => {
+				this.props.onOpenChat();
+			});
+	}
+	renderTemplate() {
+		return `
+	<div class="flex justify-center w-full"> 
+		<div class="flex w-full max-w-md overflow-hidden min-w-0 items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-5 cursor-pointer">
+			<div class="flex-shrink-0">
+				<img src="${this.props.avatar}" alt="${this.props.username}" class="w-7 h-7 rounded-full object-cover">
+			</div>
+			<div class="flex-1 min-w-0">
+				<p class="text-white font-regular text-sm">${this.props.username}</p>
+			</div>
+			<div id="suggestion-btn-${this.props.username}" class="flex-shrink-0 self-center">
+			
+			</div>
+		</div>
+	</div>
+	`;
+	}
+
+	protected initEvents(): void {
+		if (!this.element) return;
+		this.updateFriendStatus(this.props.hasFriend);
+
+	
+	}
+}
+
+
+interface FloatingChatListProps extends ComponentProps {
+	chats?: Chat[];
+	suggestions?: SummaryUser[];
+	owner?: string;
+	onClick?: (chatId: string) => void;
+}
+export default class FloatingChatListComponent extends Component {
 	protected props: FloatingChatListProps;
-  constructor(props: FloatingChatListProps) {
-	super(props);
-	this.props = props;
-	this.template = this.renderTemplate();
-  }
-  changeStatus(chatId: string, newStatus: boolean) {
+	constructor(props: FloatingChatListProps) {
+		super(props);
+		this.props = props;
+		this.template = this.renderTemplate();
+	}
+	changeStatus(chatId: string, newStatus: boolean) {
 		const chatItem = this.element?.querySelector(`#chat-${chatId}`) as HTMLElement;
 		if (!chatItem) return;
 		const status = chatItem.querySelector('#chat-item-status') as HTMLElement;
@@ -77,79 +179,171 @@ export default class FloatingChatListComponent extends Component{
 
 	}
 
-  renderTemplate() {
-	return `
-<div id="contacts" class="backdrop-blur-3xl bg-opacity-15 shadow-black shadow-xl bg-[#1D1F2B] bottom-4 right-4 w-[18rem] h-[33rem] border border-white border-opacity-15 rounded-2xl  flex flex-col overflow-hidden z-50">
-  <!-- Encabezado -->
-  <div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
-		<div> 
-			<h2 class="text-white text-sm font-ligth">Mensajes</h2>
+	renderTemplate() {
+		return `
 
+<div class="rounded-lg h-fit w-fit px-[5px] bg-gradient-animate shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+
+	<div id="contacts" class=" shadow-black shadow-xl bg-[#11162F] bottom-4 right-4 w-[18rem] h-[33rem] space-y-4 rounded-lg  flex flex-col overflow-hidden z-50">
+		<!-- Encabezado -->
+		<div id="list-header" class="relative flex p-4 border-b border-white items-center border-opacity-10">
+			<h1 class="text-white text-sm font-ligth">Contactos</h1>
 		</div>
-  </div>
-  
-  <!-- Barra de búsqueda -->
-  <div id="search-bar" class="px-5 py-3">
-    <div class="relative">
-      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <svg class="h-4 w-4 text-gray-400 text-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-      </div>
-      <input type="text" placeholder="Search..." class="w-full bg-[#1D1F2B] bg-opacity-10 text-sm text-gray-200 rounded-lg py-2 pl-10 focus:outline-none focus:ring-1 focus:ring-gray-500">
-    </div>
-  </div>
-  
-  <!-- Lista de mensajes -->
-  <div id="contacts-content" class="items-center px-5 pb-3"> 
-  <div id="chat-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10">
-</div>
+
+		<!-- Lista -->
+		<div id="messages-content" class="items-start px-5 pb-3 flex flex-col space-y-2"> 
+			<h2 class="text-white text-sm font-ligth">Mensajes</h2>
+			<div id="chat-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10"></div>
+		</div>
+		<div id="suggestions-content" class="items-start px-5 pb-3 flex flex-col space-y-2"> 
+			<h2 class="text-white text-sm font-ligth">Sugerencias</h2>
+			<div id="suggestion-list" class="h-fit w-full overflow-y-auto mb-4 rounded-2xl bg-white bg-opacity-10 space-y-1"></div>
+		</div>
+
+	</div>
 </div>
 	`;
-  }
+	}
 
-	protected initEvents(): void {
+
+	createChatList(chats?: Chat[]) {
 		if (!this.element) return;
+		if (!chats) return;
 		const chatList = this.element.querySelector('#chat-list') as HTMLElement;
 		const chatLength = this.props.chats?.length || 0;
-		this.props.chats?.forEach((chat:Chat, index) => {
-			const chatItem = new ChatItemComponent({
-				name: chat.title,
-				lastMessage: chat.messages[chat.messages.length - 1].content.text,
-				avatar: chat.avatarUrl || '',
-				isGroupChat: chat.isGroupChat,
-				online: true,
-				onClick: () => {
-					this.props.onClick?.(chat.id);
-				},
-			});
-			chatList.appendChild(chatItem.render());
-			if (index < chatLength - 1) {
-				const hr = document.createElement('hr') as HTMLElement;
-				hr.classList.add('border-t', 'border-white', 'border-opacity-15');
-				chatList.appendChild(hr);
+		chatList.innerHTML = '';
+		this.props.chats?.forEach((chat: Chat, index) => {
+			try {
+				const chatItem = new ChatItemComponent({
+					name: chat.title,
+					lastMessage: chat.messages.length !== 0 ? (chat.messages[chat.messages.length - 1].content === chat.title ? "" : chat.messages[chat.messages.length - 1].content) : "",
+					avatar: chat.avatarUrl || '',
+					isGroupChat: chat.isGroupChat,
+					online: true,
+					onClick: () => {
+						this.props.onClick?.(chat.id);
+					}
+				});
+
+				chatList.appendChild(chatItem.render());
+				if (index < chatLength - 1) {
+					const hr = document.createElement('hr') as HTMLElement;
+					hr.classList.add('border-t', 'border-white', 'border-opacity-15');
+					chatList.appendChild(hr);
+				}
+			} catch (err) {
+				console.error("No se pudo crear el item",  err);
+			}
+
+		});
+
+	}
+	
+	createSuggestionList(suggestions?: SummaryUser[]) {
+		if (!this.element) return;
+		if (!suggestions) return;
+		const suggestionsItem = this.element.querySelector('#suggestion-list') as HTMLElement;
+
+
+		suggestionsItem.innerHTML = '';
+		suggestions?.forEach((summaryUser: SummaryUser, index) => {
+
+			try {
+				const suggestionComponent = new SuggestionItemComponent({
+					username: summaryUser.username,
+					avatar: summaryUser.avatar,
+					hasFriend: summaryUser.hasFriend,
+					onOpenChat:() => {
+						//TODO: creo el chat
+						this.createChat(summaryUser.username, (id:string) => {
+							this.props.onClick?.(id);
+							suggestionComponent.updateFriendStatus(true);
+							
+						})
+					},
+					onAdded: () => {
+						this.addFriend(summaryUser.username, () => {
+							suggestionComponent.updateFriendStatus(true);
+						})
+					},
+				});
+
+				suggestionsItem.appendChild(suggestionComponent.render());
+	
+			} catch (err) {
+				console.error("No se pudo crear el item",  err);
 			}
 		});
 
+	}
+	protected initEvents(): void {
+		if (!this.element) return;
+		this.createChatList(this.props.chats);
+		this.createSuggestionList(this.props.suggestions);
+
 		const header = this.element?.querySelector(
 			`#list-header`
-		  ) as HTMLElement;
-		  if (!header) return;
-	  
-		  header.addEventListener("click", () => {
+		) as HTMLElement;
+		if (!header) return;
+
+		header.addEventListener("click", () => {
 			const chatItem = header.closest(`#contacts`) as HTMLElement;
-	  
+
 			if (!chatItem) return;
-	  
+
 			chatItem.classList.toggle("h-[33rem]");
 			chatItem.classList.toggle("h-fit");
 			chatItem
-			  .querySelector(`#search-bar`)
-			  ?.classList.toggle("hidden");
+				.querySelector(`#messages-content`)
+				?.classList.toggle("hidden");
 			chatItem
-			  .querySelector(`#contacts-content`)
-			  ?.classList.toggle("hidden");
-		  });
+				.querySelector(`#suggestions-content`)
+				?.classList.toggle("hidden");
+		});
+	}
+
+
+
+	async createChat(username: string, update: (id:string) => void) {
+		try {
+			const response = await fetch('/chats/', {
+				method: 'POST',
+				credentials: "include",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({users: [username], isGroupChat: false})
+			});
+
+			if (response.ok || response.status === 201 || response.status === 409) {
+				const body = await response.json();
+				update(body.id);
+
+			} else {
+				ToastService.show("Error al intentar crear el chat con " + username, "error");	
+			}
+		} catch (err) {
+			ToastService.show("Intenta crear un chat en otro momento", "error");	
+		}
+	}
+	async addFriend(username: string, update: () => void) {
+		try {
+			const  response = await fetch('/backend/api/friends/' + username, {
+				method: 'POST',
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+				body: JSON.stringify({})
+			});
+			if (response.ok || response.status === 201) {
+				update();
+				ToastService.show(`Se añadio a ${username} a la lista de amigos`, "success");
+			} else {
+				ToastService.show("Error al intentar añadir a " + username, "error");
+			}
+		} catch (err) {
+			ToastService.show("Intenta crear un chat en otro momento", "error");
+		} 
 	}
 }

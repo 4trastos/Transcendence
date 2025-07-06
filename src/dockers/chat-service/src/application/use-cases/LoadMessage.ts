@@ -18,7 +18,7 @@ export default class LoadMessage {
      * @returns 
      */
     async execute(userId: string, chatId: string): Promise<Message[]> {
-        return await this.chatRepository.getChatByMembers([userId]).then((chats) => {
+        return await this.chatRepository.getChatByMember(userId).then((chats) => {
             if (chats.length === 0) {
                 throw new HandleException("No chat found for the user", 404, "Not Found");
             }

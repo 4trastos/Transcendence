@@ -17,6 +17,9 @@ mkdir -p "$CA_CERT_DIR"
 chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/secrets
 chmod 750 /usr/share/elasticsearch/secrets
 
+chmod 755 /usr/share/elasticsearch/config
+chmod 755 /usr/share/elasticsearch/config/certs
+
 ### 1. Generar certificados TLS primero (versión mejorada)
 if [ ! -f "$CA_CERT_DIR/ca/ca.crt" ]; then
   echo "🔒 Generando certificados TLS..."
@@ -52,33 +55,6 @@ EOF
   chown -R elasticsearch:elasticsearch "$CA_CERT_DIR"
 fi
 
-### 1. Generar certificados TLS primero
-#if [ ! -f "$CA_CERT_DIR/ca.zip" ]; then
-#  echo "🔒 Generando certificados TLS..."
-#
-#  cat > "$CA_CERT_DIR/instances.yml" <<EOF
-#instances:
-#  - name: "elasticsearch"
-#    dns:
-#      - "elasticsearch"
-#      - "localhost"
-#    ip:
-#      - "127.0.0.1"
-#      - "$MY_IP"
-#EOF
-
-#  echo "📦 Generando CA..."
-#  bin/elasticsearch-certutil ca --silent --pem -out "$CA_CERT_DIR/ca.zip"
-#  unzip -q "$CA_CERT_DIR/ca.zip" -d "$CA_CERT_DIR"
-
-#  echo "📦 Generando certificados..."
-#  bin/elasticsearch-certutil cert --silent --pem -out "$CA_CERT_DIR/certs.zip" \
-#    --in "$CA_CERT_DIR/instances.yml" \
-#  unzip -q "$CA_CERT_DIR/certs.zip" -d "$CA_CERT_DIR"
-
-#  chmod -R 750 "$CA_CERT_DIR"
-#fi
-
 ### 2. Generar contraseña si no existe
 if [ ! -f "$PASSWORD_FILE" ]; then
   echo "🔑 Generando contraseña inicial..."
@@ -95,16 +71,25 @@ echo "🛡 Preparando configuración dinámica..."
   echo "discovery.type: single-node"
   echo "xpack.security.enabled: true"
   echo "xpack.security.authc.api_key.enabled: true"
+  echo "xpack.security.authc.token.timeout: 60s"
+  
+  # Configuración SSL mejorada
   echo "xpack.security.transport.ssl.enabled: true"
   echo "xpack.security.transport.ssl.verification_mode: certificate"
-  echo "xpack.security.transport.ssl.key: certs/elasticsearch/elasticsearch.key"
-  echo "xpack.security.transport.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
-  echo "xpack.security.transport.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.transport.ssl.key: $CA_CERT_DIR/elasticsearch/elasticsearch.key"
+  echo "xpack.security.transport.ssl.certificate: $CA_CERT_DIR/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.transport.ssl.certificate_authorities: [ \"$CA_CERT_DIR/ca/ca.crt\" ]"
+  
   echo "xpack.security.http.ssl.enabled: true"
-  echo "xpack.security.http.ssl.key: certs/elasticsearch/elasticsearch.key"
-  echo "xpack.security.http.ssl.certificate: certs/elasticsearch/elasticsearch.crt"
-  echo "xpack.security.http.ssl.certificate_authorities: [ \"certs/ca/ca.crt\" ]"
+  echo "xpack.security.http.ssl.key: $CA_CERT_DIR/elasticsearch/elasticsearch.key"
+  echo "xpack.security.http.ssl.certificate: $CA_CERT_DIR/elasticsearch/elasticsearch.crt"
+  echo "xpack.security.http.ssl.certificate_authorities: [ \"$CA_CERT_DIR/ca/ca.crt\" ]"
+  
+  # Optimizaciones de rendimiento
   echo "cluster.routing.allocation.disk.threshold_enabled: false"
+  echo "cluster.routing.allocation.node_initial_primaries_recoveries: 10"
+  echo "cluster.routing.allocation.node_concurrent_recoveries: 5"
+  echo "indices.recovery.max_bytes_per_sec: \"100mb\""
 } > /usr/share/elasticsearch/config/elasticsearch.yml
 
 ### 3. Iniciar Elasticsearch con configuración segura
@@ -146,22 +131,59 @@ else
 fi
 
 ELASTIC_PASSWORD=$(cat "$PASSWORD_FILE")
+TIMEOUT=300
+WAIT_INTERVAL=10 
 
 ### 6. Esperar que el índice .security esté activo
-echo "🔐 Esperando a que el índice .security esté listo..."
-for i in $(seq 1 60); do
-  HEALTH=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200/_cluster/health/.security-7?pretty)
-  STATUS=$(echo "$HEALTH" | jq -r '.status')
-  ACTIVE_SHARDS=$(echo "$HEALTH" | jq -r '.active_primary_shards')
+wait_for_cluster_health() {
+  local start_time=$(date +%s)
   
-  if [ "$STATUS" = "green" ] && [ "$ACTIVE_SHARDS" -ge 1 ]; then
-    echo "✅ Índice .security-7 listo (status: $STATUS, shards: $ACTIVE_SHARDS)"
-    break
-  else
-    echo "⏳ Intento $i/60 - Status: $STATUS, Shards activos: $ACTIVE_SHARDS"
-    sleep 5
-  fi
-done
+  while true; do
+    # Verificar si Elasticsearch responde
+    if ! curl -s -k -u "elastic:$ELASTIC_PASSWORD" https://localhost:9200 >/dev/null; then
+      echo "Elasticsearch no responde, esperando..."
+      sleep $WAIT_INTERVAL
+      continue
+    fi
+
+    # Obtener el estado del clúster
+    local cluster_health=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" "https://localhost:9200/_cluster/health")
+    local status=$(echo "$cluster_health" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+
+    # Verificar que el estado sea 'yellow' o 'green'
+    if [ "$status" == "green" ] || [ "$status" == "yellow" ]; then
+      echo "✅ Elasticsearch está listo (estado: $status)"
+      return 0
+    fi
+
+    # Timeout
+    local current_time=$(date +%s)
+    if (( current_time - start_time > TIMEOUT )); then
+      echo "❌ Timeout: Elasticsearch no alcanzó el estado 'green' o 'yellow' en $TIMEOUT segundos"
+      return 1
+    fi
+
+    echo "⏳ Estado actual: $status, esperando..."
+    sleep $WAIT_INTERVAL
+  done
+}
+
+# Esperar hasta que Elasticsearch esté listo
+wait_for_cluster_health || exit 1
+
+# Ajustar réplicas con manejo de errores mejorado
+echo "⚙️ Ajustando número de réplicas para índices de seguridad..."
+INDICES_RESPONSE=$(curl -s -k -u "elastic:$ELASTIC_PASSWORD" "https://localhost:9200/_cat/indices/.security*?h=index")
+if [ -z "$INDICES_RESPONSE" ]; then
+  echo "⚠️ No se encontraron índices de seguridad, omitiendo ajuste de réplicas"
+else
+  for INDEX in $INDICES_RESPONSE; do
+    echo "🔧 Ajustando réplicas para $INDEX"
+    curl -k -u "elastic:$ELASTIC_PASSWORD" -X PUT "https://localhost:9200/$INDEX/_settings" \
+      -H "Content-Type: application/json" \
+      -d '{"index": {"number_of_replicas": 0}}'
+  done
+fi
 
 ### 7. Generar token de kibana
 echo "🔑 Generando token de servicio para Kibana..."
@@ -174,7 +196,7 @@ HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "200" ]; then
-  TOKEN=$(echo "$BODY" | jq -r '.token.value')
+  TOKEN=$(echo "$BODY" | grep -o '"token":{"name":"[^"]*","value":"[^"]*"}' | sed -E 's/.*"value":"([^"]*)".*/\1/')
   echo "Token generado: ${TOKEN:0:10}..."  # Log para depuración
   
   # Verificar directorio
@@ -208,18 +230,27 @@ fi
 
 LOGSTASH_PWD=$(cat "$LOGSTASH_PASSWORD_FILE")
 
-### 9. Crea el rol logstash_writer si no existe
+# Verificar que el archivo de contraseña de Logstash existe
+if [ -f "$LOGSTASH_PASSWORD_FILE" ]; then
+    echo "✅ Contraseña de Logstash generada correctamente"
+    echo "Contenido: $(head -c 5 "$LOGSTASH_PASSWORD_FILE")..."
+else
+    echo "❌ Error: No se generó el archivo de contraseña para Logstash"
+    exit 1
+fi
+
+### 9. Crea el rol logstash_writer si no existe (VERSIÓN CORREGIDA)
 if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_security/role/logstash_writer" | grep -q '"found":true'; then
   echo "🔐 Creando rol logstash_writer..."
   curl -k -X PUT "https://localhost:9200/_security/role/logstash_writer" \
     -H "Content-Type: application/json" \
     -u "elastic:${ELASTIC_PASSWORD}" \
     -d '{
-      "cluster": ["monitor", "manage_index_templates"],
+      "cluster": ["monitor", "manage_index_templates", "manage_ilm"],
       "indices": [
         {
-          "names": ["logs-*"],
-          "privileges": ["create_index", "write", "create", "delete_index"]
+          "names": ["transcendence-*", "logs-*"],
+          "privileges": ["create_index", "write", "create", "delete_index", "manage", "manage_ilm"]
         }
       ]
     }'
@@ -237,6 +268,26 @@ if ! curl -s -k -u "elastic:${ELASTIC_PASSWORD}" "https://localhost:9200/_securi
       "full_name": "Logstash Writer User"
     }'
 fi
+
+# Asegurar que Prometheus pueda leer los certificados
+if [ -f "$CA_CERT_DIR/ca/ca.crt" ]; then
+  echo "🔐 Configurando permisos para Prometheus..."
+  # Crear enlace simbólico correctamente
+  ln -sf "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+  # Ajustar permisos
+  chmod 644 "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+  chown -R 1000:1000 "$CA_CERT_DIR"  # Usuario de Prometheus
+  echo "✅ Certificados configurados para Prometheus"
+else
+  echo "❌ Error: No se encontró el certificado CA en $CA_CERT_DIR/ca/ca.crt"
+  ls -la "$CA_CERT_DIR/ca/" || true
+fi
+
+# Crear enlace simbólico esperado por Prometheus
+if [ ! -f "$CA_CERT_DIR/ca.crt" ]; then
+  ln -s "$CA_CERT_DIR/ca/ca.crt" "$CA_CERT_DIR/ca.crt"
+fi
+
 
 echo "✅ Elasticsearch completamente inicializado"
 wait $ES_PID

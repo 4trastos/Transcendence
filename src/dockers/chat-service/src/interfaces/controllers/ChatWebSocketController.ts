@@ -29,15 +29,17 @@ export class ChatWebSocketController {
             console.error("Error en la conexión WebSocket:", error);
             connection.send(JSON.stringify({ error: "Error al obtener mensajes" }));
             connection.close();
-            throw error;
         } finally {
             this.closeSession.execute(connection, req, this.onStatusChange.bind(this));
         }
     }
+
     async onStatusChange(req:any, status: string): Promise<void> {
-        const userId:{ user:string, roles: string[] } = await req.jwtVerify();
+        let userId:{ user:string, roles: string[] } = await req.jwtVerify();
+    
         const sessions: WebSocketUser[] = await this.sessionRepository.getSessions();
-        if (sessions) {
+
+        if (sessions && sessions.length > 0 && userId.user) {
             sessions.forEach((session: WebSocketUser) => {
                 if (session.user.contacts.includes(userId.user))
                     session.websocket.send(JSON.stringify({ chatId:null, menssage:null, userId: userId.user, status: status }));

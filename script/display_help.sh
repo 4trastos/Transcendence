@@ -87,6 +87,8 @@ display_menu_item "16" "make jwt" "Generador/validador de tokens JWT" "$GREEN"
 display_menu_item "17" "make 2fa" "Verifica que 2FA está funcionando y sincronizado con Google Authenticator" "$GREEN"
 display_menu_item "19" "make email" "Verifica que el servicio de email está implementado y es funcional" "$GREEN"
 display_menu_item "20" "make elastic-password" "Muestra el password para poder acceder a Elasticsearch" "$GREEN"
+display_menu_item "21" "make grafana" "Muestra el password para poder acceder a Grafana" "$GREEN"
+display_menu_item "22" "make prometheus" "Muestra el password para poder acceder a Prometheus" "$GREEN"
 
 center_text " "
 

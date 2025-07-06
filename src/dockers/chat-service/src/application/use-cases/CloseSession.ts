@@ -10,7 +10,11 @@ export default class CloseSession {
 		async execute(connection:any, req:any, onStatusChange: (req:any, status: string) => void): Promise<void> {
 			connection.on('close', () => {
 				this.sessionRepository.deleteSessionById(req.headers['x-user-id']);
-				onStatusChange(req,"close");
+				try {
+					onStatusChange(req,"close");
+				}catch (err) {
+					console.error(err);
+				}
 				connection.close();
 			});
 		};

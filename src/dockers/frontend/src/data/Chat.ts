@@ -11,6 +11,7 @@ export class Chat {
 	createdAt?: Date;
 	updatedAt?: Date;
 	messages: Message[];
+	participants?: { id: string; username: string; avatarUrl?: string }[];
 
 
 	constructor(
@@ -21,7 +22,8 @@ export class Chat {
 		isGroupChat: boolean,
 		createdAt: Date,
 		updatedAt: Date,
-		messages: Message[]
+		messages: Message[],
+		participants?: { id: string; username: string; avatarUrl?: string }[]
 	) {
 		this.id = id;
 		this.active = active;
@@ -31,5 +33,6 @@ export class Chat {
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.messages = messages;
+		this.participants = participants; 
 	}
 }

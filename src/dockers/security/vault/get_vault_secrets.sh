@@ -2,6 +2,7 @@
 
 # Configuración segura
 export VAULT_ADDR='https://localhost:8200'
+export VAULT_ADDR="${VAULT_ADDR:-https://security:8200}"
 export VAULT_CACERT='/etc/vault/tls/ca.crt'
 
 # Autenticación con AppRole
@@ -30,3 +31,6 @@ else
     echo "2. Verificar permisos del token: vault token capabilities $VAULT_TOKEN secret/data/transcendence/api_keys"
     exit 1
 fi
+
+export ZAP_API_KEY
+echo "Secretos obtenidos correctamente"

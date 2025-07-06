@@ -1,5 +1,5 @@
-all: grant_permissions restart_if_needed setup
-	@docker compose -f ./src/docker-compose.yml up -d --build
+all: grant_permissions setup
+	@docker compose -f ./src/docker-compose.yml up ${c} -d --build
 	@clear
 	@./script/loading.sh 
 	@clear
@@ -16,75 +16,13 @@ grant_permissions:
 
 kill_docker:
 	@./script/kill_docker.sh
-	@open /Applications/Docker.app
-
-restart_if_needed:
-	@if [ ! -d "$(HOME)/goinfre/data" ]; then \
-		echo "No se encuentra el directorio $(HOME)/goinfre/data. Comprobando el estado de Docker..."; \
-		if docker ps -q > /dev/null; then \
-			echo "Docker se está ejecutando. Deteniendo Docker..."; \
-			$(MAKE) kill_docker; \
-		else \
-			echo "Docker no se está ejecutando. No es necesario detenerlo."; \
-		fi; \
-		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Ejecutándose en macOS. Iniciando Docker..."; \
-			open /Applications/Docker.app; \
-		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Ejecutando en Linux. Iniciando Docker..."; \
-			sudo systemctl start docker; \
-		fi; \
-		echo "Esperando que Docker se inicie..."; \
-		sleep 10; \
-		while ! docker ps > /dev/null 2>&1; do \
-			echo "Esperando que Docker esté listo..."; \
-			sleep 5; \
-		done; \
-		echo "Docker está listo."; \
-	elif ! docker ps -q > /dev/null; then \
-		echo "Docker no se está ejecutando. Iniciando Docker..."; \
-		if uname -s | grep -i darwin > /dev/null; then \
-			echo "Ejecutándose en macOS. Iniciando Docker..."; \
-			open /Applications/Docker.app; \
-		elif uname -s | grep -i linux > /dev/null; then \
-			echo "Ejecutando en Linux. Iniciando Docker..."; \
-			sudo systemctl start docker; \
-		fi; \
-		echo "Esperando que Docker se inicie..."; \
-		sleep 10; \
-		while ! docker ps > /dev/null 2>&1; do \
-			echo "Esperando que Docker esté listo..."; \
-			sleep 5; \
-		done; \
-		echo "Docker está listo."; \
-	else \
-		echo "El directorio $(HOME)/goinfre/data existe. No es necesario reiniciar Docker."; \
-	fi
-
 
 down:
-	@docker compose -f ./src/docker-compose.yml down -v
+	@docker compose -f ./src/docker-compose.yml down
 
 clean:
-	rm -rf $(HOME)/goinfre/data/sqlite/*
-	rm -rf $(HOME)/goinfre/data/app/*
-	rm -rf $(HOME)/goinfre/data/php/*
-	rm -rf $(HOME)/goinfre/data/frontend/*
-	rm -rf $(HOME)/goinfre/data/blockchain/*
-	rm -rf $(HOME)/goinfre/data/security/*
-	rm -rf $(HOME)/goinfre/data/vault/*
-	rm -rf $(HOME)/goinfre/data/elasticsearch/*
-	rm -rf $(HOME)/goinfre/data/logstash/*
-	rm -rf $(HOME)/goinfre/data/grafana/*
-	rm -rf $(HOME)/goinfre/data/prometheus/*
-	rm -rf $(HOME)/goinfre/data/mail/*
-	rm -rf $(HOME)/goinfre/data/mail-state/*
-	rm -rf $(HOME)/goinfre/data/es_secrets/*
-	rm -rf $(HOME)/goinfre/data/es_data/*
-	rm -rf $(HOME)/goinfre/data/es_certs/*
-	rm -rf $(HOME)/goinfre/data/ls_config/*
-	rm -rf $(HOME)/goinfre/data/ls_pipeline/*
-	rm -rf $(HOME)/goinfre/data
+	@echo "⚠️  Borrando por completo ~/goinfre/data ..."
+	@docker run --rm -v $(HOME)/goinfre:/mnt alpine sh -c "rm -rf /mnt/data"
 	@if docker ps -qa | grep -q .; then docker stop $$(docker ps -qa); fi
 	@if docker ps -qa | grep -q .; then docker rm $$(docker ps -qa); fi
 	@if docker images -qa | grep -q .; then docker rmi $$(docker images -qa); fi
@@ -98,13 +36,13 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/app
 	@mkdir -p $(HOME)/goinfre/data/php
 	@mkdir -p $(HOME)/goinfre/data/frontend
-	@mkdir -p $(HOME)/goinfre/data/blockchain
 	@mkdir -p $(HOME)/goinfre/data/security
 	@mkdir -p $(HOME)/goinfre/data/vault
 	@mkdir -p $(HOME)/goinfre/data/elasticsearch
 	@mkdir -p $(HOME)/goinfre/data/logstash
 	@mkdir -p $(HOME)/goinfre/data/grafana
 	@mkdir -p $(HOME)/goinfre/data/prometheus
+	@mkdir -p $(HOME)/goinfre/data/prometheus_query_log
 	@mkdir -p $(HOME)/goinfre/data/mail
 	@mkdir -p $(HOME)/goinfre/data/mail-state
 	@mkdir -p $(HOME)/goinfre/data/es_secrets
@@ -112,6 +50,8 @@ setup:
 	@mkdir -p $(HOME)/goinfre/data/es_certs
 	@mkdir -p $(HOME)/goinfre/data/ls_config
 	@mkdir -p $(HOME)/goinfre/data/ls_pipeline
+	@mkdir -p $(HOME)/goinfre/data/kibana
+	@mkdir -p $(HOME)/goinfre/data/vault_backups
 
 re: down all
 
@@ -140,7 +80,6 @@ logs_service:
 scan:
 	@docker exec -it security /zap/wrk/zap_scan.sh
 
-
 security:
 	@echo "Ejecutando pruebas de seguridad..."
 	@docker exec security mkdir -p /zap/reports
@@ -148,8 +87,8 @@ security:
 	@docker exec security chmod +x /tmp/security_test.sh
 	@docker exec security /tmp/security_test.sh
 	@echo "Reportes disponibles en:"
-	@echo "- Resumen de seguridad: https://localhost/zap_reports/security_report.html"
-	@echo "- Reporte detallado de ZAP: https://localhost/zap_reports/zap_report.html"
+	@echo "- Resumen de seguridad: https://localhost:8443/zap_reports/security_report.html"
+	@echo "- Reporte detallado de ZAP: https://localhost:8443/zap_reports/zap_report.html"
 
 token:
 	@docker exec -it security cat /vault/data/ui_token.txt
@@ -158,7 +97,7 @@ help: grant_permissions
 	@./script/display_help.sh
 
 jwt: grant_permissions
-	@./script/jwt_tools.sh jwt
+	@./script/jwt_tools.sh jwt 
 
 verify: grant_permissions
 	@./script/verify_user.sh $(user)
@@ -171,5 +110,9 @@ email: grant_permissions
 
 elastic-password:
 	@docker exec elasticsearch cat /usr/share/elasticsearch/secrets/elastic_password
+	@docker exec -it logstash curl -X POST -H "Content-Type: application/json" -d '{"time": 1678886400000, "level": 30, "msg": "Test HTTP log from curl"}' http://logstash:8082
 
-.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password
+grafana:
+	@docker exec -it grafana cat /var/lib/grafana/admin_password
+
+.PHONY: all down clean setup delete logs logs_service ps re help scan security token verify jwt 2fa email elastic-password grafana

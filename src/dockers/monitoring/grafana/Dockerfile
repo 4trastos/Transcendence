@@ -1,27 +1,26 @@
-FROM grafana/grafana:latest
+FROM grafana/grafana:9.5.0
 
-# 1. Todas las operaciones como root (usuario por defecto)
 USER root
 
-# 2. Crear directorio con permisos adecuados antes de copiar archivos
-RUN mkdir -p /docker-entrypoint && \
-    chown -R 472:472 /docker-entrypoint && \
-    chmod 755 /docker-entrypoint
+# Instalar dependencias
+RUN apk add --no-cache openssl curl sqlite jq
 
-# 3. Copiar archivos de configuración
+# Crear directorios necesarios
+RUN mkdir -p /etc/grafana/ssl /prometheus/certs && \
+    chown -R 472:472 /etc/grafana /prometheus/certs && \
+    chmod 755 /etc/grafana/ssl && \
+    chmod 750 /prometheus/certs
+
+# Copiar configuración
+COPY provisioning/ /etc/grafana/provisioning/
 COPY grafana.ini /etc/grafana/grafana.ini
-COPY datasources.yaml /etc/grafana/provisioning/datasources/datasources.yaml
+COPY entrypoint.sh /entrypoint.sh
 
-# 4. Copiar entrypoint al directorio creado
-COPY entrypoint.sh /docker-entrypoint/entrypoint.sh
-RUN chmod +x /docker-entrypoint/entrypoint.sh && \
-    chown 472:472 /docker-entrypoint/entrypoint.sh
+# Ajustar permisos
+RUN chmod 755 /entrypoint.sh && \
+    chown -R 472:472 /etc/grafana/provisioning
 
-# 5. Cambiar al usuario grafana (UID 472) para ejecución
 USER 472
 
-# 6. Puerto expuesto
 EXPOSE 3000
-
-# 7. Punto de entrada
-ENTRYPOINT ["/docker-entrypoint/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

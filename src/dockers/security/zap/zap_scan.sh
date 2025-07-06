@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Definir variables
-TARGET_URL="http://frontend:3001"
+TARGET_URL="http://frontend:3040"
 ZAP_ADDRESS="http://security"
 ZAP_PORT="8081"
 ZAP_API_KEY="my_zap_api_key"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 URL_ZAP="http://localhost:8081/"
-URL_KIBANA="https://localhost:5601/app/home#/"
+URL_KIBANA="https://localhost:5601/login"
 
 # Verifica si ZAP está listo
 check_zap_ready() {
@@ -11,8 +11,7 @@ check_zap_ready() {
 
 # Verifica si Kibana está listo
 check_kibana_ready() {
-  local response=$(curl -s "$URL_KIBANA")
-  [[ "$response" == *"<title>Elastic</title>"* ]]
+  docker logs --tail 1000 kibana 2>&1 | grep -q "Kibana is now available"
 }
 
 # Verifica si Elasticsearch está healthy
@@ -31,7 +30,6 @@ center_text() {
 # Estado inicial de los servicios
 services_names=(
   "app (backend)"
-  "blockchain"
   "elasticsearch"
   "frontend"
   "grafana"

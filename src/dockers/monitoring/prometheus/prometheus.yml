@@ -1,40 +1,27 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    monitor: 'transcendence'
+
+rule_files:
+  - /etc/prometheus/alert_rules.yml
 
 scrape_configs:
   - job_name: 'backend'
     scheme: http
     metrics_path: '/metrics'
-    tls_config:
-      insecure_skip_verify: true
     static_configs:
-      - targets: ['http://localhost:3000/metrics']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: app:3000
+      - targets: ['app:3000']
 
-  - job_name: 'php-fpm'
+  - job_name: 'php'
     static_configs:
       - targets: ['php-fpm-exporter:9253']
-
 
   - job_name: 'nginx'
     metrics_path: '/metrics'
     static_configs:
-     - targets: ['nginx-exporter:9113']
-
-  - job_name: 'avalanche'
-    scheme: https # Asumiendo que su API de métricas es HTTPS
-    metrics_path: '/metrics' # Ajusta el path según la documentación de Avalanche
-    tls_config:
-      insecure_skip_verify: true
-    static_configs:
-      - targets: ['avalanche:9650'] # Ajusta el puerto si la API de métricas está en otro puerto
+      - targets: ['nginx-exporter:9113']
 
   - job_name: 'vault'
     scheme: https
@@ -48,40 +35,35 @@ scrape_configs:
       insecure_skip_verify: false
 
   - job_name: 'elasticsearch'
-    scheme: https # El exporter se comunicará con ES por HTTPS
-    metrics_path: '/metrics' # Path por defecto del Elasticsearch Exporter
-    tls_config:
-      insecure_skip_verify: true # El exporter podría necesitar configuración de certificados
-    static_configs:
-      - targets: ['elasticsearch-exporter:9108'] # Puerto por defecto del exporter
-    # Si no usas el exporter, podrías intentar scrapearlo directamente (menos recomendado):
-    # - job_name: 'elasticsearch'
-    #   scheme: https
-    #   tls_config:
-    #     insecure_skip_verify: true
-    #   basic_auth:
-    #     username: elastic
-    #     password: 'YOUR_ELASTIC_PASSWORD' # ¡Cuidado con esto en producción!
-    #   static_configs:
-    #     - targets: ['elasticsearch:9200']
-    #   metrics_path: '/_stats' # Ejemplo de endpoint
-
-  - job_name: 'logstash'
-    scheme: http # Por defecto el exporter expone en HTTP
-  #  metrics_path: '/metrics'
-    metrics_path: '/_node/stats' # Path por defecto del Logstash Exporter
-    static_configs:
-      - targets: ['logstash-exporter:9600'] # Puerto por defecto del exporter (mismo que la API de Logstash)
-
-  - job_name: 'kibana'
-    scheme: https # El exporter se comunicará con Kibana por HTTPS
-    metrics_path: '/metrics' # Path por defecto del Kibana Exporter
-    tls_config:
-      insecure_skip_verify: true # El exporter podría necesitar configuración de certificados
-    static_configs:
-      - targets: ['kibana-exporter:5601'] # Puerto por defecto del exporter (mismo que Kibana)
-
-  - job_name: 'prometheus'
+    metrics_path: '/metrics'
     scheme: http
     static_configs:
+      - targets: ['elasticsearch_exporter:9114']
+
+  - job_name: 'logstash'
+    static_configs:
+      - targets: ['logstash-exporter:9811']
+
+  - job_name: 'kibana'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kibana-exporter:9201']
+
+  - job_name: 'prometheus'
+    static_configs:
       - targets: ['localhost:9090']
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+
+  - job_name: 'grafana'
+    metrics_path: /metrics
+    scheme: https
+    tls_config:
+      ca_file: /etc/prometheus/certs/ca.crt
+      insecure_skip_verify: true
+    basic_auth:
+      username: admin
+      password_file: /grafana_data/admin_password
+    static_configs:
+      - targets: ['grafana:3000']

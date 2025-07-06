@@ -15,10 +15,17 @@ api_addr = "https://security:8200"
 cluster_addr = "https://security:8201"
 ui = true
 
-disable_mlock = true
 log_level = "info"
 
 telemetry {
-  prometheus_retention_time = "30s"
+  prometheus_retention_time = "1m"
   disable_hostname = true
 }
+
+cache {
+  size = "2MB"
+}
+
+disable_mlock = true
+disable_performance_standby = true
+disable_sealwrap = true

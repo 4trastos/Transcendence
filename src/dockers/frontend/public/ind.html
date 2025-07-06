@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ripple Effect</title>
+  <script defer>
+    // Ripple logic
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".ripple").forEach((button) => {
+        button.addEventListener("click", function (e) {
+          const circle = document.createElement("span");
+          const diameter = Math.max(this.clientWidth, this.clientHeight);
+          const radius = diameter / 2;
+
+          circle.style.width = circle.style.height = `${diameter}px`;
+          circle.style.left = `${e.clientX - this.getBoundingClientRect().left - radius}px`;
+          circle.style.top = `${e.clientY - this.getBoundingClientRect().top - radius}px`;
+          circle.classList.add("ripple-effect");
+
+          const ripple = this.querySelector(".ripple-effect");
+          if (ripple) ripple.remove();
+
+          this.appendChild(circle);
+        });
+      });
+    });
+  </script>
+
+  <style>
+    .ripple-effect {
+      position: absolute;
+      border-radius: 9999px;
+      background-color: rgba(255, 255, 255, 0.4);
+      transform: scale(0);
+      animation: ripple-animation 600ms linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex items-center justify-center h-screen bg-gray-900">
+  <button class="relative overflow-hidden px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold ripple">
+    Click Me
+  </button>
+</body>
+</html>

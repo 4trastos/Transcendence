@@ -2,12 +2,19 @@ server.host: "0.0.0.0"
 server.port: 5601
 server.name: "kibana-transcendence"
 server.shutdownTimeout: "5s"
+server.ssl.enabled: true
+server.ssl.key: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key"
+server.ssl.certificate: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt"
+server.ssl.certificateAuthorities: ["/usr/share/elasticsearch/config/certs/ca/ca.crt"]
+server.ssl.redirectHttpFromPort: 8080  # (opcional) redirige HTTP a HTTPS
 
 # Elasticsearch Configuration
 elasticsearch.hosts: ["https://elasticsearch:9200"]
+elasticsearch.username: "elastic"
+elasticsearch.password: ["/usr/share/elasticsearch/secrets/elastic_password"]
 elasticsearch.ssl.certificateAuthorities: ["/usr/share/elasticsearch/config/certs/ca/ca.crt"]
 elasticsearch.ssl.verificationMode: certificate
-elasticsearch.requestTimeout: 120000
+elasticsearch.requestTimeout: 30000
 elasticsearch.pingTimeout: 30000
 elasticsearch.healthCheck.delay: 60000
 
@@ -23,3 +30,8 @@ xpack.observabilityAIAssistant.enabled: false
 xpack.observability.enabled: false
 xpack.apm.ui.enabled: false
 xpack.fleet.enabled: false
+
+# Configuración de alertas
+xpack.actions.preconfigured: {}
+xpack.actions.preconfiguredAlertHistoryEsIndex: false
+xpack.alerting.rules.minimumScheduleInterval.value: "1m"

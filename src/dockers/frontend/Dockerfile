@@ -17,7 +17,8 @@ RUN apt-get update && \
 # Copia los archivos de tu proyecto al contenedor
 COPY src/ /app/src/
 COPY public/index.html /app/public/index.html
-COPY public/images/background_90.jpg /app/public/images/background_90.jpg
+#Volumen persistente para esta direccion
+COPY public/images/* /app/public/images/ 
 COPY /server.js /app/
 COPY /tsconfig.json /app/
 COPY /tailwind.config.js /app/

@@ -3,7 +3,6 @@ import { SessionRepositoryPort } from "../../application/ports/SessionRepository
 import { WebSocketUser } from "../../application/use-cases/ListenMessage";
 import { Chat } from "../../domain/entities/Chat";
 import { Message } from "../../domain/entities/Message";
-import ChatSingleton from "../db/ChatSingleton";
 import SessionSingleton from "../db/SessionSingleton";
 
 

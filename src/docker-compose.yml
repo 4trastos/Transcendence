@@ -4,116 +4,215 @@ networks:
     driver: bridge
 
 services:
-  sqlite:   # Base de datos (SQLite)
+  sqlite:  
     build: dockers/sqlite/.
     container_name: sqlite
-    image: nouchka/sqlite3  # Imagen de SQLite para acceder a la base de datos
+    image: nouchka/sqlite3  
     volumes:
       - sqlite_data:/var/lib/sqlite
     networks:
       - transcendence
     restart: on-failure
+    mem_limit: 384MB  # Aumentado de 256MB
+    mem_reservation: 192MB  # Aumentado de 128MB
+    memswap_limit: 512MB  # Límite de swap
+    #cpu_shares: 512  # Prioridad relativa de CPU
+    healthcheck:
+     # test: ["CMD", "sqlite3", "/var/lib/sqlite/database.db", "PRAGMA integrity_check"]
+      test: ["CMD", "sqlite3", "/var/lib/sqlite/sqlite.db", "PRAGMA integrity_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-  backend:    # Backend (Node.js API)
-    build: dockers/backend/.
+  backend:
+    build: dockers/backend_old/.
     container_name: app
     working_dir: /usr/src/app
     volumes:
-      - backend_data:/usr/src/app/data
-      - sqlite_data:/usr/src/app/data
+    #  - backend_data:/usr/src/app/data
+    #  - sqlite_data:/usr/src/app/data
+      - tls_volume:/etc/app/tls
       - sqlite_data:/var/lib/sqlite
     command: npm start
-    ports:
-      - "3000:3000"
     depends_on:
-      - sqlite
-      - avalanche
-      - security
+      security:
+        condition: service_healthy
     environment:
-      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDR=https://security:8200  # Usar nombre de servicio en lugar de IP
       - TZ=Europe/Madrid
+      - NODE_OPTIONS=--max-old-space-size=768  # Aumentado a 768MB
+      - SQLITE_BUSY_TIMEOUT=15000  # Aumentado a 15 segundos
+      - SQLITE_SYNCHRONOUS=FULL
+      - SQLITE_JOURNAL_MODE=WAL
+      - HEALTH_CHECK_PATH=/health  # Ruta explícita
     env_file:
       - .env
+    #ports:
+    #  - "3000:3000"
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 1024MB  # Aumentado a 1GB
+    mem_reservation: 512MB
+    memswap_limit: 1536MB  # 1.5GB
+    #cpu_shares: 768
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 15s  # Aumentado
+      retries: 6    # Más reintentos
+      start_period: 60s  # Más tiempo para iniciar
 
+  chat-service:
+    build:
+      context: ./dockers/chat-service/
+      dockerfile: Dockerfile
+    container_name: chat-service
+    restart: always
+    volumes:
+      - tls_volume:/etc/app/tls
+      - sqlite_data:/var/lib/sqlite
+    env_file:
+      - .env
+    #ports:
+    #  - "3050:3050"
+    networks:
+      - transcendence
+
+
+  game-service:
+    build:
+      context: ./dockers/game-service/
+      dockerfile: Dockerfile
+    container_name: game-service
+    restart: always
+    volumes:
+      - tls_volume:/etc/app/tls
+      - sqlite_data:/var/lib/sqlite
+    env_file:
+      - .env
+    #ports:
+    #  - "3050:3050"
+    networks:
+      - transcendence
   php:
     build: dockers/php/.
     container_name: php
     volumes:
       - php_data:/var/www/html
       - zap_reports:/zap/reports
-      - php_ssl:/etc/nginx/ssl
+     # - php_ssl:/etc/nginx/ssl
+      - tls_volume:/etc/nginx/ssl
     env_file:
       - .env
     environment:
       - ENVIRONMENT=production
+      - PHP_FPM_PM=dynamic                # Modo de procesos dinámico
+      - PHP_FPM_PM_MAX_CHILDREN=20        # Máximo de procesos hijos
+      - PHP_FPM_PM_START_SERVERS=4        # Procesos iniciales
+      - PHP_FPM_PM_MIN_SPARE_SERVERS=2    # Mínimo de procesos inactivos
+      - PHP_FPM_PM_MAX_SPARE_SERVERS=8    # Máximo de procesos inactivos
+      - PHP_FPM_PM_MAX_REQUESTS=500       # Reciclar procesos después de 500 peticiones
+      - NGINX_WORKER_PROCESSES=2          # Procesos de Nginx
+      - NGINX_WORKER_CONNECTIONS=1024     # Conexiones por worker
     ports:
       - "8443:443"
       - "8080:80"
-      - "9001:9001"
     networks:
       - transcendence
     depends_on:
-      - frontend
-      - security
+      security:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      chat-service:
+        condition: service_started
     restart: always
+    mem_limit: 768MB           # Límite máximo de RAM
+    mem_reservation: 384MB     # RAM reservada garantizada
+    memswap_limit: 1GB         # Límite de swap
+    #cpu_shares: 768            # Prioridad relativa de CPU
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
   
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter
     container_name: nginx-exporter
     command:
       - '-nginx.scrape-uri=http://php:8080/nginx_status'
-    ports:
-      - "9113:9113"
+    #ports:
+    #  - "9113:9113"
     networks:
       - transcendence
     depends_on:
       - php
+    mem_limit: 128MB
+    mem_reservation: 64MB
+    memswap_limit: 256MB
+    #cpu_shares: 256
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9113/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   
   php-fpm-exporter:
     image: hipages/php-fpm_exporter:latest
     container_name: php-fpm-exporter
     environment:
-      - PHP_FPM_SCRAPE_URI=tcp://php-nginx:9001/status
-    ports:
-      - "9253:9253"
+      - PHP_FPM_SCRAPE_URI=tcp://php:9001/status  # Cambiado a "php" (nombre del servicio)
+    #ports:
+    #  - "9253:9253"
     depends_on:
       - php
     networks:
       - transcendence
+    mem_limit: 128MB
+    mem_reservation: 64MB
+    memswap_limit: 256MB
+    #cpu_shares: 256
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9253/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-
-  frontend:   # Frontend (TypeScript + Tailwind)
+  frontend:
     build: dockers/frontend/.
     container_name: frontend
     image: node:18-alpine
     volumes:
-      - frontend_data:/usr/src/app      # Volumen para el código fuente
-      - php_data:/usr/src/app/dist   # Comparte los archivos estáticos con PHP
-    command: sh -c "npm run build && npx serve dist -l 3001"  # Cambiado a `npm run build` para generar archivos estáticos
-    ports:
-      - "3001:3001"
+      - frontend_data:/usr/src/app    
+      - php_data:/usr/src/app/dist  
+      - ./frontend/public:/usr/share/nginx/html:ro
+      - ./ssl_certs:/etc/nginx/ssl:ro
+    command: sh -c "npm run build && npx serve dist -l 3040"
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=384  # Limita el heap de Node.js
+      - GENERATE_SOURCEMAP=false  # Reduce uso de memoria durante build
+    #ports:
+    #  - "3040:3040"
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 512MB           # Límite máximo de RAM
+    mem_reservation: 256MB     # RAM reservada garantizada
+    memswap_limit: 768MB       # Límite de swap
+    #cpu_shares: 512            # Prioridad relativa de CPU
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3040"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
-      - backend
-
-  avalanche:      # Blockchain (Avalanche)
-    build: dockers/blockchain/.
-    container_name: blockchain
-    volumes:
-      - blockchain_data:/avalanchego
-      - ./dockers/blockchain/config.json:/avalanchego/config.json
-    ports:
-      - "9650:9650"   # JSON RPC endpoint
-      - "9651:9651"   # P2P port
-    command: ["/avalanchego/avalanchego", "--data-dir", "/avalanchego", "--http-host=0.0.0.0"]
-    networks:
-      - transcendence
-    restart: unless-stopped
+      backend:
+        condition: service_healthy
 
   security:
     build: dockers/security/.
@@ -138,12 +237,21 @@ services:
       - zap_reports:/zap/reports    # Reportes de ZAP
       - vault_data:/vault/data      # Datos persistentes de Vault
       - tls_volume:/etc/vault/tls   # Certificados TLS (única ubicación)
-    entrypoint: ["/zap/wrk/entrypoint.sh"]
+      - vault_backups:/vault/backup # Para los backups de Vault
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
     networks:
       transcendence:
         aliases:
           - security
     restart: unless-stopped
+    mem_limit: 1.5GB 
+    mem_reservation: 512MB
+    healthcheck:
+      test: ["CMD", "sh", "-c", "vault status -tls-skip-verify && test -s /vault/data/ui_token.txt && echo 'Vault ready and token present'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   elasticsearch:
     build: ./dockers/management/elasticsearch
@@ -153,9 +261,13 @@ services:
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
       - xpack.security.transport.ssl.enabled=true
+      - xpack.security.authc.api_key.enabled=true
+      - xpack.security.authc.token.enabled=true
+      - xpack.security.authc.token.timeout=1h
     volumes:
       - es_data:/usr/share/elasticsearch/data
       - es_secrets:/usr/share/elasticsearch/secrets
@@ -168,7 +280,28 @@ services:
       test: ["CMD-SHELL", "curl -s -k https://localhost:9200/_cluster/health | grep -q '\"status\"'"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
+    container_name: elasticsearch_exporter
+    #ports:
+    #  - "9114:9114"
+    environment:
+      - ES_URI=https://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - ES_CA=/usr/share/elasticsearch/config/certs/ca/ca.crt
+      - ES_ALL=true
+      - ES_TIMEOUT=30s
+    volumes:
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+    networks:
+      - transcendence
 
   logstash:
     build: ./dockers/management/logstash
@@ -176,18 +309,50 @@ services:
     container_name: logstash
     restart: on-failure
     environment:
-      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m  # Reducido a 256MB
       - ELASTIC_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - XPACK_MONITORING_ENABLED=false
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_SSL_VERIFICATION_MODE=none
+      - LOGSTASH_MONITORING_ENABLED=false
+      - pipeline.workers=1  # Solo 1 worker
+      - pipeline.batch.size=125  # Tamaño de lote reducido
+      - pipeline.ordered=auto
     volumes:
+      - es_secrets:/usr/share/elasticsearch/secrets:ro
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
       - ls_config:/usr/share/logstash/config
       - ls_pipeline:/usr/share/logstash/pipeline
-      - es_secrets:/usr/share/elasticsearch/secrets
-      - es_certs:/usr/share/elasticsearch/config/certs:ro
-    ports:
-      - "5000:5000"
-      - "9600:9600"
+    #ports:
+    #  - "5000:5000"
+    networks:
+      - transcendence
+    mem_limit: 512MB  # Reducido a 512MB
+    mem_reservation: 384MB
+    memswap_limit: 768MB
+    #cpu_shares: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
+  
+  logstash-exporter:
+    build: ./dockers/management/logstash-exporter
+    container_name: logstash-exporter
+    restart: unless-stopped
+    environment:
+      - LOGSTASH_URL=https://logstash:9600/_node/stats
+      - VERIFY_SSL=false
+    #ports:
+    #  - "9811:9811"
+    depends_on:
+      - logstash
     networks:
       - transcendence
 
@@ -201,46 +366,107 @@ services:
       - es_certs:/usr/share/elasticsearch/config/certs:ro
     ports:
       - "5601:5601"
-    depends_on:
-      - elasticsearch
     networks:
       - transcendence
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/login"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 300s
+    depends_on:
+      logstash:
+        condition: service_healthy
 
+  kibana-exporter:
+    build: ./dockers/management/kibana-exporter
+    container_name: kibana-exporter
+    environment:
+      - KIBANA_HOST=http://kibana:5601
+      - KIBANA_USERNAME=elastic
+      - KIBANA_PASSWORD_FILE=/usr/share/elasticsearch/secrets/elastic_password
+      - INSECURE_SKIP_VERIFY=true
+    volumes:
+      - es_secrets:/usr/share/elasticsearch/secrets
+      - es_certs:/usr/share/elasticsearch/config/certs:ro
+    #ports:
+    #  - "9201:9201"
+    depends_on:
+      - kibana
+    networks:
+      - transcendence
   
   prometheus:
     build: ./dockers/monitoring/prometheus
     image: prom/prometheus
     container_name: prometheus
-    user: "nobody"  # Asegurar que corre como usuario no privilegiado
+    user: "65534:65534"
     cap_add:
       - CAP_NET_RAW
     volumes:
       - prometheus_data:/prometheus
+      - prometheus_query_log:/data
       - ./dockers/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./dockers/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ./dockers/monitoring/prometheus/web-config.yml:/etc/prometheus/web-config.yml
       - vault_data:/vault/data
-      - tls_volume:/etc/vault/tls:ro
+      - tls_volume:/etc/vault/tls
+      - es_data:/usr/share/elasticsearch/data
+      - es_secrets:/usr/share/elasticsearch/secrets
+      - es_certs:/usr/share/elasticsearch/config/certs
+      - es_certs:/etc/prometheus/ssl
+      - grafana_data:/grafana_data:ro
+    command:
+      - '--web.config.file=/etc/prometheus/web-config.yml'
+    environment:
+      - UID=65534
+      - GID=65534
     ports:
       - "9090:9090"
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 1.5GB
+    mem_reservation: 1GB
+    memswap_limit: 2GB
+    #cpu_shares: 768
 
   grafana:
     build: ./dockers/monitoring/grafana
     image: grafana/grafana
     container_name: grafana
-    user: "472"  # Usuario grafana por defecto (UID 472)
+    user: "472"
     volumes:
       - grafana_data:/var/lib/grafana
-      #- ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
-      #- ./dockers/monitoring/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - prometheus_data:/prometheus/certs:ro
+      - es_data:/usr/share/elasticsearch/data
+      - es_certs:/etc/grafana/elasticsearch-certs
+      - es_secrets:/etc/grafana/elasticsearch-secrets
+      - ./dockers/monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./dockers/monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:
-      - "3003:3000"  # Grafana usa el puerto 3000 por defecto
-    depends_on:
-      - prometheus
+      - "3003:3000"
+    environment:
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=/etc/grafana/ssl/grafana.crt
+      - GF_SERVER_CERT_KEY=/etc/grafana/ssl/grafana.key
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
     networks:
       - transcendence
     restart: unless-stopped
+    mem_limit: 512MB
+    mem_reservation: 256MB
+    memswap_limit: 768MB
+    #cpu_shares: 512
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      - prometheus
+      - elasticsearch
 
   mailserver:
     build: dockers/mailserver/.
@@ -256,32 +482,7 @@ services:
     ports:
       - "1080:1080" # Web interface
       - "1025:25" # SMTP port
-
-  # Microservicios (Backend Reestructurado)
-
-  auth-service:
-    build: ./dockers/microservices/auth
-    ports:
-      - "3004:3000"
-    networks:
-      - transcendence
-    depends_on:
-      - sqlite
-
-  user-service:
-    build: ./dockers/microservices/users
-    ports:
-      - "3005:3000"
-    networks:
-      - transcendence
-
-  blockchain-service:
-    build: ./dockers/microservices/blockchain
-    ports:
-      - "3006:3000"
-    networks:
-      - transcendence
-
+  
 volumes:
   sqlite_data:
     name: sqlite_data
@@ -305,14 +506,6 @@ volumes:
     driver_opts:
       type: none
       device: "$HOME/goinfre/data/frontend"
-      o: bind
-  
-  blockchain_data:
-    name: blockchain_data
-    driver: local
-    driver_opts:
-      type: none
-      device: "$HOME/goinfre/data/blockchain"
       o: bind
 
   php_data:
@@ -354,7 +547,6 @@ volumes:
        type: none
        device: "$HOME/goinfre/data/vault"
        o: bind
-       #o: bind,uid=65534,gid=65534,mode=0777
   
   tls_volume:
     driver: local
@@ -374,8 +566,15 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      o: bind
       device: "$HOME/goinfre/data/prometheus"
+      o: bind
+
+  prometheus_query_log:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/prometheus_query_log"
+      o: bind
   
   mail_data:
     driver: local
@@ -424,4 +623,18 @@ volumes:
     driver_opts:
       type: none
       device: "$HOME/goinfre/data/ls_pipeline"
+      o: bind
+
+  kibana_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/kibana"
+      o: bind
+  
+  vault_backups:
+    driver: local
+    driver_opts:
+      type: none
+      device: "$HOME/goinfre/data/vault"
       o: bind

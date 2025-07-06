@@ -14,12 +14,9 @@ fi
 # =============================================
 
 # 1. Crear estructura de directorios
-mkdir -p \
-  /etc/vault/tls \
-  /zap/wrk/tls \
-  /etc/nginx/certs
+mkdir -p /vault/data /vault/backup /etc/vault/tls /zap/reports /zap/wrk
 
-# 2. Generar CA raíz si no existe
+# 2. Generar CA raíz si no existe (se guarda en tls_volume)
 if [ ! -f "/etc/vault/tls/ca.crt" ]; then
   echo "Generando nueva CA raíz..."
   openssl genrsa -out /etc/vault/tls/ca.key 4096
@@ -28,22 +25,22 @@ if [ ! -f "/etc/vault/tls/ca.crt" ]; then
     -subj "/CN=Transcendence Internal CA"
 fi
 
-# 3. Generar certificado del servidor
+# 3. Generar certificado del servidor (se guarda en tls_volume)
 echo "Generando certificado TLS..."
 openssl req -newkey rsa:4096 -nodes \
   -keyout /etc/vault/tls/key.pem \
   -out /etc/vault/tls/cert.csr \
   -subj "/CN=transcendence" \
-  -config /zap/wrk/openssl.cnf
+  -config /app-scripts/openssl.cnf
 
-# 4. Firmar certificado con SANs
+# 4. Firmar certificado con SANs (se guarda en tls_volume)
 openssl x509 -req -in /etc/vault/tls/cert.csr \
   -CA /etc/vault/tls/ca.crt \
   -CAkey /etc/vault/tls/ca.key \
   -CAcreateserial \
   -out /etc/vault/tls/cert.pem \
   -days 365 -sha256 \
-  -extfile /zap/wrk/openssl.cnf \
+  -extfile /app-scripts/openssl.cnf \
   -extensions v3_ca
 
 # Configurar nombre de host para resolución interna
@@ -53,8 +50,8 @@ echo "127.0.0.1 security security.transcendence" >> /etc/hosts
 echo "export CURL_CA_BUNDLE=/etc/vault/tls/ca.crt" >> /root/.bashrc
 echo "export REQUESTS_CA_BUNDLE=/etc/vault/tls/ca.crt" >> /root/.bashrc
 
-# Configurar CA como confiable
-echo "Configurando CA como confiable..."
+# Configurar CA como confiable para el contenedor 'security'
+echo "Configurando CA como confiable para este contenedor..."
 cp /etc/vault/tls/ca.crt /usr/local/share/ca-certificates/
 update-ca-certificates --fresh
 chmod 644 /etc/ssl/certs/*.pem
@@ -63,21 +60,18 @@ chmod 644 /etc/ssl/certs/*.pem
 export VAULT_ADDR='https://security:8200'
 export VAULT_CACERT='/etc/vault/tls/ca.crt'
 
-# 5. Preparar certificados para otros servicios
+# 5. Preparar certificados para otros servicios (Nginx, ZAP)
 echo "Preparando certificados compartidos..."
+cat /etc/vault/tls/cert.pem /etc/vault/tls/ca.crt > /etc/vault/tls/server.crt
+cp /etc/vault/tls/key.pem /etc/vault/tls/server.key
 
-# Para ZAP (enlace simbólico)
+# Para ZAP (enlace simbólico) - este enlace se crea en el volumen /zap/wrk
 ln -sf /etc/vault/tls /zap/wrk/tls
 
-# Para Nginx (bundle completo)
-cat /etc/vault/tls/cert.pem /etc/vault/tls/ca.crt > /etc/nginx/certs/bundle.pem
-cp /etc/vault/tls/key.pem /etc/nginx/certs/key.pem
-cp /etc/vault/tls/ca.crt /etc/nginx/certs/ca.crt
-
-# 6. Configurar permisos
+# 6. Configurar permisos en el volumen TLS
 chmod 644 /etc/vault/tls/*.crt /etc/vault/tls/*.pem
 chmod 600 /etc/vault/tls/*.key
-chmod 755 /etc/vault/tls /zap/wrk/tls /etc/nginx/certs
+chmod 755 /etc/vault/tls
 
 # =============================================
 # CONFIGURACIÓN COMPLETA DE VAULT
@@ -86,124 +80,71 @@ chmod 755 /etc/vault/tls /zap/wrk/tls /etc/nginx/certs
 echo "Iniciando Vault..."
 vault server -config=/etc/vault/vault.hcl &
 
-# Esperar inicialización
+# ! --- CAMBIO CLAVE AQUÍ: Esperar a que el servidor de Vault esté escuchando ---
+echo "Esperando que el servidor de Vault inicie y escuche en el puerto 8200..."
+# Un pequeño sleep para dar tiempo a Vault a empezar a bindear el puerto
 sleep 5
+# Usamos netcat para verificar si el puerto está abierto, es más fiable que curl para esto.
+until nc -z -w 1 localhost 8200; do
+    echo "Vault no está escuchando, esperando..."
+    sleep 2
+done
+echo "El servidor de Vault está escuchando."
+# ! --------------------------------------------------------------------------
 
-# Función para inicializar Vault
-init_vault() {
+# Función para backup de credenciales (se mantiene aquí, ya que es un paso post-configuración)
+backup_vault_credentials() {
+    echo "Backup de credenciales críticas..."
+    tar czf /vault/backup/vault_credentials_$(date +%Y%m%d).tar.gz \
+        /vault/data/unseal_key.txt \
+        /vault/data/root_token.txt \
+        /vault/data/role_id.txt \
+        /vault/data/secret_id.txt # Incluir secret_id
+    chmod 600 /vault/backup/*.tar.gz
+    echo "Backup de credenciales completado."
+}
+
+# Inicialización condicional de Vault
+if [ ! -f "/vault/data/initialized" ]; then
     echo "Inicializando Vault por primera vez..."
+    # Inicializar y desbloquear Vault
+    # Los comandos 'vault operator init' y 'vault operator unseal' esperan que Vault sea accesible.
     vault operator init -key-shares=1 -key-threshold=1 > /tmp/vault-init.txt
     UNSEAL_KEY=$(grep "Unseal Key" /tmp/vault-init.txt | awk '{print $4}')
     ROOT_TOKEN=$(grep "Root Token" /tmp/vault-init.txt | awk '{print $4}')
     
     echo "$UNSEAL_KEY" > /vault/data/unseal_key.txt
     echo "$ROOT_TOKEN" > /vault/data/root_token.txt
-    touch /vault/data/initialized
+    touch /vault/data/initialized # Marca de inicialización
     
-    # Configurar entorno
-    export VAULT_TOKEN="$ROOT_TOKEN"
+    export VAULT_TOKEN="$ROOT_TOKEN" # Exportar token para el resto de configuraciones
     
-    # Desbloquear Vault
     vault operator unseal $UNSEAL_KEY
-    
-    # Habilitar audit logging
-    vault audit enable file file_path=/vault/data/audit.log
-    
-    # Configuración básica
-    configure_vault
-}
+    echo "Vault inicializado y desbloqueado."
 
-# Después de init_vault()
-    backup_vault_credentials() {
-    echo "Backup de credenciales críticas..."
-    tar czf /vault/backup/vault_credentials_$(date +%Y%m%d).tar.gz \
-        /vault/data/unseal_key.txt \
-        /vault/data/root_token.txt \
-        /vault/data/role_id.txt
-    chmod 600 /vault/backup/*.tar.gz
-}
+    # Habilitar audit logging (solo la primera vez)
+    vault audit enable file file_path=/vault/data/audit.log || true 
+    echo "Audit logging habilitado."
 
-# Función para configuración automática
-configure_vault() {
-    echo "Configurando políticas y secretos..."
+    # ! --- LLAMADA AL SCRIPT DE CONFIGURACIÓN COMPLETO (configure_vault.sh) ---
+    /app-scripts/configure_vault.sh
+    # ! ---------------------------------------------------------------------
     
-    # 1. Habilitar motor KV v2
-    vault secrets enable -path=secret kv-v2
-    
-    # 2. Crear políticas
-    vault policy write transcendence /etc/vault/policy.hcl
-    echo "Configurando política para Prometheus..."
-    vault policy write prometheus /etc/vault/prometheus.hcl
-    
-    # 3. Crear secretos iniciales
-    vault kv put secret/transcendence/database \
-        username="db_admin" \
-        password="$(openssl rand -base64 16)"
-    
-    vault kv put secret/transcendence/api_keys \
-        zap_api_key="${ZAP_API_KEY:-my_zap_api_key}" \
-        jwt_secret="$(openssl rand -base64 32)"
-
-    vault kv put secret/transcendence/auth \
-        jwt_expires_in="1h" \
-        refresh_expires_in="7d" \
-        twofa_expires="15m"
-    
-   # 4. Configurar autenticación AppRole (versión mejorada)
-    vault auth enable approle
-    vault write auth/approle/role/transcendence-app \
-        secret_id_ttl=0 \
-        token_ttl=1h \
-        token_max_ttl=2h \
-        policies="transcendence" \
-        bind_secret_id=true \
-        token_type="service"
-
-    # 5. Generar credenciales iniciales
-    echo "Generando credenciales AppRole..."
-    ROLE_ID=$(vault read -field=role_id auth/approle/role/transcendence-app/role-id)
-    SECRET_ID=$(vault write -f -field=secret_id auth/approle/role/transcendence-app/secret-id)
-
-    # Guardar credenciales con permisos seguros
-    echo "$ROLE_ID" > /vault/data/role_id.txt
-    echo "$SECRET_ID" > /vault/data/secret_id.txt
-    chmod 600 /vault/data/secret_id.txt
-    
-    # 6. Generar token para UI (existente)
-    UI_TOKEN=$(vault token create -policy="transcendence" -ttl=24h -field=token)
-    echo "$UI_TOKEN" > /vault/data/ui_token.txt
-    chmod 644 /vault/data/ui_token.txt
-
-    # 7. Crear token para Prometheus y guardarlo
-    echo "Generando token para Prometheus..."
-    mkdir -p /vault/data/prometheus
-    #PROMETHEUS_TOKEN=$(vault token create -policy=prometheus -ttl=24h -renewable=true -field=token)
-    #echo "$PROMETHEUS_TOKEN" > /vault/data/prometheus/token.txt
-    #chmod 644 /vault/data/prometheus/token.txt
-    if vault token create -policy=prometheus -ttl=24h -renewable=true -format=json > /tmp/prom_token.json; then
-    jq -r .auth.client_token /tmp/prom_token.json > /vault/data/prometheus/token.txt
-    chmod 644 /vault/data/prometheus/token.txt
-    else
-        echo "❌ Error al crear token para Prometheus"
-        exit 1
-    fi
-
-    # 8. Configurar autenticación userpass (existente)
-    vault auth enable userpass
-    vault write auth/userpass/users/transcendence-admin \
-        password="$(openssl rand -base64 12)" \
-        policies="transcendence"
-    
-    echo "Configuración completada!"
-}
-
-# Inicialización condicional
-if [ ! -f "/vault/data/initialized" ]; then
-    init_vault
+    backup_vault_credentials # Realizar backup después de la primera configuración
 else
-    echo "Vault ya está inicializado, procediendo a desbloquear..."
-    vault operator unseal $(cat /vault/data/unseal_key.txt)
-    export VAULT_TOKEN=$(cat /vault/data/root_token.txt)
+    echo "Vault ya está inicializado, procediendo a desbloquear y reconfigurar si es necesario..."
+    UNSEAL_KEY=$(cat /vault/data/unseal_key.txt)
+    ROOT_TOKEN=$(cat /vault/data/root_token.txt)
+    
+    export VAULT_TOKEN="$ROOT_TOKEN" # Asegurarse de que el token esté disponible
+    
+    vault operator unseal $UNSEAL_KEY
+    echo "Vault desbloqueado."
+
+    /app-scripts/configure_vault.sh
+    # ! ---------------------------------------------------------------------
+
+    backup_vault_credentials # Realizar backup en cada arranque (se sobrescribirá el anterior)
 fi
 
 # =============================================
@@ -217,9 +158,12 @@ echo "Iniciando ZAP..."
   -config api.addrs.addr.regex=true &
 
 # Esperar que ZAP esté listo
+echo "Esperando que ZAP esté listo..."
+# Usamos un curl más robusto para ZAP
 while ! curl -sSf http://localhost:8081/JSON/core/view/version >/dev/null 2>&1; do
   sleep 2
 done
+echo "ZAP está listo."
 
 # =============================================
 # MANTENER CONTENEDOR EN EJECUCIÓN
@@ -230,7 +174,6 @@ echo "================================="
 echo "URL Vault UI: https://localhost:8200"
 echo "Token UI: $(cat /vault/data/ui_token.txt)"
 echo "Usuario admin: transcendence-admin"
-echo "Contraseña admin: $(vault read -field=password auth/userpass/users/transcendence-admin)"
 echo "================================="
 
 # =============================================
@@ -243,5 +186,7 @@ ln -sf /zap/reports/zap_report.html /var/www/html/zap_reports/zap_report.html
 ln -sf /zap/reports/security_report.html /var/www/html/zap_reports/security_report.html
 chown -R www-data:www-data /var/www/html/zap_reports
 chmod -R 755 /var/www/html/zap_reports
+echo "Enlaces de reportes configurados."
 
+# Mantener el contenedor en ejecución
 tail -f /dev/null

@@ -1,28 +1,144 @@
 {
-    "index_patterns": ["transcendence-*"],
-    "template": {
-      "settings": {
-        "number_of_shards": 1
-      },
-      "mappings": {
-        "properties": {
-          "@timestamp": { "type": "date" },
-          "message":     { "type": "text" },
-          "log_level":   { "type": "keyword" },
-          "timestamp":   { "type": "date" },
-          "host":        { "type": "keyword" },
-          "type":        { "type": "keyword" },
-          "project":     { "type": "keyword" },
-          "environment": { "type": "keyword" },
-          "status":      { "type": "integer" },
-          "bytes":       { "type": "long" },
-          "request":     { "type": "text" },
-          "referrer":    { "type": "keyword" },
-          "agent":       { "type": "text" },
-          "response":    { "type": "integer" },
-          "path":        { "type": "text" }
+  "index_patterns": ["transcendence-*"],
+  "priority": 100,
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "30s",
+      "index.lifecycle.name": "transcendence_policy",
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic_templates": [
+        {
+          "strings_as_keywords": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "@timestamp": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "message": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "log_level": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "timestamp": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "host": {
+          "type": "object",
+          "properties": {
+            "ip": { "type": "ip" },
+            "name": { "type": "keyword", "ignore_above": 256 },
+            "id": { "type": "keyword", "ignore_above": 256 },
+            "mac": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "keyword", "ignore_above": 1024 }, 
+            "domain": { "type": "keyword", "ignore_above": 256 },
+            "port": { "type": "long" }
+          }
+        },
+        "http": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "keyword", "ignore_above": 256 },
+            "version": { "type": "keyword", "ignore_above": 256 },
+            "request": {
+              "type": "object",
+              "properties": {
+                "mime_type": { "type": "keyword", "ignore_above": 256 },
+                "body": {
+                  "properties": {
+                    "bytes": { "type": "long" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "user_agent": { 
+          "type": "object",
+          "properties": {
+            "original": { "type": "keyword", "ignore_above": 1024 },
+            "name": { "type": "keyword", "ignore_above": 256 },
+            "version": { "type": "keyword", "ignore_above": 256 },
+            "device": { "type": "keyword", "ignore_above": 256 },
+            "os": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "keyword", "ignore_above": 256 },
+                "version": { "type": "keyword", "ignore_above": 256 }
+              }
+            }
+          }
+        },
+        "level": { 
+          "type": "long"
+        },
+        "type": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "project": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "environment": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "status": {
+          "type": "integer",
+          "doc_values": true
+        },
+        "bytes": { 
+          "type": "long",
+          "doc_values": true
+        },
+        "request": { 
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        "referrer": {
+          "type": "keyword",
+          "ignore_above": 1024
+        },
+        "agent": { 
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
         }
       }
     }
   }
-  
+}
